@@ -2,13 +2,13 @@
     HGSS Visual Overhaul — main.lua
     ================================
     Official Gen1Recomp Mod Entry Point.
-    v1.4.0 — Fixed Pokemon Back/Front Battle Scaling (80x80 NDS -> 0.7x = 56px)
+    v1.5.0 — Pristine 32-bit RGBA Trainer Battle Colors & 56px DS Proportional Scale
 ]]
 
 return function(mod)
     print("========================================")
-    print("  HGSS Visual Overhaul v1.4.0")
-    print("  Loading 32-bit TrueColor & 0.7x Scaled Battle Sprites...")
+    print("  HGSS Visual Overhaul v1.5.0")
+    print("  Loading 32-bit RGBA Trainer & Pokemon Battle Assets...")
     print("========================================")
 
     local POKEMON_LIST = {
@@ -63,31 +63,19 @@ return function(mod)
         "KOFFING", "WEEZING",
         "RHYHORN", "RHYDON",
         "CHANSEY",
-        "TANGELA",
-        "KANGASKHAN",
+        "TANGELA", "KANGASKHAN",
         "HORSEA", "SEADRA",
         "GOLDEEN", "SEAKING",
         "STARYU", "STARMIE",
-        "MR_MIME",
-        "SCYTHER",
-        "JYNX",
-        "ELECTABUZZ",
-        "MAGMAR",
-        "PINSIR",
-        "TAUROS",
-        "MAGIKARP", "GYARADOS",
-        "LAPRAS",
-        "DITTO",
+        "MR_MIME", "SCYTHER", "JYNX",
+        "ELECTABUZZ", "MAGMAR", "PINSIR", "TAUROS",
+        "MAGIKARP", "GYARADOS", "LAPRAS", "DITTO",
         "EEVEE", "VAPOREON", "JOLTEON", "FLAREON",
-        "PORYGON",
-        "OMANYTE", "OMASTAR",
-        "KABUTO", "KABUTOPS",
-        "AERODACTYL",
-        "SNORLAX",
-        "ARTICUNO", "ZAPDOS", "MOLTRES",
+        "PORYGON", "OMANYTE", "OMASTAR",
+        "KABUTO", "KABUTOPS", "AERODACTYL",
+        "SNORLAX", "ARTICUNO", "ZAPDOS", "MOLTRES",
         "DRATINI", "DRAGONAIR", "DRAGONITE",
-        "MEWTWO",
-        "MEW",
+        "MEWTWO", "MEW",
     }
 
     -- 1. Patch trueColor = true & battleScale (0.7x = 56px) for all 151 Pokemon
@@ -154,8 +142,6 @@ return function(mod)
 
                 local sx = 1.0
                 local sy = 1.0
-                local drawW = 32
-                local drawH = 32
 
                 local STAND = { down = 0, up = 2, left = 4, right = 4 }
                 local WALK  = { down = 1, up = 3, left = 5, right = 5 }
@@ -188,21 +174,39 @@ return function(mod)
         end
     end)
 
-    -- 4. BATTLE TRAINER SPRITES: 32-bit RGBA TrueColor & Correct 56px Battle Scale
+    -- 4. BATTLE TRAINER & PLAYER BACK SPRITES: Pure 32-bit RGBA & 56px DS Scale (0.7x)
     pcall(function()
         local BattleState = require("src.battle.BattleState")
         local PaletteFX = require("src.render.PaletteFX")
 
+        -- Cache for raw unmapped 32-bit RGBA images of battle trainers and player back pic
+        local rawImageCache = {}
+        local function getRawImage(path)
+            if not path then return nil end
+            if not rawImageCache[path] then
+                if love.filesystem and love.filesystem.getInfo and love.filesystem.getInfo(path) then
+                    rawImageCache[path] = love.graphics.newImage(path)
+                end
+            end
+            return rawImageCache[path]
+        end
+
         local oldDrawPicsLayer = BattleState.drawPicsLayer
         function BattleState:drawPicsLayer(slide, sx, sy, onlySide, skipMenuClip)
             local g = love.graphics
+            PaletteFX.setPass("ui")
 
-            -- Enemy Trainer Front Sprite (e.g., Gary / Blue / Oak / Brock)
-            if onlySide ~= "player" and self.showEnemyTrainer and self.trainerPic then
-                local img = self:picImage(self.trainerPic)
-                if img then
-                    local w, h = img:getWidth(), img:getHeight()
-                    local s = (w > 56) and (56 / w) or 1.0
+            -- Enemy Trainer Front Sprite (e.g. Gary / Blue / Oak / Brock)
+            if onlySide ~= "player" and self.showEnemyTrainer and self.trainer and self.trainer.pic then
+                local trPath = mod.path .. "/overrides/" .. tostring(self.trainer.pic)
+                if not (love.filesystem and love.filesystem.getInfo and love.filesystem.getInfo(trPath)) then
+                    trPath = mod.path .. "/overrides/battle/trainers/" .. tostring(self.trainer.pic)
+                end
+
+                local rawImg = getRawImage(trPath) or self:picImage(self.trainerPic)
+                if rawImg then
+                    local w, h = rawImg:getWidth(), rawImg:getHeight()
+                    local s = (w > 56) and (56 / w) or 0.7
                     local tw = math.min(7, math.max(1, math.floor(w / 8)))
                     local th = math.min(7, math.max(1, math.floor(h / 8)))
                     local hPad = math.floor((8 - tw) / 2)
@@ -218,16 +222,17 @@ return function(mod)
                     end
 
                     g.setColor(1, 1, 1, 1)
-                    g.draw(img, math.floor(dx + self:picOffset("foe")), math.floor(dy), 0, s, s)
+                    g.draw(rawImg, math.floor(dx + self:picOffset("foe")), math.floor(dy), 0, s, s)
                 end
             end
 
             -- Player Trainer Back Sprite (Red back view)
-            if onlySide ~= "enemy" and self.showPlayerBack and self.playerBackPic then
-                local img = self:picImage(self.playerBackPic)
-                if img then
-                    local w, h = img:getWidth(), img:getHeight()
-                    local s = (w > 56) and (56 / w) or 1.0
+            if onlySide ~= "enemy" and self.showPlayerBack then
+                local redBackPath = mod.path .. "/overrides/battle/redb.png"
+                local rawImg = getRawImage(redBackPath) or self:picImage(self.playerBackPic)
+                if rawImg then
+                    local w, h = rawImg:getWidth(), rawImg:getHeight()
+                    local s = (w > 56) and (56 / w) or 0.7
                     local dx = 8 + slide + sx + self:picOffset("back")
                     local dy = 96 - (h * s) + sy
 
@@ -236,10 +241,11 @@ return function(mod)
                     end
 
                     g.setColor(1, 1, 1, 1)
-                    g.draw(img, math.floor(dx), math.floor(dy), 0, s, s)
+                    g.draw(rawImg, math.floor(dx), math.floor(dy), 0, s, s)
                 end
             end
 
+            -- Hide internal trainer pics so original loop only draws Pokemon
             local saveShowEnemy = self.showEnemyTrainer
             local saveShowBack = self.showPlayerBack
             self.showEnemyTrainer = false
@@ -296,5 +302,5 @@ return function(mod)
         end)
     end
 
-    print("[HGSS] v1.4.0 initialized — Pokemon Battle Scale 0.7x (80x80 NDS -> 56px) Active!")
+    print("[HGSS] v1.5.0 initialized — 100% Pure 32-bit RGBA Trainer Battle Colors Active!")
 end
