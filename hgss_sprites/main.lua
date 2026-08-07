@@ -2,13 +2,13 @@
     HGSS Visual Overhaul — main.lua
     ================================
     Official Gen1Recomp Mod Entry Point.
-    v1.6.0 — Pure 32-bit RGBA Trainer & Pokemon Battle Colors (Bypass DMG MapPixel)
+    v1.7.0 — Original Full-Quality DS Assets with Code-Based 0.65x Proportional Scale
 ]]
 
 return function(mod)
     print("========================================")
-    print("  HGSS Visual Overhaul v1.6.0")
-    print("  Enforcing Pure 32-bit RGBA Battle Colors for Trainers & Pokemon...")
+    print("  HGSS Visual Overhaul v1.7.0")
+    print("  Applying Code-Based Proportional Scaling (0.65x) to Full-Quality DS Assets...")
     print("========================================")
 
     local POKEMON_LIST = {
@@ -78,7 +78,7 @@ return function(mod)
         "MEWTWO", "MEW",
     }
 
-    -- 1. Patch trueColor = true & battleScale (0.7x = 56px) for all 151 Pokemon
+    -- 1. Patch trueColor = true & battleScale (0.65x) for all 151 Pokemon
     if mod and mod.content and mod.content.pokemon then
         pcall(function()
             for _, species in ipairs(POKEMON_LIST) do
@@ -94,8 +94,8 @@ return function(mod)
                 mod.content.pokemon:patch(species, {
                     spriteFront = f_path,
                     spriteBack = b_path,
-                    battleScaleFront = 0.7,
-                    battleScaleBack = 0.7,
+                    battleScaleFront = 0.65,
+                    battleScaleBack = 0.65,
                     trueColor = true,
                 })
             end
@@ -174,18 +174,26 @@ return function(mod)
         end
     end)
 
-    -- 4. FORCE TRUECOLOR & NULL PALETTES FOR PLAYER BACK PIC & TRAINER PICS
+    -- 4. BATTLE RESOLUTION & SCALING HOOKS (0.65x Scale + Pure 32-bit RGBA)
     pcall(function()
         local Sprites = require("src.pokemon.Sprites")
         local BattleState = require("src.battle.BattleState")
         local PaletteFX = require("src.render.PaletteFX")
 
-        -- Invalidate BattleState image cache so old 2bpp-mapped images are cleared
         if BattleState.invalidate then
             BattleState.invalidate()
         end
 
-        -- Ensure Sprites.playerPath always returns trueColor = true for player back pic
+        -- Force battle scale to 0.65x for all 80x80 battle sprites (trainers, player back, pokemon)
+        local oldResolveBattleScale = BattleState.resolveBattleScale
+        function BattleState.resolveBattleScale(data, side, path, species)
+            if path and (path:find("redb") or path:find("trainers") or path:find("battle") or path:find("overrides")) then
+                return 0.65
+            end
+            return 0.65
+        end
+
+        -- Ensure player back pic returns trueColor = true
         local oldPlayerPath = Sprites.playerPath
         function Sprites.playerPath(data, side, opts)
             local path, _ = oldPlayerPath(data, side, opts)
@@ -195,23 +203,13 @@ return function(mod)
             return path, true
         end
 
-        -- Override trainerPalette to return NIL for all mod trainers
-        -- Returning NIL prevents getImage from calling id:mapPixel (which causes the purple/orange 2bpp corruption)
+        -- Return NIL for trainer palettes so getImage does NOT run id:mapPixel (prevents 2bpp DMG color corruption)
         local oldTrainerPalette = BattleState.trainerPalette
         function BattleState.trainerPalette(data, trainer)
-            if trainer and trainer.pic then
-                local p1 = mod.path .. "/overrides/" .. tostring(trainer.pic)
-                local p2 = mod.path .. "/overrides/battle/trainers/" .. tostring(trainer.pic)
-                if love.filesystem and love.filesystem.getInfo then
-                    if love.filesystem.getInfo(p1) or love.filesystem.getInfo(p2) then
-                        return nil
-                    end
-                end
-            end
-            return nil -- Force no DMG palette remapping for all trainer battle pics
+            return nil
         end
 
-        -- Ensure BattleState.trainerPicPath resolves mod trainer images
+        -- Ensure trainerPicPath resolves mod trainer images
         local oldTrainerPicPath = BattleState.trainerPicPath
         function BattleState.trainerPicPath(data, trainer, oppClass, partyIndex)
             if trainer and trainer.pic then
@@ -225,47 +223,36 @@ return function(mod)
             return oldTrainerPicPath(data, trainer, oppClass, partyIndex)
         end
 
-        -- Wrap BattleState:drawPicsLayer to force PaletteFX.setPass("ui") and markTrueColor
+        -- Wrap BattleState:drawPicsLayer to force PaletteFX.setPass("ui") and markTrueColor for both sides
         local oldDrawPicsLayer = BattleState.drawPicsLayer
         function BattleState:drawPicsLayer(slide, sx, sy, onlySide, skipMenuClip)
-            local g = love.graphics
-
-            -- Mark UI pass for trueColor unshaded re-blit
             if PaletteFX and PaletteFX.setPass then
                 PaletteFX.setPass("ui")
             end
 
-            -- Enemy Trainer Front Sprite (Gary / Blue / Oak / Brock)
+            local s = 0.65
+
+            -- Mark TrueColor zone for enemy trainer pic
             if onlySide ~= "player" and self.showEnemyTrainer and self.trainerPic then
                 local img = self:picImage(self.trainerPic)
                 if img then
                     local w, h = img:getWidth(), img:getHeight()
-                    local s = (w > 56) and (56 / w) or 0.7
-                    local tw = math.min(7, math.max(1, math.floor(w / 8)))
-                    local th = math.min(7, math.max(1, math.floor(h / 8)))
-                    local hPad = math.floor((8 - tw) / 2)
-                    local vPad = 7 - th
-                    local ex = 96 + 8 * hPad - slide + sx
-                    local ey = 8 * vPad + sy
-
-                    local dx = ex + w * (1 - s) / 2
-                    local dy = ey + h * (1 - s)
-
+                    local ex = 96 - slide + sx
+                    local ey = sy
+                    local dx, dy = ex + w * (1 - s) / 2, ey + h * (1 - s)
                     if PaletteFX and PaletteFX.markTrueColor then
                         PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
                     end
                 end
             end
 
-            -- Player Back Sprite (Red back view)
+            -- Mark TrueColor zone for player back pic (Red back)
             if onlySide ~= "enemy" and self.showPlayerBack and self.playerBackPic then
                 local img = self:picImage(self.playerBackPic)
                 if img then
                     local w, h = img:getWidth(), img:getHeight()
-                    local s = (w > 56) and (56 / w) or 0.7
                     local dx = 8 + slide + sx + self:picOffset("back")
                     local dy = 96 - (h * s) + sy
-
                     if PaletteFX and PaletteFX.markTrueColor then
                         PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
                     end
@@ -276,5 +263,5 @@ return function(mod)
         end
     end)
 
-    print("[HGSS] v1.6.0 initialized — 100% Pure 32-bit RGBA Trainer Battle Colors Enforced!")
+    print("[HGSS] v1.7.0 initialized — 0.65x Code-Based Battle Scaling & Full-Quality 32-bit Assets Active!")
 end
