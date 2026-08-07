@@ -10,9 +10,6 @@
 # Local tools, test scripts, downloaded executables
 tools/
 *.log
-*.png
-*.jpg
-*.tmp
 
 # System files
 .DS_Store
