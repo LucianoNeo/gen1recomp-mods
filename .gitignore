@@ -1,0 +1,19 @@
+# ROMs and binary dumps
+*.gb
+*.gbc
+*.gba
+*.nds
+
+# Packaged zip releases
+*.zip
+
+# Local tools, test scripts, downloaded executables
+tools/
+*.log
+*.png
+*.jpg
+*.tmp
+
+# System files
+.DS_Store
+Thumbs.db

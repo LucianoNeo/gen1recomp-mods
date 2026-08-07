@@ -1,0 +1,12 @@
+{
+  "id": "HGSS_SPRITES",
+  "name": "HGSS Visual Overhaul",
+  "version": "1.0.0",
+  "entry": "main.lua",
+  "author": "Luciano",
+  "description": "Replaces Gen 1 Pokémon battle sprites, overworld sprites, trainer sprites, and UI elements with HeartGold/SoulSilver style graphics.",
+  "category": "GRAPHICS",
+  "permissions": [
+    "engine_internals"
+  ]
+}
