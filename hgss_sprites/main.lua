@@ -2,13 +2,13 @@
     HGSS Visual Overhaul — main.lua
     ================================
     Official Gen1Recomp Mod Entry Point.
-    v1.1.0 — Native 32x32 HGSS overworld sprites (32x192 strip format)
+    v1.2.0 — Native 32x32 DS Scale Rendering (No Downscaling!)
 ]]
 
 return function(mod)
     print("========================================")
-    print("  HGSS Visual Overhaul v1.1.0")
-    print("  Loading Native HGSS Overworld Sprites (32x32/frame)...")
+    print("  HGSS Visual Overhaul v1.2.0")
+    print("  Loading Native DS 32x32 Overworld Scale...")
     print("========================================")
 
     local POKEMON_LIST = {
@@ -123,15 +123,8 @@ return function(mod)
         end)
     end
 
-    -- 3. Native HGSS 32x192 Overworld Strip Support for SpriteRenderer
+    -- 3. Native HGSS 32x32 Scale Overworld Renderer (100% Crisp DS Scale, 1x 1:1 Pixel Ratio)
     --    Format: 32px wide x 192px tall = 6 frames of 32x32
-    --    Frame order (top to bottom):
-    --      0 = Stand Down  (front, facing camera)
-    --      1 = Walk Down
-    --      2 = Stand Up    (back, facing away)
-    --      3 = Walk Up
-    --      4 = Stand Left
-    --      5 = Walk Left
     pcall(function()
         local SpriteRenderer = require("src.render.SpriteRenderer")
         local PaletteFX = require("src.render.PaletteFX")
@@ -141,16 +134,13 @@ return function(mod)
             local self = oldNew(spriteDef, seed)
             if self and self.image then
                 local iw, ih = self.image:getDimensions()
-
-                -- Detect our native HGSS 32x192 strip (6 frames of 32x32)
                 if iw == 32 and ih == 192 then
                     self.frames = {}
                     for f = 0, 5 do
                         self.frames[f] = love.graphics.newQuad(0, f * 32, 32, 32, 32, 192)
                     end
                     self.isHgssStrip = true
-                    self.hgssFrameSize = 32
-                    print("[HGSS] Loaded HGSS 32x192 native strip for: " .. tostring(spriteDef and spriteDef.id or "?"))
+                    print("[HGSS] Registered 1:1 Native DS 32x32 overworld sprite: " .. tostring(spriteDef and spriteDef.id or "?"))
                 end
             end
             return self
@@ -159,18 +149,17 @@ return function(mod)
         local oldDraw = SpriteRenderer.draw
         function SpriteRenderer:draw(px, py, camX, camY, facing, walkPhase, stepFlip, topHalf)
             if self.isHgssStrip then
-                local fs = self.hgssFrameSize or 32  -- frame size in pixels
-                -- Draw at 0.5x scale so 32px frames appear as 16px on screen
-                local sx = 0.5
-                local sy = 0.5
-                local drawW = fs * sx  -- = 16 screen pixels wide
-                local drawH = fs * sy  -- = 16 screen pixels tall
-
                 local x = math.floor(px - camX)
                 local y = math.floor(py - camY)
 
-                -- Frame index mapping
-                -- Frames: 0=StandDown, 1=WalkDown, 2=StandUp, 3=WalkUp, 4=StandLeft, 5=WalkLeft
+                -- Draw at full 1x native DS scale (32x32 pixels per frame)
+                local sx = 1.0
+                local sy = 1.0
+                local drawW = 32
+                local drawH = 32
+
+                -- Frame mapping:
+                -- 0=StandDown, 1=WalkDown, 2=StandUp, 3=WalkUp, 4=StandLeft, 5=WalkLeft
                 local STAND = { down = 0, up = 2, left = 4, right = 4 }
                 local WALK  = { down = 1, up = 3, left = 5, right = 5 }
 
@@ -180,18 +169,18 @@ return function(mod)
 
                 local flip = (facing == "right")
 
-                -- Center sprite horizontally, bottom-align vertically
-                local drawX = x - drawW / 2
-                local drawY = y - drawH
+                -- Center horizontally over 16px tile (x - 8), bottom-align (y - 16)
+                local drawX = x - 8
+                local drawY = y - 16
 
                 if self.def and self.def.trueColor and PaletteFX and PaletteFX.markTrueColor then
-                    PaletteFX.markTrueColor(math.floor(drawX), math.floor(drawY), math.ceil(drawW), math.ceil(drawH))
+                    PaletteFX.markTrueColor(math.floor(drawX), math.floor(drawY), 32, 32)
                 end
 
                 if flip then
-                    -- Mirror: draw at x + drawW and scale x by -sx
+                    -- Mirror: draw at x + 24 (drawX + 32) and scale x by -1.0
                     love.graphics.draw(self.image, quad,
-                        math.floor(drawX + drawW), math.floor(drawY),
+                        math.floor(drawX + 32), math.floor(drawY),
                         0, -sx, sy)
                 else
                     love.graphics.draw(self.image, quad,
@@ -246,5 +235,5 @@ return function(mod)
         end)
     end
 
-    print("[HGSS] v1.1.0 initialized — Native 32x192 HGSS overworld strip renderer active!")
+    print("[HGSS] v1.2.0 initialized — 1:1 Native DS 32x32 overworld renderer active!")
 end
