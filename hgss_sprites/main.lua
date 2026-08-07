@@ -2,13 +2,13 @@
     HGSS Visual Overhaul — main.lua
     ================================
     Official Gen1Recomp Mod Entry Point.
-    v1.3.0 — TrueColor 32-bit RGBA & 56px Battle Scale for Trainer Sprites
+    v1.4.0 — Fixed Pokemon Back/Front Battle Scaling (80x80 NDS -> 0.7x = 56px)
 ]]
 
 return function(mod)
     print("========================================")
-    print("  HGSS Visual Overhaul v1.3.0")
-    print("  Loading 32-bit TrueColor Trainer Battle & Overworld Sprites...")
+    print("  HGSS Visual Overhaul v1.4.0")
+    print("  Loading 32-bit TrueColor & 0.7x Scaled Battle Sprites...")
     print("========================================")
 
     local POKEMON_LIST = {
@@ -90,7 +90,7 @@ return function(mod)
         "MEW",
     }
 
-    -- 1. Patch trueColor = true for all 151 Pokemon battle sprites
+    -- 1. Patch trueColor = true & battleScale (0.7x = 56px) for all 151 Pokemon
     if mod and mod.content and mod.content.pokemon then
         pcall(function()
             for _, species in ipairs(POKEMON_LIST) do
@@ -106,6 +106,8 @@ return function(mod)
                 mod.content.pokemon:patch(species, {
                     spriteFront = f_path,
                     spriteBack = b_path,
+                    battleScaleFront = 0.7,
+                    battleScaleBack = 0.7,
                     trueColor = true,
                 })
             end
@@ -200,7 +202,6 @@ return function(mod)
                 local img = self:picImage(self.trainerPic)
                 if img then
                     local w, h = img:getWidth(), img:getHeight()
-                    -- Scale 80x80 DS trainer sprite down to 56x56 GB battle slot
                     local s = (w > 56) and (56 / w) or 1.0
                     local tw = math.min(7, math.max(1, math.floor(w / 8)))
                     local th = math.min(7, math.max(1, math.floor(h / 8)))
@@ -212,7 +213,6 @@ return function(mod)
                     local dx = ex + w * (1 - s) / 2
                     local dy = ey + h * (1 - s)
 
-                    -- Mark trueColor to bypass DMG 2bpp palette recoloring
                     if PaletteFX and PaletteFX.markTrueColor then
                         PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
                     end
@@ -231,7 +231,6 @@ return function(mod)
                     local dx = 8 + slide + sx + self:picOffset("back")
                     local dy = 96 - (h * s) + sy
 
-                    -- Mark trueColor to bypass DMG 2bpp palette recoloring
                     if PaletteFX and PaletteFX.markTrueColor then
                         PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
                     end
@@ -241,8 +240,6 @@ return function(mod)
                 end
             end
 
-            -- Run original method for pokemon and remainder
-            -- Temporarily hide trainer pics so original loop doesn't double-draw them
             local saveShowEnemy = self.showEnemyTrainer
             local saveShowBack = self.showPlayerBack
             self.showEnemyTrainer = false
@@ -255,11 +252,13 @@ return function(mod)
         end
     end)
 
-    -- 5. Install Runtime Hooks to enforce trueColor = true on runtime loads
+    -- 5. Install Runtime Hooks to enforce trueColor & 0.7x scale on runtime loads
     if mod and mod.hooks then
         pcall(function()
             mod.hooks:wrap("pokemon.sprite", function(next, samePath, path, ctx)
-                if ctx then ctx.trueColor = true end
+                if ctx then
+                    ctx.trueColor = true
+                end
                 local species = ctx and ctx.species
                 local side = ctx and ctx.side
                 if species then
@@ -297,5 +296,5 @@ return function(mod)
         end)
     end
 
-    print("[HGSS] v1.3.0 initialized — 32-bit RGBA Trainer Battle Sprites + 56px Battle Scale Active!")
+    print("[HGSS] v1.4.0 initialized — Pokemon Battle Scale 0.7x (80x80 NDS -> 56px) Active!")
 end
