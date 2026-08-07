@@ -6,7 +6,7 @@
 
 return function(mod)
     print("========================================")
-    print("  HGSS Visual Overhaul v1.0.3")
+    print("  HGSS Visual Overhaul v1.0.5")
     print("  Loading HeartGold/SoulSilver sprites...")
     print("========================================")
 
@@ -111,11 +111,13 @@ return function(mod)
         end)
     end
 
-    -- 2. Patch trueColor = true ONLY for Red Overworld Sprites (not unreplaced NPCs)
+    -- 2. Patch trueColor = true for replaced character overworld sprites (Red, Oak, Blue)
     if mod and mod.content and mod.content.sprites then
         pcall(function()
             mod.content.sprites:patch("SPRITE_RED", { trueColor = true })
             mod.content.sprites:patch("SPRITE_RED_BIKE", { trueColor = true })
+            mod.content.sprites:patch("SPRITE_OAK", { trueColor = true })
+            mod.content.sprites:patch("SPRITE_BLUE", { trueColor = true })
             mod.content.sprites:patch("SPRITE_SURFING_PIKACHU", { trueColor = true })
         end)
     end
@@ -162,5 +164,5 @@ return function(mod)
         end)
     end
 
-    print("[HGSS] HGSS Visual Overhaul initialized successfully!")
+    print("[HGSS] HGSS Visual Overhaul initialized with trueColor for Red, Oak, Blue & Pokémon!")
 end
