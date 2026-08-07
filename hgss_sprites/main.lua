@@ -2,13 +2,13 @@
     HGSS Visual Overhaul — main.lua
     ================================
     Official Gen1Recomp Mod Entry Point.
-    v1.7.0 — Original Full-Quality DS Assets with Code-Based 0.65x Proportional Scale
+    v1.8.0 — Integer-Clean 0.5x Scale (40x40px) for 100% Crisp Pixel-Perfect Battle Sprites
 ]]
 
 return function(mod)
     print("========================================")
-    print("  HGSS Visual Overhaul v1.7.0")
-    print("  Applying Code-Based Proportional Scaling (0.65x) to Full-Quality DS Assets...")
+    print("  HGSS Visual Overhaul v1.8.0")
+    print("  Enforcing Integer 0.5x Battle Scale (100% Crisp Pixel-Perfect Art)...")
     print("========================================")
 
     local POKEMON_LIST = {
@@ -78,7 +78,7 @@ return function(mod)
         "MEWTWO", "MEW",
     }
 
-    -- 1. Patch trueColor = true & battleScale (0.65x) for all 151 Pokemon
+    -- 1. Patch trueColor = true & battleScale (0.5x = 40px integer division) for all 151 Pokemon
     if mod and mod.content and mod.content.pokemon then
         pcall(function()
             for _, species in ipairs(POKEMON_LIST) do
@@ -94,8 +94,8 @@ return function(mod)
                 mod.content.pokemon:patch(species, {
                     spriteFront = f_path,
                     spriteBack = b_path,
-                    battleScaleFront = 0.65,
-                    battleScaleBack = 0.65,
+                    battleScaleFront = 0.5,
+                    battleScaleBack = 0.5,
                     trueColor = true,
                 })
             end
@@ -174,7 +174,7 @@ return function(mod)
         end
     end)
 
-    -- 4. BATTLE RESOLUTION & SCALING HOOKS (0.65x Scale + Pure 32-bit RGBA)
+    -- 4. BATTLE RESOLUTION & SCALING HOOKS (0.5x Integer Scale + Pure 32-bit RGBA)
     pcall(function()
         local Sprites = require("src.pokemon.Sprites")
         local BattleState = require("src.battle.BattleState")
@@ -184,13 +184,10 @@ return function(mod)
             BattleState.invalidate()
         end
 
-        -- Force battle scale to 0.65x for all 80x80 battle sprites (trainers, player back, pokemon)
+        -- Force battle scale to 0.5x (exact 2:1 integer division) for 100% sharp pixel art
         local oldResolveBattleScale = BattleState.resolveBattleScale
         function BattleState.resolveBattleScale(data, side, path, species)
-            if path and (path:find("redb") or path:find("trainers") or path:find("battle") or path:find("overrides")) then
-                return 0.65
-            end
-            return 0.65
+            return 0.5
         end
 
         -- Ensure player back pic returns trueColor = true
@@ -203,7 +200,7 @@ return function(mod)
             return path, true
         end
 
-        -- Return NIL for trainer palettes so getImage does NOT run id:mapPixel (prevents 2bpp DMG color corruption)
+        -- Return NIL for trainer palettes so getImage does NOT run id:mapPixel
         local oldTrainerPalette = BattleState.trainerPalette
         function BattleState.trainerPalette(data, trainer)
             return nil
@@ -230,12 +227,13 @@ return function(mod)
                 PaletteFX.setPass("ui")
             end
 
-            local s = 0.65
+            local s = 0.5
 
             -- Mark TrueColor zone for enemy trainer pic
             if onlySide ~= "player" and self.showEnemyTrainer and self.trainerPic then
                 local img = self:picImage(self.trainerPic)
                 if img then
+                    if img.setFilter then img:setFilter("nearest", "nearest") end
                     local w, h = img:getWidth(), img:getHeight()
                     local ex = 96 - slide + sx
                     local ey = sy
@@ -250,6 +248,7 @@ return function(mod)
             if onlySide ~= "enemy" and self.showPlayerBack and self.playerBackPic then
                 local img = self:picImage(self.playerBackPic)
                 if img then
+                    if img.setFilter then img:setFilter("nearest", "nearest") end
                     local w, h = img:getWidth(), img:getHeight()
                     local dx = 8 + slide + sx + self:picOffset("back")
                     local dy = 96 - (h * s) + sy
@@ -263,5 +262,5 @@ return function(mod)
         end
     end)
 
-    print("[HGSS] v1.7.0 initialized — 0.65x Code-Based Battle Scaling & Full-Quality 32-bit Assets Active!")
+    print("[HGSS] v1.8.0 initialized — 0.5x Integer Pixel-Perfect Battle Scale Active!")
 end
