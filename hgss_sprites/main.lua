@@ -2,13 +2,13 @@
     HGSS Visual Overhaul — main.lua
     ================================
     Official Gen1Recomp Mod Entry Point.
-    v1.2.0 — Native 32x32 DS Scale Rendering (No Downscaling!)
+    v1.3.0 — TrueColor 32-bit RGBA & 56px Battle Scale for Trainer Sprites
 ]]
 
 return function(mod)
     print("========================================")
-    print("  HGSS Visual Overhaul v1.2.0")
-    print("  Loading Native DS 32x32 Overworld Scale...")
+    print("  HGSS Visual Overhaul v1.3.0")
+    print("  Loading 32-bit TrueColor Trainer Battle & Overworld Sprites...")
     print("========================================")
 
     local POKEMON_LIST = {
@@ -112,7 +112,7 @@ return function(mod)
         end)
     end
 
-    -- 2. Patch trueColor = true for replaced character overworld sprites
+    -- 2. Patch trueColor = true for overworld sprites
     if mod and mod.content and mod.content.sprites then
         pcall(function()
             mod.content.sprites:patch("SPRITE_RED",           { trueColor = true })
@@ -124,7 +124,6 @@ return function(mod)
     end
 
     -- 3. Native HGSS 32x32 Scale Overworld Renderer (100% Crisp DS Scale, 1x 1:1 Pixel Ratio)
-    --    Format: 32px wide x 192px tall = 6 frames of 32x32
     pcall(function()
         local SpriteRenderer = require("src.render.SpriteRenderer")
         local PaletteFX = require("src.render.PaletteFX")
@@ -140,7 +139,6 @@ return function(mod)
                         self.frames[f] = love.graphics.newQuad(0, f * 32, 32, 32, 32, 192)
                     end
                     self.isHgssStrip = true
-                    print("[HGSS] Registered 1:1 Native DS 32x32 overworld sprite: " .. tostring(spriteDef and spriteDef.id or "?"))
                 end
             end
             return self
@@ -152,14 +150,11 @@ return function(mod)
                 local x = math.floor(px - camX)
                 local y = math.floor(py - camY)
 
-                -- Draw at full 1x native DS scale (32x32 pixels per frame)
                 local sx = 1.0
                 local sy = 1.0
                 local drawW = 32
                 local drawH = 32
 
-                -- Frame mapping:
-                -- 0=StandDown, 1=WalkDown, 2=StandUp, 3=WalkUp, 4=StandLeft, 5=WalkLeft
                 local STAND = { down = 0, up = 2, left = 4, right = 4 }
                 local WALK  = { down = 1, up = 3, left = 5, right = 5 }
 
@@ -169,7 +164,6 @@ return function(mod)
 
                 local flip = (facing == "right")
 
-                -- Center horizontally over 16px tile (x - 8), bottom-align (y - 16)
                 local drawX = x - 8
                 local drawY = y - 16
 
@@ -178,7 +172,6 @@ return function(mod)
                 end
 
                 if flip then
-                    -- Mirror: draw at x + 24 (drawX + 32) and scale x by -1.0
                     love.graphics.draw(self.image, quad,
                         math.floor(drawX + 32), math.floor(drawY),
                         0, -sx, sy)
@@ -193,7 +186,76 @@ return function(mod)
         end
     end)
 
-    -- 4. Install Runtime Hooks to enforce trueColor = true on runtime loads
+    -- 4. BATTLE TRAINER SPRITES: 32-bit RGBA TrueColor & Correct 56px Battle Scale
+    pcall(function()
+        local BattleState = require("src.battle.BattleState")
+        local PaletteFX = require("src.render.PaletteFX")
+
+        local oldDrawPicsLayer = BattleState.drawPicsLayer
+        function BattleState:drawPicsLayer(slide, sx, sy, onlySide, skipMenuClip)
+            local g = love.graphics
+
+            -- Enemy Trainer Front Sprite (e.g., Gary / Blue / Oak / Brock)
+            if onlySide ~= "player" and self.showEnemyTrainer and self.trainerPic then
+                local img = self:picImage(self.trainerPic)
+                if img then
+                    local w, h = img:getWidth(), img:getHeight()
+                    -- Scale 80x80 DS trainer sprite down to 56x56 GB battle slot
+                    local s = (w > 56) and (56 / w) or 1.0
+                    local tw = math.min(7, math.max(1, math.floor(w / 8)))
+                    local th = math.min(7, math.max(1, math.floor(h / 8)))
+                    local hPad = math.floor((8 - tw) / 2)
+                    local vPad = 7 - th
+                    local ex = 96 + 8 * hPad - slide + sx
+                    local ey = 8 * vPad + sy
+
+                    local dx = ex + w * (1 - s) / 2
+                    local dy = ey + h * (1 - s)
+
+                    -- Mark trueColor to bypass DMG 2bpp palette recoloring
+                    if PaletteFX and PaletteFX.markTrueColor then
+                        PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
+                    end
+
+                    g.setColor(1, 1, 1, 1)
+                    g.draw(img, math.floor(dx + self:picOffset("foe")), math.floor(dy), 0, s, s)
+                end
+            end
+
+            -- Player Trainer Back Sprite (Red back view)
+            if onlySide ~= "enemy" and self.showPlayerBack and self.playerBackPic then
+                local img = self:picImage(self.playerBackPic)
+                if img then
+                    local w, h = img:getWidth(), img:getHeight()
+                    local s = (w > 56) and (56 / w) or 1.0
+                    local dx = 8 + slide + sx + self:picOffset("back")
+                    local dy = 96 - (h * s) + sy
+
+                    -- Mark trueColor to bypass DMG 2bpp palette recoloring
+                    if PaletteFX and PaletteFX.markTrueColor then
+                        PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
+                    end
+
+                    g.setColor(1, 1, 1, 1)
+                    g.draw(img, math.floor(dx), math.floor(dy), 0, s, s)
+                end
+            end
+
+            -- Run original method for pokemon and remainder
+            -- Temporarily hide trainer pics so original loop doesn't double-draw them
+            local saveShowEnemy = self.showEnemyTrainer
+            local saveShowBack = self.showPlayerBack
+            self.showEnemyTrainer = false
+            self.showPlayerBack = false
+
+            oldDrawPicsLayer(self, slide, sx, sy, onlySide, skipMenuClip)
+
+            self.showEnemyTrainer = saveShowEnemy
+            self.showPlayerBack = saveShowBack
+        end
+    end)
+
+    -- 5. Install Runtime Hooks to enforce trueColor = true on runtime loads
     if mod and mod.hooks then
         pcall(function()
             mod.hooks:wrap("pokemon.sprite", function(next, samePath, path, ctx)
@@ -235,5 +297,5 @@ return function(mod)
         end)
     end
 
-    print("[HGSS] v1.2.0 initialized — 1:1 Native DS 32x32 overworld renderer active!")
+    print("[HGSS] v1.3.0 initialized — 32-bit RGBA Trainer Battle Sprites + 56px Battle Scale Active!")
 end
