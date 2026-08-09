@@ -935,16 +935,19 @@ return function(mod)
       love.graphics.polygon("fill", x + 1, y + 2, x + 7, y + 2,
                             x + 4, y + 6)
     else
-      love.graphics.setColor(filled and 0.86 or 0.30,
-                            filled and 0.22 or 0.49,
-                            filled and 0.18 or 0.70, 1)
+      -- Solid black survives both the normal palette pass and the voxel
+      -- battle's transparent HUD texture. A true-color red polygon was being
+      -- reduced to a broken dot/slash by the latter's mask.
+      love.graphics.setColor(0.05, 0.08, 0.12, 1)
       love.graphics.polygon(filled and "fill" or "line",
                             x + 1, y + 1, x + 7, y + 4,
                             x + 1, y + 7)
     end
-    UiPaletteFX.markTrueColor(x, y, 8, 8)
+    if more then UiPaletteFX.markTrueColor(x, y, 8, 8) end
     love.graphics.setColor(r, g, b, a)
   end
+
+  local liveGame
 
   -- HGSS-like health colors use the engine's supported four-shade palette
   -- path, so battle, party and summary bars stay correct in every renderer.
@@ -995,6 +998,12 @@ return function(mod)
   local oldBattleDrawHUDs = BattleState.drawHUDs
   BattleState.drawHUDs = function(self, slide)
     local result = oldBattleDrawHUDs(self, slide)
+    -- DRAMALESS_SHAPE renders and relocates the complete HUD into its own
+    -- texture. Repainting at the classic fixed coordinates here produces a
+    -- second cream/white bar across the correctly positioned voxel HUD.
+    if self.dramaticShapeShot or rawget(self, "colorMode") == false then
+      return result
+    end
     if self.enemy and not self.showEnemyTrainer and not self.enemySendingOut
        and slide == 0 and not self.introBalls and not self.enemy.fainted then
       drawHgssHP(2, 2, {
@@ -1015,8 +1024,6 @@ return function(mod)
   -- These are live display settings, not a replacement renderer.  In
   -- particular, FILL, survey zoom and tilt can all make pixel sizes uneven
   -- or make the 16px character art appear visually mismatched.
-  local liveGame
-
   -- g1recomp normally rasterizes every UI sprite into the 160x144 canvas
   -- before enlarging it. A 320px source therefore collapses back to 80px and
   -- looks just as blocky as the DS original. Repaint only the intro portraits
