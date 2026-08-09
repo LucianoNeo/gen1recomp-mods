@@ -140,20 +140,20 @@ return function(mod)
   -- it in the original trainer slot without throwing away half the pixels.
   local TRAINER_PICS = {
     OPP_AGATHA = "agatha", OPP_BEAUTY = "beauty", OPP_BIKER = "biker",
-    OPP_BIRDKEEPER = "birdkeeper", OPP_BLACKBELT = "blackbelt",
+    OPP_BIRD_KEEPER = "birdkeeper", OPP_BLACKBELT = "blackbelt",
     OPP_BLAINE = "blaine", OPP_BROCK = "brock", OPP_BRUNO = "bruno",
-    OPP_BUGCATCHER = "bugcatcher", OPP_BURGLAR = "burglar",
+    OPP_BUG_CATCHER = "bugcatcher", OPP_BURGLAR = "burglar",
     OPP_CHANNELER = "channeler", OPP_COOLTRAINER_F = "cooltrainerf",
     OPP_COOLTRAINER_M = "cooltrainerm", OPP_CUE_BALL = "cueball",
     OPP_ENGINEER = "engineer", OPP_ERIKA = "erika", OPP_FISHER = "fisher",
     OPP_GAMBLER = "gambler", OPP_GENTLEMAN = "gentleman",
     OPP_GIOVANNI = "giovanni", OPP_HIKER = "hiker",
-    OPP_JESSIE_JAMES = "jessie_james", OPP_JR_TRAINER_F = "jr.trainerf",
+    OPP_JR_TRAINER_F = "jr.trainerf",
     OPP_JR_TRAINER_M = "jr.trainerm", OPP_JUGGLER = "juggler",
     OPP_KOGA = "koga", OPP_LANCE = "lance", OPP_LASS = "lass",
     OPP_LORELEI = "lorelei", OPP_LT_SURGE = "lt.surge", OPP_MISTY = "misty",
     OPP_POKEMANIAC = "pokemaniac", OPP_PROF_OAK = "prof.oak",
-    OPP_PSYCHIC = "psychic", OPP_RIVAL1 = "rival1", OPP_RIVAL2 = "rival2",
+    OPP_PSYCHIC_TR = "psychic", OPP_RIVAL1 = "rival1", OPP_RIVAL2 = "rival2",
     OPP_RIVAL3 = "rival3", OPP_ROCKER = "rocker", OPP_ROCKET = "rocket",
     OPP_SABRINA = "sabrina", OPP_SAILOR = "sailor", OPP_SCIENTIST = "scientist",
     OPP_SUPER_NERD = "supernerd", OPP_SWIMMER = "swimmer", OPP_TAMER = "tamer",
@@ -173,6 +173,20 @@ return function(mod)
       scale = 1,
     })
   end
+  -- Jessie & James are not a separate Yellow trainer class. Their four
+  -- encounters are Rocket parties 42-45, which the engine selects through
+  -- picJessieJames. Keep the normal Rocket portrait for every other grunt.
+  local jessieJamesPic = mod.assets:path(
+    "overrides/battle/trainers/jessie_james.png")
+  mod.content.trainers:patch("OPP_ROCKET", {
+    picJessieJames = jessieJamesPic,
+  })
+  TRAINER_HD_BY_PATH[jessieJamesPic] = loadHdImage(
+    "assets/graphics/trainers/front_hd/jessie_james.png")
+  mod.content.battle_sprite_scales:register("hgss_trainer_jessie_james", {
+    path = jessieJamesPic,
+    scale = 1,
+  })
 
   -- The public hook supplies the true-color flag; Oak's tutorial back is
   -- provided through the dedicated playerPics oakBack asset above.
