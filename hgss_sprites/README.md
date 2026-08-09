@@ -25,10 +25,9 @@ densidade de Nintendo DS, com direções e quadros próprios de caminhada.
 ### NPCs nos interiores
 
 Os personagens dos mapas internos também recebem sprites HGSS dedicados. A
-captura abaixo mostra os cientistas no laboratório do Professor Oak dentro do
-jogo.
+captura abaixo mostra Daisy em sua casa, renderizada pelo mapa real do jogo.
 
-![Cientistas HGSS no laboratório do Professor Oak](docs/media/core-overworld-npcs.png)
+![Daisy com sprite HGSS no interior](docs/media/core-overworld-npcs.png)
 
 ### Pokémon e personagens em batalha
 
