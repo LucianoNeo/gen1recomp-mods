@@ -920,9 +920,15 @@ return function(mod)
 
     local hd = state.pic and state.hgssHdPics[state.pic]
     if hd then
-      local w, h = state.pic:getDimensions()
-      local x = 48 + math.floor((8 - w / 8) / 2) * 8
-      local y = 32 + (7 - h / 8) * 8
+      -- OakSpeech's text box begins at logical y=96. The former 80px HD
+      -- canvas ended at y=112, so the box covered the trainer's feet. Fit
+      -- the complete authored canvas into a 64px square, center it, and pin
+      -- its bottom to y=92 for a four-pixel safety gap above the dialogue.
+      local hdw, hdh = hd:getDimensions()
+      local logicalScale = 64 / math.max(hdw, hdh)
+      local drawW, drawH = hdw * logicalScale, hdh * logicalScale
+      local x = (160 - drawW) / 2
+      local y = 92 - drawH
       local off, alpha = 0, 1
       local reveal = state.picReveal
       if reveal and reveal.kind == "fade" then
@@ -933,11 +939,11 @@ return function(mod)
       end
       love.graphics.setColor(1, 1, 1, alpha)
       if state.picFlip then
-        love.graphics.draw(hd, ox + (x + off + w) * sx, oy + y * sy,
-          0, -sx / 4, sy / 4)
+        love.graphics.draw(hd, ox + (x + off + drawW) * sx, oy + y * sy,
+          0, -sx * logicalScale, sy * logicalScale)
       else
         love.graphics.draw(hd, ox + (x + off) * sx, oy + y * sy,
-          0, sx / 4, sy / 4)
+          0, sx * logicalScale, sy * logicalScale)
       end
       love.graphics.setColor(1, 1, 1, 1)
     end
