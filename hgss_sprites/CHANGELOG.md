@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.0.28
+
+- Mantido o tamanho/movimento estável da versão 0.0.26 e corrigidos os charsets do Centro Pokémon de Viridian.
+
 ## 0.0.27
 
 - Corrigida a escala dos charsets HGSS no overworld 2D. Cientistas e outros
