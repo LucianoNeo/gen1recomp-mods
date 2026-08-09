@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.25
+
+- Adicionado o campo `github` ao manifesto para habilitar a verificacao de
+  novas releases diretamente pelo gerenciador do g1recomp.
+
 ## 0.0.24
 
 - Incluidos os arquivos de fallback `redb.png`, `profoakb.png` e
