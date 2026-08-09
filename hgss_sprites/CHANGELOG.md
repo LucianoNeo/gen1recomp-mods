@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.0
+
+- Jessie e James agora preservam os charsets em alta densidade, mantendo a
+  caixa lógica, a escala e os movimentos do Red no overworld 2D e Voxel.
+- Corrigidos os sprites do cientista e dos personagens dos Centros Pokémon,
+  sem alterar globalmente a escala dos demais NPCs.
+- Mantidas as correções de transparência, interface HGSS, barras de HP e
+  compatibilidade com o `DRAMALESS_SHAPE`.
+- Pacote runtime enxuto, sem fontes, ferramentas ou capturas de desenvolvimento.
+
 ## 0.0.28
 
 - Mantido o tamanho/movimento estável da versão 0.0.26 e corrigidos os charsets do Centro Pokémon de Viridian.
