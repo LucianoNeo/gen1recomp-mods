@@ -405,10 +405,16 @@ return function(mod)
     -- portrait must stay inside the voxel card; the post-presentation HD
     -- overlay would otherwise create a second, giant trainer on the screen.
     local voxelTexturePass = self.player == false or self.enemy == false
+    local okPipelines, Pipelines = pcall(require, "src.render.Pipelines")
+    local opts = self.game and self.game.save and self.game.save.options
+    local modOpts = opts and opts.modOptions and opts.modOptions.DRAMALESS_SHAPE
+    local voxelBattleActive = okPipelines and Pipelines.get("voxel")
+      and Pipelines.level("voxel") > 0
+      and (not modOpts or modOpts.battles ~= false)
     local trainer = self.trainerPic and self:picImage(self.trainerPic)
     local trainerPath = self.trainer
       and (self.trainer.picJessieJames or self.trainer.pic)
-    self.hgssBattleTrainerHd = not voxelTexturePass
+    self.hgssBattleTrainerHd = voxelBattleActive and not voxelTexturePass
       and self.showEnemyTrainer and trainerPath
       and TRAINER_HD_BY_PATH[trainerPath] or nil
     local player = self.playerBackPic and self:picImage(self.playerBackPic)

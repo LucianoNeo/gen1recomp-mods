@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Versão](https://img.shields.io/badge/versão-0.0.25-gold)
+![Versão](https://img.shields.io/badge/versão-0.0.26-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.75-blue)
 ![Jogo](https://img.shields.io/badge/Pokémon-Yellow-yellow)
 
@@ -118,7 +118,7 @@ função de screenshot do próprio g1recomp durante a execução.
 
 ## Instalação
 
-1. Baixe `HGSS_SPRITES-0.0.25.zip` na página de releases.
+1. Baixe `HGSS_SPRITES-0.0.26.zip` na página de releases.
 2. Copie o ZIP para a pasta `mods` do g1recomp ou extraia-o como
    `mods/HGSS_SPRITES/`.
 3. Habilite **HGSS Visual Overhaul** no gerenciador de mods.

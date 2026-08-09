@@ -12,9 +12,9 @@ Voxel 3D do `DRAMALESS_SHAPE`.
 
 [Ver o mod, imagens e instruções](hgss_sprites/README.md)
 
-[Abrir a release mais recente](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.0.25)
+[Abrir a release mais recente](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.0.26)
 
-[Baixar HGSS_SPRITES 0.0.25](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.0.25/HGSS_SPRITES-0.0.25.zip)
+[Baixar HGSS_SPRITES 0.0.26](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.0.26/HGSS_SPRITES-0.0.26.zip)
 
 ![HGSS Visual Overhaul em batalha](hgss_sprites/docs/media/gameplay-battle-still.png)
 

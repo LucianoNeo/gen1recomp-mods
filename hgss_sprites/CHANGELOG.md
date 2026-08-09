@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.0.26
+
+- O retrato HD de treinadores agora fica desativado no caminho 2D. Gary e os
+  demais treinadores nao atravessam mais o HUD quando o Voxel esta desligado.
+
 ## 0.0.25
 
 - Adicionado o campo `github` ao manifesto para habilitar a verificacao de
