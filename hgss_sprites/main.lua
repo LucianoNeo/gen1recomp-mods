@@ -1,266 +1,932 @@
---[[
-    HGSS Visual Overhaul — main.lua
-    ================================
-    Official Gen1Recomp Mod Entry Point.
-    v1.8.0 — Integer-Clean 0.5x Scale (40x40px) for 100% Crisp Pixel-Perfect Battle Sprites
+-- HGSS Visual Overhaul 2.0
+--
+-- The registries and hooks below are Mod API 2.  One deliberately narrow
+-- engine-internals hook is also installed for overworld sheets: g1recomp's
+-- public SpriteRenderer hard-codes 16x16 cells, while HGSS's authored cells
+-- are 32x32.  Without this adapter the engine silently crops the DS art into
+-- GBC-sized fragments.  The adapter only changes the quad size/anchor for
+-- this mod's 32x192 sheets; every other sprite keeps the stock renderer.
+
+local SPECIES = [[
+BULBASAUR IVYSAUR VENUSAUR CHARMANDER CHARMELEON CHARIZARD
+SQUIRTLE WARTORTLE BLASTOISE CATERPIE METAPOD BUTTERFREE WEEDLE KAKUNA
+BEEDRILL PIDGEY PIDGEOTTO PIDGEOT RATTATA RATICATE SPEAROW FEAROW EKANS
+ARBOK PIKACHU RAICHU SANDSHREW SANDSLASH NIDORAN_F NIDORINA NIDOQUEEN
+NIDORAN_M NIDORINO NIDOKING CLEFAIRY CLEFABLE VULPIX NINETALES
+JIGGLYPUFF WIGGLYTUFF ZUBAT GOLBAT ODDISH GLOOM VILEPLUME PARAS
+PARASECT VENONAT VENOMOTH DIGLETT DUGTRIO MEOWTH PERSIAN PSYDUCK
+GOLDUCK MANKEY PRIMEAPE GROWLITHE ARCANINE POLIWAG POLIWHIRL POLIWRATH
+ABRA KADABRA ALAKAZAM MACHOP MACHOKE MACHAMP BELLSPROUT WEEPINBELL
+VICTREEBEL TENTACOOL TENTACRUEL GEODUDE GRAVELER GOLEM PONYTA RAPIDASH
+SLOWPOKE SLOWBRO MAGNEMITE MAGNETON FARFETCHD DODUO DODRIO SEEL DEWGONG
+GRIMER MUK SHELLDER CLOYSTER GASTLY HAUNTER GENGAR ONIX DROWZEE HYPNO
+KRABBY KINGLER VOLTORB ELECTRODE EXEGGCUTE EXEGGUTOR CUBONE MAROWAK
+HITMONLEE HITMONCHAN LICKITUNG KOFFING WEEZING RHYHORN RHYDON CHANSEY
+TANGELA KANGASKHAN HORSEA SEADRA GOLDEEN SEAKING STARYU STARMIE MR_MIME
+SCYTHER JYNX ELECTABUZZ MAGMAR PINSIR TAUROS MAGIKARP GYARADOS LAPRAS
+DITTO EEVEE VAPOREON JOLTEON FLAREON PORYGON OMANYTE OMASTAR KABUTO
+KABUTOPS AERODACTYL SNORLAX ARTICUNO ZAPDOS MOLTRES DRATINI DRAGONAIR
+DRAGONITE MEWTWO MEW
 ]]
 
+local WALKERS = [[
+AGATHA BEAUTY BIKER BIRD BLUE BRUNETTE_GIRL BRUNO CHANNELER COOK
+COOLTRAINER_F COOLTRAINER_M DAISY FAIRY FISHER GAMBLER GENTLEMAN GIOVANNI
+GIRL HIKER JAMES JESSIE KOGA LANCE LITTLE_GIRL LORELEI MIDDLE_AGED_MAN
+MIDDLE_AGED_WOMAN MONSTER MR_FUJI OAK OFFICER_JENNY PIKACHU RED RED_BIKE
+ROCKER ROCKET SAILOR SCIENTIST SEEL SILPH_WORKER_F SUPER_NERD
+SURFING_PIKACHU SWIMMER WAITER YOUNGSTER
+]]
+
+local STANDING = [[
+BALDING_GUY BIKE_SHOP_CLERK BULBASAUR CAPTAIN CHANSEY CLEFAIRY CLERK
+FISHING_GURU GAMEBOY_KID GRAMPS GRANNY GUARD GYM_GUIDE JIGGLYPUFF
+LINK_RECEPTIONIST LITTLE_BOY MOM NURSE ODDISH SAFARI_ZONE_WORKER SANDSHREW
+SILPH_PRESIDENT SILPH_WORKER_M WARDEN
+]]
+
+local function words(text)
+  return text:gmatch("[%w_]+")
+end
+
+local function assetName(species)
+  if species == "NIDORAN_F" then return "nidoranf" end
+  if species == "NIDORAN_M" then return "nidoranm" end
+  if species == "MR_MIME" then return "mr.mime" end
+  return species:lower()
+end
+
+local function patchOverworld(mod, shortId, frames, walker, file)
+  file = file or shortId:lower()
+  local frameHeight = file == "scientist" and 48 or 32
+  mod.content.sprites:patch("SPRITE_" .. shortId, {
+    image = mod.assets:path("overrides/sprites/" .. file .. ".png"),
+    frames = frames,
+    walker = walker,
+    trueColor = true,
+    hgssFrameWidth = 32,
+    hgssFrameHeight = frameHeight,
+  })
+end
+
 return function(mod)
-    print("========================================")
-    print("  HGSS Visual Overhaul v1.8.0")
-    print("  Enforcing Integer 0.5x Battle Scale (100% Crisp Pixel-Perfect Art)...")
-    print("========================================")
+  -- Any raster supplied by this overhaul already carries its authored HGSS
+  -- colors. Normalize separators once so the same check works on Windows and
+  -- packaged builds, then use it at every engine path that would otherwise
+  -- quantize the image through a four-shade GB/SGB palette.
+  local function isHgssTrueColorPath(path)
+    if type(path) ~= "string" then return false end
+    path = path:gsub("\\", "/")
+    return path:find("overrides/battle/", 1, true) ~= nil
+        or path:find("overrides/sprites/", 1, true) ~= nil
+        or path:find("overrides/title/", 1, true) ~= nil
+        or path:find("assets/icons/", 1, true) ~= nil
+        or path:find("overrides/trainer_card/", 1, true) ~= nil
+  end
 
-    local POKEMON_LIST = {
-        "BULBASAUR", "IVYSAUR", "VENUSAUR",
-        "CHARMANDER", "CHARMELEON", "CHARIZARD",
-        "SQUIRTLE", "WARTORTLE", "BLASTOISE",
-        "CATERPIE", "METAPOD", "BUTTERFREE",
-        "WEEDLE", "KAKUNA", "BEEDRILL",
-        "PIDGEY", "PIDGEOTTO", "PIDGEOT",
-        "RATTATA", "RATICATE",
-        "SPEAROW", "FEAROW",
-        "EKANS", "ARBOK",
-        "PIKACHU", "RAICHU",
-        "SANDSHREW", "SANDSLASH",
-        "NIDORAN_F", "NIDORINA", "NIDOQUEEN",
-        "NIDORAN_M", "NIDORINO", "NIDOKING",
-        "CLEFAIRY", "CLEFABLE",
-        "VULPIX", "NINETALES",
-        "JIGGLYPUFF", "WIGGLYTUFF",
-        "ZUBAT", "GOLBAT",
-        "ODDISH", "GLOOM", "VILEPLUME",
-        "PARAS", "PARASECT",
-        "VENONAT", "VENOMOTH",
-        "DIGLETT", "DUGTRIO",
-        "MEOWTH", "PERSIAN",
-        "PSYDUCK", "GOLDUCK",
-        "MANKEY", "PRIMEAPE",
-        "GROWLITHE", "ARCANINE",
-        "POLIWAG", "POLIWHIRL", "POLIWRATH",
-        "ABRA", "KADABRA", "ALAKAZAM",
-        "MACHOP", "MACHOKE", "MACHAMP",
-        "BELLSPROUT", "WEEPINBELL", "VICTREEBEL",
-        "TENTACOOL", "TENTACRUEL",
-        "GEODUDE", "GRAVELER", "GOLEM",
-        "PONYTA", "RAPIDASH",
-        "SLOWPOKE", "SLOWBRO",
-        "MAGNEMITE", "MAGNETON",
-        "FARFETCHD",
-        "DODUO", "DODRIO",
-        "SEEL", "DEWGONG",
-        "GRIMER", "MUK",
-        "SHELLDER", "CLOYSTER",
-        "GASTLY", "HAUNTER", "GENGAR",
-        "ONIX",
-        "DROWZEE", "HYPNO",
-        "KRABBY", "KINGLER",
-        "VOLTORB", "ELECTRODE",
-        "EXEGGCUTE", "EXEGGUTOR",
-        "CUBONE", "MAROWAK",
-        "HITMONLEE", "HITMONCHAN",
-        "LICKITUNG",
-        "KOFFING", "WEEZING",
-        "RHYHORN", "RHYDON",
-        "CHANSEY",
-        "TANGELA", "KANGASKHAN",
-        "HORSEA", "SEADRA",
-        "GOLDEEN", "SEAKING",
-        "STARYU", "STARMIE",
-        "MR_MIME", "SCYTHER", "JYNX",
-        "ELECTABUZZ", "MAGMAR", "PINSIR", "TAUROS",
-        "MAGIKARP", "GYARADOS", "LAPRAS", "DITTO",
-        "EEVEE", "VAPOREON", "JOLTEON", "FLAREON",
-        "PORYGON", "OMANYTE", "OMASTAR",
-        "KABUTO", "KABUTOPS", "AERODACTYL",
-        "SNORLAX", "ARTICUNO", "ZAPDOS", "MOLTRES",
-        "DRATINI", "DRAGONAIR", "DRAGONITE",
-        "MEWTWO", "MEW",
-    }
+  local function loadHdImage(path)
+    local ok, image = pcall(love.graphics.newImage, mod.assets:path(path))
+    if not ok or not image then return nil end
+    image:setFilter("linear", "linear")
+    return image
+  end
 
-    -- 1. Patch trueColor = true & battleScale (0.5x = 40px integer division) for all 151 Pokemon
-    if mod and mod.content and mod.content.pokemon then
-        pcall(function()
-            for _, species in ipairs(POKEMON_LIST) do
-                local key = species:lower()
-                if key == "nidoran_f" then key = "nidoranf"
-                elseif key == "nidoran_m" then key = "nidoranm"
-                elseif key == "mr_mime" then key = "mr.mime"
-                end
+  mod.options:define({
+    {
+      key = "crisp_display",
+      label = "CRISP DISPLAY",
+      type = "toggle",
+      default = true,
+    },
+  })
 
-                local f_path = mod.path .. "/overrides/battle/front/" .. key .. ".png"
-                local b_path = mod.path .. "/overrides/battle/back/" .. key .. "b.png"
+  -- Keep the original 80x80 HGSS PNGs and render them 1:1.  This is the
+  -- reference composition: a Pikachu's authored ~48px silhouette and Red's
+  -- full back sprite remain visible instead of being shrunk to GBC scale.
+  for species in words(SPECIES) do
+    mod.content.pokemon:patch(species, {
+      trueColor = true,
+      battleScaleFront = 1,
+      battleScaleBack = 1,
+    })
+    -- The base game already provides an icon record for every Gen I species.
+    -- Registering those same IDs collides in the record registry, so update
+    -- the existing records instead of trying to create duplicates.
+    mod.content.icons:patch(species, {
+      image = mod.assets:path("assets/icons/" .. assetName(species) .. ".png"),
+      frames = 2,
+    })
+  end
 
-                mod.content.pokemon:patch(species, {
-                    spriteFront = f_path,
-                    spriteBack = b_path,
-                    battleScaleFront = 0.5,
-                    battleScaleBack = 0.5,
-                    trueColor = true,
-                })
-            end
-        end)
+  -- The player's trainer back is not species-keyed, so route it to the
+  -- bundled image through the public field registry and scale that path.
+  local playerBack = mod.assets:path("overrides/battle/redb.png")
+  mod.content.field:patch("playerPics", {
+    back = playerBack,
+    oakBack = mod.assets:path("overrides/battle/profoakb.png"),
+  })
+  mod.content.battle_sprite_scales:register("hgss_player_back", {
+    path = playerBack,
+    scale = 1,
+  })
+  local oakBack = mod.assets:path("overrides/battle/profoakb.png")
+  mod.content.battle_sprite_scales:register("hgss_oak_back", {
+    path = oakBack,
+    scale = 1,
+  })
+
+  -- Trainer portraits are data records rather than a public image registry.
+  -- Keep the authored 80x80 DS raster; the narrow draw adapter below centers
+  -- it in the original trainer slot without throwing away half the pixels.
+  local TRAINER_PICS = {
+    OPP_AGATHA = "agatha", OPP_BEAUTY = "beauty", OPP_BIKER = "biker",
+    OPP_BIRDKEEPER = "birdkeeper", OPP_BLACKBELT = "blackbelt",
+    OPP_BLAINE = "blaine", OPP_BROCK = "brock", OPP_BRUNO = "bruno",
+    OPP_BUGCATCHER = "bugcatcher", OPP_BURGLAR = "burglar",
+    OPP_CHANNELER = "channeler", OPP_COOLTRAINER_F = "cooltrainerf",
+    OPP_COOLTRAINER_M = "cooltrainerm", OPP_CUE_BALL = "cueball",
+    OPP_ENGINEER = "engineer", OPP_ERIKA = "erika", OPP_FISHER = "fisher",
+    OPP_GAMBLER = "gambler", OPP_GENTLEMAN = "gentleman",
+    OPP_GIOVANNI = "giovanni", OPP_HIKER = "hiker",
+    OPP_JESSIE_JAMES = "jessie_james", OPP_JR_TRAINER_F = "jr.trainerf",
+    OPP_JR_TRAINER_M = "jr.trainerm", OPP_JUGGLER = "juggler",
+    OPP_KOGA = "koga", OPP_LANCE = "lance", OPP_LASS = "lass",
+    OPP_LORELEI = "lorelei", OPP_LT_SURGE = "lt.surge", OPP_MISTY = "misty",
+    OPP_POKEMANIAC = "pokemaniac", OPP_PROF_OAK = "prof.oak",
+    OPP_PSYCHIC = "psychic", OPP_RIVAL1 = "rival1", OPP_RIVAL2 = "rival2",
+    OPP_RIVAL3 = "rival3", OPP_ROCKER = "rocker", OPP_ROCKET = "rocket",
+    OPP_SABRINA = "sabrina", OPP_SAILOR = "sailor", OPP_SCIENTIST = "scientist",
+    OPP_SUPER_NERD = "supernerd", OPP_SWIMMER = "swimmer", OPP_TAMER = "tamer",
+    OPP_YOUNGSTER = "youngster",
+  }
+  local TRAINER_HD_BY_PATH = {}
+  for trainerId, file in pairs(TRAINER_PICS) do
+    local portrait = mod.assets:path("overrides/battle/trainers/" .. file .. ".png")
+    TRAINER_HD_BY_PATH[portrait] = loadHdImage(
+      "assets/graphics/trainers/front_hd/" .. file .. ".png")
+    mod.content.trainers:patch(trainerId, {
+      pic = portrait,
+      trueColor = true,
+    })
+    mod.content.battle_sprite_scales:register("hgss_trainer_" .. file, {
+      path = portrait,
+      scale = 1,
+    })
+  end
+
+  -- The public hook supplies the true-color flag; Oak's tutorial back is
+  -- provided through the dedicated playerPics oakBack asset above.
+  mod.hooks:wrap("player.sprite", function(next, path, ctx)
+    local resolved = next(path, ctx)
+    if ctx.oakDemo then
+      -- The Yellow Pallet tutorial uses Oak in the player's back slot.
+      -- Keep the authored HGSS colors; the vanilla demo palette turns the
+      -- coat into broken purple/orange fragments.
+      ctx.trueColor = true
+    elseif not ctx.demo then
+      ctx.trueColor = true
+    end
+    return resolved
+  end)
+
+  for shortId in words(WALKERS) do
+    patchOverworld(mod, shortId, 6, true)
+  end
+  -- A few Yellow map objects refer to fallback IDs (HIKER/SUPER_NERD) even
+  -- though their names/classes are Blackbelt and Burglar.  Supply the
+  -- missing native HGSS IDs so the object-local corrections below can point
+  -- to real sprites instead of silently failing on absent registry entries.
+  patchOverworld(mod, "BLACKBELT", 6, true, "bruno")
+  patchOverworld(mod, "BURGLAR", 6, true, "rocket")
+  for shortId in words(STANDING) do
+    patchOverworld(mod, shortId, 3, false)
+  end
+  patchOverworld(mod, "SNORLAX", 1, false)
+
+  -- Gym maps in Yellow deliberately reuse generic GBC character IDs.  Keep
+  -- those generic IDs intact for ordinary NPCs and expose dedicated HGSS
+  -- sheets for the named leaders; the map-enter hook below selects them by
+  -- object name.  All seven leaders use the native six-frame 32px DS sheet.
+  local LEADER_SHEETS = {
+    GYM_BROCK = "gym_brock",
+    GYM_MISTY = "gym_misty",
+    GYM_LT_SURGE = "gym_lt_surge",
+    GYM_KOGA = "gym_koga",
+    GYM_SABRINA = "gym_sabrina",
+    GYM_BLAINE = "gym_blaine",
+    GYM_GIOVANNI = "gym_giovanni",
+    HGSS_BLUE = "gary",
+  }
+  for shortId, file in pairs(LEADER_SHEETS) do
+    patchOverworld(mod, shortId, 6, true, file)
+  end
+  -- Oak keeps the verified HGSS front frame and uses the AI-authored
+  -- back/side/walk cells generated from that reference.  The replacement is
+  -- a real walker so turning and walking select the corresponding cells.
+  patchOverworld(mod, "HGSS_OAK", 6, true, "oak")
+  patchOverworld(mod, "HGSS_BILL", 6, true, "bill")
+
+  -- The stock renderer always builds 16x16 quads.  Our generated sheets are
+  -- 32x192 (six 32x32 frames in native DS density), so install a small,
+  -- version-pinned compatibility adapter.  It preserves palette resolution,
+  -- right-facing flips, walking cadence and the fishing top-half behavior.
+  local SpriteRenderer = require("src.render.SpriteRenderer")
+  local PaletteFX = require("src.render.PaletteFX")
+  local BattleState = require("src.battle.BattleState")
+  local oldNew = SpriteRenderer.new
+  local oldDraw = SpriteRenderer.draw
+
+  -- BattleState's trainer branch calls love.graphics.draw(image, x, y)
+  -- directly and has no public scale/placement field.  Native 80px portraits
+  -- are centered by shifting that one draw 16px left (the classic 160px
+  -- field has 64px of room on the right); all Pokemon and vanilla draws keep
+  -- the engine's original path untouched.
+  local oldBattleDrawPicsLayer = BattleState.drawPicsLayer
+  BattleState.drawPicsLayer = function(self, ...)
+    local trainer = self.trainerPic and self:picImage(self.trainerPic)
+    local trainerPath = self.trainer
+      and (self.trainer.picJessieJames or self.trainer.pic)
+    self.hgssBattleTrainerHd = trainerPath
+      and TRAINER_HD_BY_PATH[trainerPath] or nil
+    local player = self.playerBackPic and self:picImage(self.playerBackPic)
+    local playerWidth = player and player:getWidth() or 0
+    local animatedPlayer = playerWidth == 400 or playerWidth == 320
+    if (not trainer or trainer:getWidth() < 80) and not animatedPlayer then
+      return oldBattleDrawPicsLayer(self, ...)
+    end
+    local originalDraw = love.graphics.draw
+    local playerQuad
+    local playerFrameCount = playerWidth == 320 and 4 or 5
+    if animatedPlayer then
+      playerQuad = love.graphics.newQuad(0, 0, 80, 80, playerWidth, 80)
+    end
+    love.graphics.draw = function(image, x, y, ...)
+      if image == trainer and type(x) == "number" and type(y) == "number" then
+        return originalDraw(image, x - 16, y, ...)
+      end
+      if image == player and playerQuad and type(x) == "number" and type(y) == "number" then
+        -- Play the authored sequence once per battle, then hold the final
+        -- pose: five frames for Red and four for Oak's Yellow tutorial.
+        -- A modulo loop would keep either character gesturing forever.
+        self.hgssRedAnimStart = self.hgssRedAnimStart
+          or love.timer.getTime()
+        local elapsed = math.max(0, love.timer.getTime()
+          - self.hgssRedAnimStart)
+        local frame = math.min(playerFrameCount - 1, math.floor(elapsed * 8))
+        playerQuad:setViewport(frame * 80, 0, 80, 80, playerWidth, 80)
+        return originalDraw(image, playerQuad, x, y, ...)
+      end
+      return originalDraw(image, x, y, ...)
+    end
+    local ok, a, b, c = pcall(oldBattleDrawPicsLayer, self, ...)
+    love.graphics.draw = originalDraw
+    if not ok then error(a, 0) end
+    return a, b, c
+  end
+
+  SpriteRenderer.new = function(spriteDef, seed)
+    local self = oldNew(spriteDef, seed)
+    if self and self.image then
+      local iw, ih = self.image:getDimensions()
+      local fw = tonumber(spriteDef and spriteDef.hgssFrameWidth) or 32
+      local fh = tonumber(spriteDef and spriteDef.hgssFrameHeight) or 32
+      if iw == fw and ih >= fh and ih % fh == 0 then
+        self.hgssFrames = {}
+        self.hgssFrameWidth = fw
+        self.hgssFrameHeight = fh
+        local count = math.min(6, math.floor(ih / fh))
+        for frame = 0, count - 1 do
+          self.hgssFrames[frame] = love.graphics.newQuad(
+            0, frame * fh, fw, fh, iw, ih)
+        end
+        self.isHgssSheet = true
+      end
+    end
+    return self
+  end
+
+  SpriteRenderer.draw = function(self, px, py, camX, camY, facing,
+                                  walkPhase, stepFlip, topHalf)
+    if not self.isHgssSheet then
+      return oldDraw(self, px, py, camX, camY, facing, walkPhase,
+                     stepFlip, topHalf)
+    end
+    local fw = self.hgssFrameWidth or 32
+    local fh = self.hgssFrameHeight or 32
+    local x = math.floor(px - camX) - math.floor(fw / 2) + 8
+    local y = math.floor(py - camY) - fh + 16
+    local stand = { down = 0, up = 1, left = 2, right = 2 }
+    local walk = { down = 3, up = 4, left = 5, right = 5 }
+    local frame = (self.def.walker and walkPhase == 1)
+      and walk[facing] or stand[facing]
+    frame = frame or 0
+    local quad = self.hgssFrames[frame] or self.hgssFrames[0]
+    if topHalf then
+      self.hgssHalfFrames = self.hgssHalfFrames or {}
+      if not self.hgssHalfFrames[frame] then
+        local iw, ih = self.image:getDimensions()
+        self.hgssHalfFrames[frame] = love.graphics.newQuad(
+          0, frame * fh, fw, math.floor(fh / 2), iw, ih)
+      end
+      quad = self.hgssHalfFrames[frame]
+    end
+    local image = self.resolveImage and self:resolveImage() or self.image
+    local flip = facing == "right"
+    if self.def.trueColor and PaletteFX.markTrueColor then
+      PaletteFX.markTrueColor(x, y, fw, topHalf and math.floor(fh / 2) or fh)
+    end
+    if flip then
+      love.graphics.draw(image, quad, x + fw, y, 0, -1, 1)
+    else
+      love.graphics.draw(image, quad, x, y)
+    end
+  end
+
+  -- PartyMenu's public icon registry is intentionally compatible with the
+  -- Game Boy path: it assumes 16x16 OBP art and sends the whole UI canvas
+  -- through the four-shade SGB shader.  HGSS party art is authored at 32x32
+  -- and in full RGB, so install the same narrow adapter used by overworld:
+  -- keep the native frame, draw it with nearest filtering, and report a
+  -- trueColor rectangle so no palette pass can collapse the hues.
+  local PartyMenu = require("src.ui.PartyMenu")
+  local PartyAssets = require("src.render.Assets")
+  local PartyPaletteFX = require("src.render.PaletteFX")
+
+  local PartyFont = require("src.render.Font")
+  local PartyHudTiles = require("src.render.HudTiles")
+  local PartyTheme = require("src.ui.Theme")
+  local oldPartyDraw = PartyMenu.draw
+  local oldPartyDrawIcon = PartyMenu.drawIcon
+  local partyIconImages = {}
+  local partyIconRoot = mod.assets:path("assets/icons/")
+
+  local function partyIconPath(game, mon)
+    local icons = game.data and game.data.icons
+    local def = game.data and game.data.pokemon and game.data.pokemon[mon.species]
+    if not icons then return nil end
+    local entry = (icons.bySpecies and icons.bySpecies[mon.species])
+               or (def and def.icon)
+    local name, path
+    if type(entry) == "string" then
+      name = entry
+      path = icons.icons and icons.icons[entry]
+    elseif type(entry) == "table" then
+      path = entry.image
+    end
+    if not path then
+      name = def and def.dex and icons.byDex and icons.byDex[def.dex]
+      path = name and icons.icons and icons.icons[name]
+    end
+    return require("src.pokemon.Sprites").iconPath(
+      game.data, mon, path, { name = name })
+  end
+
+  local function isHgssPartyIcon(path)
+    return type(path) == "string"
+       and path:sub(1, #partyIconRoot) == partyIconRoot
+  end
+
+  local function loadPartyIcon(path)
+    local resolved = PartyAssets.resolve(path)
+    if partyIconImages[resolved] == nil then
+      local ok, image = pcall(love.graphics.newImage, resolved)
+      if ok and image and image.setFilter then
+        image:setFilter("nearest", "nearest")
+      end
+      partyIconImages[resolved] = ok and image or false
+    end
+    return partyIconImages[resolved] or nil
+  end
+
+  PartyMenu.drawIcon = function(game, mon, x, y, selected, counter, forceAlt)
+    local path = partyIconPath(game, mon)
+    if not isHgssPartyIcon(path) then
+      return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
+    end
+    local image = loadPartyIcon(path)
+    if not image then return end
+    local alt = forceAlt and true or false
+    if selected then
+      local hp = mon.hp or 0
+      local maxHp = mon.stats and mon.stats.hp or 1
+      local px = math.floor(hp * 48 / math.max(1, maxHp))
+      local speed = px >= 27 and 5 or px >= 10 and 16 or 32
+      alt = math.floor((counter or 0) / speed) % 2 == 1
+    end
+    local iw, ih = image:getDimensions()
+    local frame = alt and 1 or 0
+    if iw < 32 or ih < (frame + 1) * 32 then return end
+    PartyPaletteFX.markTrueColor(x, y, 32, 32)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(image,
+      love.graphics.newQuad(0, frame * 32, 32, 32, iw, ih), x, y)
+    return true
+  end
+
+  -- Compact 4x7 pixel glyphs for the party-name column.  The regular engine
+  -- font advances 8px per character, but each HGSS cell has only 48px beside
+  -- its 32px icon.  A dedicated crisp mini-font keeps names such as
+  -- CHARIZARD and BLASTOISE complete without fractional scaling artifacts.
+  local MINI_FONT = {
+    A={"0110","1001","1001","1111","1001","1001","1001"},
+    B={"1110","1001","1001","1110","1001","1001","1110"},
+    C={"0111","1000","1000","1000","1000","1000","0111"},
+    D={"1110","1001","1001","1001","1001","1001","1110"},
+    E={"1111","1000","1000","1110","1000","1000","1111"},
+    F={"1111","1000","1000","1110","1000","1000","1000"},
+    G={"0111","1000","1000","1011","1001","1001","0111"},
+    H={"1001","1001","1001","1111","1001","1001","1001"},
+    I={"1111","0110","0110","0110","0110","0110","1111"},
+    J={"0011","0001","0001","0001","0001","1001","0110"},
+    K={"1001","1010","1100","1100","1010","1001","1001"},
+    L={"1000","1000","1000","1000","1000","1000","1111"},
+    M={"1001","1111","1111","1001","1001","1001","1001"},
+    N={"1001","1101","1101","1011","1011","1001","1001"},
+    O={"0110","1001","1001","1001","1001","1001","0110"},
+    P={"1110","1001","1001","1110","1000","1000","1000"},
+    Q={"0110","1001","1001","1001","1011","1001","0111"},
+    R={"1110","1001","1001","1110","1010","1001","1001"},
+    S={"0111","1000","1000","0110","0001","0001","1110"},
+    T={"1111","0110","0110","0110","0110","0110","0110"},
+    U={"1001","1001","1001","1001","1001","1001","0110"},
+    V={"1001","1001","1001","1001","1001","0110","0110"},
+    W={"1001","1001","1001","1111","1111","1111","1001"},
+    X={"1001","1001","0110","0110","0110","1001","1001"},
+    Y={"1001","1001","0110","0110","0110","0110","0110"},
+    Z={"1111","0001","0010","0100","1000","1000","1111"},
+    ["0"]={"0110","1001","1011","1101","1001","1001","0110"},
+    ["1"]={"0110","1100","0110","0110","0110","0110","1111"},
+    ["2"]={"0110","1001","0001","0010","0100","1000","1111"},
+    ["3"]={"1110","0001","0001","0110","0001","0001","1110"},
+    ["4"]={"1001","1001","1001","1111","0001","0001","0001"},
+    ["5"]={"1111","1000","1000","1110","0001","0001","1110"},
+    ["6"]={"0111","1000","1000","1110","1001","1001","0110"},
+    ["7"]={"1111","0001","0010","0010","0100","0100","0100"},
+    ["8"]={"0110","1001","1001","0110","1001","1001","0110"},
+    ["9"]={"0110","1001","1001","0111","0001","0001","1110"},
+    ["."]={"0000","0000","0000","0000","0000","0110","0110"},
+    [" "]={"0000","0000","0000","0000","0000","0000","0000"},
+    ["?"]={"1110","0001","0010","0100","0100","0000","0100"},
+  }
+
+  local function drawPartyName(name, x, y)
+    local text = tostring(name or ""):upper()
+    local count = #text
+    if count == 0 then return end
+    local advance = count <= 9 and 5 or math.max(3, math.floor(48 / count))
+    local glyphWidth = advance >= 4 and 4 or 3
+    for index = 1, count do
+      local glyph = MINI_FONT[text:sub(index, index)] or MINI_FONT["?"]
+      local gx = x + (index - 1) * advance
+      for row, bits in ipairs(glyph) do
+        for col = 1, glyphWidth do
+          if bits:sub(col, col) == "1" then
+            love.graphics.rectangle("fill", gx + col - 1, y + row - 1, 1, 1)
+          end
+        end
+      end
+    end
+  end
+
+  local function drawNativePartyEntry(self, mon, index, x, y)
+    local def = self.game.data.pokemon[mon.species]
+    PartyMenu.drawIcon(self.game, mon, x, y, index == self.index,
+                       self.blink or 0)
+    local textX = x + 32
+    love.graphics.setColor(0, 0, 0, 1)
+    drawPartyName(mon.nickname or def.name, textX, y)
+    PartyFont.draw("L" .. tostring(mon.level), textX, y + 8)
+    if self.tmhm then
+      local can = false
+      for _, move in ipairs(def.tmhm or {}) do
+        if move == self.tmhm.move then can = true break end
+      end
+      PartyFont.draw(can and "ABLE" or "NO", textX + 24, y + 8)
+    else
+      local shown = mon
+      if self.heal and self.heal.mon == mon then
+        shown = { hp = math.floor(self.heal.shown), stats = mon.stats }
+      end
+      -- Three segments fit exactly in the 48px text column.  Marking the
+      -- bar trueColor keeps its green/yellow/red ramp independent from the
+      -- party screen's legacy SGB zone list.
+      PartyHudTiles.drawHPBar(self.game.data, textX / 8, (y + 16) / 8,
+                              shown, nil, false, 3)
+      PartyPaletteFX.markTrueColor(textX, y + 16, 48, 8)
+      if mon.hp <= 0 then
+        PartyFont.draw("FNT", textX + 24, y + 8)
+      elseif mon.status then
+        PartyFont.draw(mon.status, textX + 24, y + 8)
+      end
+    end
+    if index == self.index then
+      PartyFont.drawCode(PartyTheme.cursor, x, y + 8)
+    elseif index == self.swapFrom or index == self.softboiledFrom then
+      PartyFont.drawCode(PartyTheme.cursorHollow, x, y + 8)
+    end
+  end
+
+  PartyMenu.draw = function(self)
+    local party = self.party or self.game.save.party
+    local hasNative = false
+    for _, mon in ipairs(party) do
+      if isHgssPartyIcon(partyIconPath(self.game, mon)) then
+        hasNative = true
+        break
+      end
+    end
+    if not hasNative then return oldPartyDraw(self) end
+
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("fill", 0, 0, 160, 144)
+    love.graphics.setColor(0, 0, 0, 1)
+    if #party == 0 then
+      PartyFont.draw("No POKéMON!", 16, 64)
+    end
+    -- The six 32px DS cells are arranged as HGSS-style two columns by
+    -- three rows.  This preserves every authored pixel without stacking
+    -- 32px art into the old 16px Game Boy rows.
+    for i, mon in ipairs(party) do
+      local slot = i - 1
+      local col = slot % 2
+      local row = math.floor(slot / 2)
+      drawNativePartyEntry(self, mon, i, col * 80, row * 32)
     end
 
-    -- 2. Patch trueColor = true for overworld sprites
-    if mod and mod.content and mod.content.sprites then
-        pcall(function()
-            mod.content.sprites:patch("SPRITE_RED",           { trueColor = true })
-            mod.content.sprites:patch("SPRITE_RED_BIKE",      { trueColor = true })
-            mod.content.sprites:patch("SPRITE_OAK",           { trueColor = true })
-            mod.content.sprites:patch("SPRITE_BLUE",          { trueColor = true })
-            mod.content.sprites:patch("SPRITE_SURFING_PIKACHU", { trueColor = true })
-        end)
+    -- Keep the original interaction text and submenu actions; only the
+    -- party entries above are reflowed to the native DS grid.
+    PartyFont.drawBox(0, 12, 20, 6)
+    love.graphics.setColor(0, 0, 0, 1)
+    local prompt
+    if self.swapFrom then
+      prompt = "Move to where?"
+    elseif self.softboiledFrom or self.pickOnly then
+      prompt = "Use on which one?"
+    elseif self.tmhm then
+      prompt = self.game.data.text._PartyMenuUseTMText or "Use TM on which\nPOKéMON?"
+    elseif self.battle then
+      prompt = self.game.data.text._PartyMenuBattleText or "Bring out which\nPOKéMON?"
+    else
+      prompt = self.game.data.text._PartyMenuNormalText or "Choose a POKéMON."
+    end
+    local ly = 112
+    for line in (prompt .. "\n"):gmatch("([^\n]*)\n") do
+      PartyFont.draw(line, 8, ly)
+      ly = ly + 16
+    end
+    if self.submenu then
+      local n = #self.subItems
+      PartyFont.drawBox(9, 17 - n * 2 - 1, 11, n * 2 + 1)
+      local y0 = (17 - n * 2) * 8
+      for si, entry in ipairs(self.subItems) do
+        PartyFont.draw(entry.label, 88, y0 + (si - 1) * 16)
+      end
+      PartyFont.drawCode(PartyTheme.cursor, 80,
+                         y0 + (self.subIndex - 1) * 16)
+    end
+    love.graphics.setColor(1, 1, 1, 1)
+  end
+
+  -- OakSpeech resolves trainer descriptors without carrying trainer metadata
+  -- into its trueColor return value. As a result, the intro's full-color Oak
+  -- portrait was still collapsed to purple/orange GB shades. Propagate the
+  -- flag for every trainer portrait owned by this overhaul (Oak, rival and
+  -- any modded/custom intro step), while leaving vanilla assets untouched.
+  local OakSpeech = require("src.ui.OakSpeech")
+  local oldResolveOakSpeechPic = OakSpeech.resolvePic
+  OakSpeech.resolvePic = function(game, desc, speech)
+    local image, flip, trueColor = oldResolveOakSpeechPic(game, desc, speech)
+    if trueColor then return image, flip, true end
+    local trainerId
+    if desc == "oak" then
+      trainerId = "OPP_PROF_OAK"
+    elseif desc == "rival" then
+      trainerId = "OPP_RIVAL1"
+    elseif type(desc) == "table" and desc.type == "trainer" then
+      trainerId = desc.id
+    end
+    local trainer = trainerId and game.data.trainers
+                    and game.data.trainers[trainerId]
+    if trainer and (trainer.trueColor or isHgssTrueColorPath(trainer.pic)) then
+      trueColor = true
+    end
+    return image, flip, trueColor and true or false
+  end
+
+  local oldOakSpeechNew = OakSpeech.new
+  OakSpeech.new = function(...)
+    local speech = oldOakSpeechNew(...)
+    speech.hgssHdPics = {}
+    local function map(low, path)
+      local hd = low and loadHdImage(path)
+      if low and hd then speech.hgssHdPics[low] = hd end
+    end
+    map(speech.oakPic, "assets/graphics/trainers/front_hd/prof.oak.png")
+    map(speech.rivalPic, "assets/graphics/trainers/front_hd/rival1.png")
+    map(speech.playerPic, "assets/graphics/intro_hd/red.png")
+    if speech.demoSpecies then
+      map(speech.demoPic, "assets/graphics/pokemon/front_hd/"
+        .. assetName(speech.demoSpecies):upper() .. ".png")
+    end
+    return speech
+  end
+
+  -- TrainerState normally remaps portraits through the four-shade MEWMON
+  -- palette. Our portrait PNGs are already an exact nearest 80->40 raster,
+  -- so keep their authored HGSS colors instead of collapsing them to DMG
+  -- shades. Vanilla portraits retain the engine's original palette path.
+  local oldTrainerPalette = BattleState.trainerPalette
+  BattleState.trainerPalette = function(data, trainer)
+    local path = trainer and trainer.pic
+    if isHgssTrueColorPath(path)
+       or (trainer and trainer.trueColor) then
+      return nil
+    end
+    return oldTrainerPalette(data, trainer)
+  end
+
+  -- A nil trainer palette prevents the initial quantization, but later battle
+  -- effects can still rebuild that same picture through a GB fade/mono path.
+  -- True-color trainer portraits have no four DMG shades to permute, so return
+  -- their original image exactly as the engine already does for true-color
+  -- Pokemon sprites.
+  local oldBattlePicImage = BattleState.picImage
+  BattleState.picImage = function(self, image)
+    local trainer = self and self.trainer
+    local path = trainer and (trainer.picJessieJames or trainer.pic)
+    if image == (self and self.trainerPic)
+       and (isHgssTrueColorPath(path) or (trainer and trainer.trueColor)) then
+      return image
+    end
+    return oldBattlePicImage(self, image)
+  end
+
+  -- The trainer-card portrait already advertises trueColor through
+  -- playerPath, but the leader faces and badge sheet have no registry record
+  -- capable of carrying that flag. Mark their complete grid explicitly so
+  -- full-color HGSS badges are not collapsed by the card's MEWMON zone.
+  local TrainerCard = require("src.ui.TrainerCard")
+  local oldTrainerCardDraw = TrainerCard.draw
+  TrainerCard.draw = function(self, ...)
+    local result = oldTrainerCardDraw(self, ...)
+    PartyPaletteFX.markTrueColor(16, 94, 128, 50)
+    return result
+  end
+
+  -- Yellow carries three unused aliases that share Red's real sheet.
+  patchOverworld(mod, "UNUSED_RED_1", 6, true, "red")
+  patchOverworld(mod, "UNUSED_RED_2", 6, true, "red")
+  patchOverworld(mod, "UNUSED_RED_3", 6, true, "red")
+
+  -- A private high-code page supplies six border pieces and three menu
+  -- markers.  field.theme routes the global UI to them without colliding
+  -- with the native text/charmap pages.
+  mod.content.font:register("hgss_chrome", {
+    image = mod.assets:path("assets/ui/hgss_border.png"),
+    base = 0x200,
+    glyphsPerRow = 9,
+    advance = 8,
+  })
+  mod.content.field:patch("theme", {
+    border = {
+      tl = 0x200, h = 0x201, tr = 0x202,
+      v = 0x203, bl = 0x204, br = 0x205,
+    },
+    cursor = 0x206,
+    cursorHollow = 0x207,
+    moreArrow = 0x208,
+  })
+
+  -- HGSS-like health colors use the engine's supported four-shade palette
+  -- path, so battle, party and summary bars stay correct in every renderer.
+  mod.content.palettes:override("GREENBAR", {
+    { 255, 255, 255 }, { 184, 224, 184 }, { 72, 184, 72 }, { 24, 32, 32 },
+  })
+  mod.content.palettes:override("YELLOWBAR", {
+    { 255, 255, 255 }, { 248, 232, 152 }, { 248, 200, 48 }, { 24, 32, 32 },
+  })
+  mod.content.palettes:override("REDBAR", {
+    { 255, 255, 255 }, { 248, 184, 176 }, { 232, 80, 72 }, { 24, 32, 32 },
+  })
+
+  -- These are live display settings, not a replacement renderer.  In
+  -- particular, FILL, survey zoom and tilt can all make pixel sizes uneven
+  -- or make the 16px character art appear visually mismatched.
+  local liveGame
+
+  -- g1recomp normally rasterizes every UI sprite into the 160x144 canvas
+  -- before enlarging it. A 320px source therefore collapses back to 80px and
+  -- looks just as blocky as the DS original. Repaint only the intro portraits
+  -- after the low-resolution canvas has been presented, using the exact same
+  -- logical coordinates converted to window space. UI, text and borders keep
+  -- their normal renderer; the HD character pixels survive to the display.
+  local HdRenderer = require("src.render.Renderer")
+  local oldRendererEndFrame = HdRenderer.endFrame
+
+  local function presentationMetrics(renderer)
+    local ww, wh = love.graphics.getDimensions()
+    local pw, ph = ww, wh
+    if love.graphics.getPixelDimensions then
+      pw, ph = love.graphics.getPixelDimensions()
+    end
+    local dpiX = ww > 0 and pw / ww or 1
+    local dpiY = wh > 0 and ph / wh or 1
+    local uiw, uih = renderer:uiSize()
+    local up = renderer:uiScale()
+    if renderer.uiFill then up = math.min(ph / uih, pw / uiw) end
+    local sx, sy = up / dpiX, up / dpiY
+    local ox = math.floor((pw - uiw * up) / 2) / dpiX
+    local oy = math.floor((ph - uih * up) / 2) / dpiY
+    return sx, sy, ox, oy
+  end
+
+  local function visibleHdState()
+    local stack = liveGame and liveGame.stack and liveGame.stack.states
+    if not stack then return nil end
+    for i = #stack, 1, -1 do
+      local state = stack[i]
+      if state and (state.hgssHdPics or state.hgssBattleTrainerHd) then
+        return state
+      end
+      if state and state.isOpaque then break end
+    end
+    return nil
+  end
+
+  HdRenderer.endFrame = function(self, ...)
+    local a, b, c = oldRendererEndFrame(self, ...)
+    local state = visibleHdState()
+    if not state then return a, b, c end
+    local sx, sy, ox, oy = presentationMetrics(self)
+    love.graphics.setColor(1, 1, 1, 1)
+
+    if state.hgssBattleTrainerHd then
+      -- Repaint the 320px source after presentation. Passing it through the
+      -- 160x144 canvas first would throw away the extra character detail.
+      -- WideBattle translates the classic enemy region by +136px, so its
+      -- trainer slot begins at 216 instead of the classic slot at 80.
+      local trainerX = state.wideLayout and state:wideLayout() and 216 or 80
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.rectangle("fill", ox + trainerX * sx, oy,
+        80 * sx, 80 * sy)
+      love.graphics.draw(state.hgssBattleTrainerHd,
+        ox + trainerX * sx, oy, 0, sx / 4, sy / 4)
+      return a, b, c
     end
 
-    -- 3. Native HGSS 32x32 Scale Overworld Renderer (100% Crisp DS Scale, 1x 1:1 Pixel Ratio)
-    pcall(function()
-        local SpriteRenderer = require("src.render.SpriteRenderer")
-        local PaletteFX = require("src.render.PaletteFX")
+    local hd = state.pic and state.hgssHdPics[state.pic]
+    if hd then
+      local w, h = state.pic:getDimensions()
+      local x = 48 + math.floor((8 - w / 8) / 2) * 8
+      local y = 32 + (7 - h / 8) * 8
+      local off, alpha = 0, 1
+      local reveal = state.picReveal
+      if reveal and reveal.kind == "fade" then
+        alpha = math.min(1, reveal.t / reveal.dur)
+      elseif reveal and reveal.kind == "wipe" then
+        off = math.floor((160 - x) *
+          (1 - math.min(1, reveal.t / reveal.dur)))
+      end
+      love.graphics.setColor(1, 1, 1, alpha)
+      love.graphics.rectangle("fill", ox + (x + off) * sx, oy + y * sy,
+        w * sx, h * sy)
+      love.graphics.setColor(1, 1, 1, alpha)
+      if state.picFlip then
+        love.graphics.draw(hd, ox + (x + off + w) * sx, oy + y * sy,
+          0, -sx / 4, sy / 4)
+      else
+        love.graphics.draw(hd, ox + (x + off) * sx, oy + y * sy,
+          0, sx / 4, sy / 4)
+      end
+      love.graphics.setColor(1, 1, 1, 1)
+    end
+    return a, b, c
+  end
+  -- Gym maps reuse generic Yellow sprite IDs, so these redirects must be
+  -- scoped to the exact leader object on its own map.  Matching a name
+  -- substring globally would turn story NPCs (Rocket Giovanni, aides named
+  -- OAK, etc.) into a gym leader by accident.
+  local GYM_LEADER_OBJECTS = {
+    PEWTER_GYM = { PEWTERGYM_BROCK = "SPRITE_GYM_BROCK" },
+    CERULEAN_GYM = { CERULEANGYM_MISTY = "SPRITE_GYM_MISTY" },
+    VERMILION_GYM = { VERMILIONGYM_LT_SURGE = "SPRITE_GYM_LT_SURGE" },
+    FUCHSIA_GYM = { FUCHSIAGYM_KOGA = "SPRITE_GYM_KOGA" },
+    SAFFRON_GYM = { SAFFRONGYM_SABRINA = "SPRITE_GYM_SABRINA" },
+    CINNABAR_GYM = { CINNABARGYM_BLAINE = "SPRITE_GYM_BLAINE" },
+    VIRIDIAN_GYM = { VIRIDIANGYM_GIOVANNI = "SPRITE_GYM_GIOVANNI" },
+  }
 
-        local oldNew = SpriteRenderer.new
-        function SpriteRenderer.new(spriteDef, seed)
-            local self = oldNew(spriteDef, seed)
-            if self and self.image then
-                local iw, ih = self.image:getDimensions()
-                if iw == 32 and ih == 192 then
-                    self.frames = {}
-                    for f = 0, 5 do
-                        self.frames[f] = love.graphics.newQuad(0, f * 32, 32, 32, 32, 192)
-                    end
-                    self.isHgssStrip = true
-                end
-            end
-            return self
+  -- Only these objects are Professor Oak himself.  OAKS_AIDE, OAKSLAB_GIRL,
+  -- Pokedex objects and similar names must retain their own charsets.
+  local OAK_OBJECTS = {
+    PALLETTOWN_OAK = true,
+    OAKSLAB_OAK1 = true,
+    OAKSLAB_OAK2 = true,
+    HALLOFFAME_OAK = true,
+    CHAMPIONSROOM_OAK = true,
+    QA_OAK = true,
+  }
+
+  -- A few imported Yellow map objects carry a fallback charset whose name
+  -- does not match the character class.  Keep the fix local to those exact
+  -- objects; global sprite patches would damage legitimate Cooltrainers,
+  -- Hikers and Super Nerds elsewhere in the game.
+  local OBJECT_SPRITE_FIXES = {
+    BILLS_HOUSE = {
+      BILLSHOUSE_BILL1 = "SPRITE_HGSS_BILL",
+      BILLSHOUSE_BILL2 = "SPRITE_HGSS_BILL",
+    },
+    VERMILION_CITY = {
+      VERMILIONCITY_BEAUTY = "SPRITE_BEAUTY",
+    },
+    FIGHTING_DOJO = {
+      FIGHTINGDOJO_BLACKBELT1 = "SPRITE_BLACKBELT",
+      FIGHTINGDOJO_BLACKBELT2 = "SPRITE_BLACKBELT",
+      FIGHTINGDOJO_BLACKBELT3 = "SPRITE_BLACKBELT",
+      FIGHTINGDOJO_BLACKBELT4 = "SPRITE_BLACKBELT",
+      FIGHTINGDOJO_KARATE_MASTER = "SPRITE_BLACKBELT",
+    },
+    POKEMON_MANSION_B1F = {
+      POKEMONMANSIONB1F_BURGLAR = "SPRITE_BURGLAR",
+    },
+  }
+
+  local function applyLeaderSprites()
+    local game = liveGame
+    local overworld = game and game.overworld
+    if not overworld or not overworld.npcs then return end
+    local mapId = tostring(overworld.map and overworld.map.id or "")
+    local gymObjects = GYM_LEADER_OBJECTS[mapId]
+    local objectFixes = OBJECT_SPRITE_FIXES[mapId]
+    for _, npc in ipairs(overworld.npcs) do
+      local def = npc.def
+      local objectName = tostring(def and def.name or "")
+      local target = (gymObjects and gymObjects[objectName])
+        or (objectFixes and objectFixes[objectName])
+      -- Yellow calls Gary/Blue simply RIVAL in every map object.  Those names
+      -- are specific enough that this does not collide with generic NPCs.
+      if not target and objectName:find("RIVAL", 1, true) then
+        target = "SPRITE_HGSS_BLUE"
+      elseif not target and OAK_OBJECTS[objectName] then
+        target = "SPRITE_HGSS_OAK"
+      end
+      if target and game.data.sprites[target] and def.sprite ~= target then
+        def.sprite = target
+        if target == "SPRITE_HGSS_OAK" then
+          -- Oak's map objects are authored as stationary Yellow NPCs. The
+          -- replacement charset has a real six-frame walk cycle, so carry
+          -- the walker flag onto the live object as well as the registry.
+          def.walker = true
         end
-
-        local oldDraw = SpriteRenderer.draw
-        function SpriteRenderer:draw(px, py, camX, camY, facing, walkPhase, stepFlip, topHalf)
-            if self.isHgssStrip then
-                local x = math.floor(px - camX)
-                local y = math.floor(py - camY)
-
-                local sx = 1.0
-                local sy = 1.0
-
-                local STAND = { down = 0, up = 2, left = 4, right = 4 }
-                local WALK  = { down = 1, up = 3, left = 5, right = 5 }
-
-                local isWalking = self.def and self.def.walker and (walkPhase == 1)
-                local frameIdx = isWalking and WALK[facing] or STAND[facing]
-                local quad = self.frames[frameIdx] or self.frames[0]
-
-                local flip = (facing == "right")
-
-                local drawX = x - 8
-                local drawY = y - 16
-
-                if self.def and self.def.trueColor and PaletteFX and PaletteFX.markTrueColor then
-                    PaletteFX.markTrueColor(math.floor(drawX), math.floor(drawY), 32, 32)
-                end
-
-                if flip then
-                    love.graphics.draw(self.image, quad,
-                        math.floor(drawX + 32), math.floor(drawY),
-                        0, -sx, sy)
-                else
-                    love.graphics.draw(self.image, quad,
-                        math.floor(drawX), math.floor(drawY),
-                        0, sx, sy)
-                end
-                return
-            end
-            return oldDraw(self, px, py, camX, camY, facing, walkPhase, stepFlip, topHalf)
+        npc.sprite = SpriteRenderer.new(game.data.sprites[target], npc.id)
+        if target == "SPRITE_HGSS_OAK" and npc.sprite then
+          npc.sprite.def.walker = true
         end
-    end)
+      end
+    end
+  end
 
-    -- 4. BATTLE RESOLUTION & SCALING HOOKS (0.5x Integer Scale + Pure 32-bit RGBA)
-    pcall(function()
-        local Sprites = require("src.pokemon.Sprites")
-        local BattleState = require("src.battle.BattleState")
-        local PaletteFX = require("src.render.PaletteFX")
+  local function applyCrispDisplay(game)
+    if not mod.options:get("crisp_display") then return end
+    local options = game and game.save and game.save.options
+    if not options then return end
+    options.battleFit = "fixed"
+    options.battleLayout = "wide"
+    options.uiLayout = "centered"
+    options.zoom = 0
+    options.tilt = 0
+    options.gbcfx = 0
+    if game.applyOptions then game:applyOptions(options) end
+  end
 
-        if BattleState.invalidate then
-            BattleState.invalidate()
-        end
+  mod.events:on("game.ready", function(ev)
+    liveGame = ev and ev.game
+    applyCrispDisplay(liveGame)
+    applyLeaderSprites()
+  end)
+  mod.events:on("map.entered", applyLeaderSprites)
+  mod.events:on("map.reloaded", applyLeaderSprites)
+  -- CONTINUE restores the standalone options after game.ready.  Reapply the
+  -- cosmetic policy only after that restore has completed.
+  mod.events:on("save.loaded", function()
+    applyCrispDisplay(liveGame)
+    applyLeaderSprites()
+  end)
+  mod.events:on("save.created", function()
+    applyCrispDisplay(liveGame)
+    applyLeaderSprites()
+  end)
 
-        -- Force battle scale to 0.5x (exact 2:1 integer division) for 100% sharp pixel art
-        local oldResolveBattleScale = BattleState.resolveBattleScale
-        function BattleState.resolveBattleScale(data, side, path, species)
-            return 0.5
-        end
-
-        -- Ensure player back pic returns trueColor = true
-        local oldPlayerPath = Sprites.playerPath
-        function Sprites.playerPath(data, side, opts)
-            local path, _ = oldPlayerPath(data, side, opts)
-            if side == "back" then
-                return mod.path .. "/overrides/battle/redb.png", true
-            end
-            return path, true
-        end
-
-        -- Return NIL for trainer palettes so getImage does NOT run id:mapPixel
-        local oldTrainerPalette = BattleState.trainerPalette
-        function BattleState.trainerPalette(data, trainer)
-            return nil
-        end
-
-        -- Ensure trainerPicPath resolves mod trainer images
-        local oldTrainerPicPath = BattleState.trainerPicPath
-        function BattleState.trainerPicPath(data, trainer, oppClass, partyIndex)
-            if trainer and trainer.pic then
-                local p1 = mod.path .. "/overrides/" .. tostring(trainer.pic)
-                local p2 = mod.path .. "/overrides/battle/trainers/" .. tostring(trainer.pic)
-                if love.filesystem and love.filesystem.getInfo then
-                    if love.filesystem.getInfo(p1) then return p1 end
-                    if love.filesystem.getInfo(p2) then return p2 end
-                end
-            end
-            return oldTrainerPicPath(data, trainer, oppClass, partyIndex)
-        end
-
-        -- Wrap BattleState:drawPicsLayer to force PaletteFX.setPass("ui") and markTrueColor for both sides
-        local oldDrawPicsLayer = BattleState.drawPicsLayer
-        function BattleState:drawPicsLayer(slide, sx, sy, onlySide, skipMenuClip)
-            if PaletteFX and PaletteFX.setPass then
-                PaletteFX.setPass("ui")
-            end
-
-            local s = 0.5
-
-            -- Mark TrueColor zone for enemy trainer pic
-            if onlySide ~= "player" and self.showEnemyTrainer and self.trainerPic then
-                local img = self:picImage(self.trainerPic)
-                if img then
-                    if img.setFilter then img:setFilter("nearest", "nearest") end
-                    local w, h = img:getWidth(), img:getHeight()
-                    local ex = 96 - slide + sx
-                    local ey = sy
-                    local dx, dy = ex + w * (1 - s) / 2, ey + h * (1 - s)
-                    if PaletteFX and PaletteFX.markTrueColor then
-                        PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
-                    end
-                end
-            end
-
-            -- Mark TrueColor zone for player back pic (Red back)
-            if onlySide ~= "enemy" and self.showPlayerBack and self.playerBackPic then
-                local img = self:picImage(self.playerBackPic)
-                if img then
-                    if img.setFilter then img:setFilter("nearest", "nearest") end
-                    local w, h = img:getWidth(), img:getHeight()
-                    local dx = 8 + slide + sx + self:picOffset("back")
-                    local dy = 96 - (h * s) + sy
-                    if PaletteFX and PaletteFX.markTrueColor then
-                        PaletteFX.markTrueColor(math.floor(dx), math.floor(dy), math.ceil(w * s), math.ceil(h * s))
-                    end
-                end
-            end
-
-            return oldDrawPicsLayer(self, slide, sx, sy, onlySide, skipMenuClip)
-        end
-    end)
-
-    print("[HGSS] v1.8.0 initialized — 0.5x Integer Pixel-Perfect Battle Scale Active!")
+  mod.exports.coverage = {
+    pokemon = 151,
+    partyIcons = 151,
+    battleTrainers = 46,
+    overworldCharacters = 70,
+    chromeGlyphs = 9,
+    trainerCardAssets = 4,
+    leaderOverworldCharsets = 9,
+    nativeRuntimeScale = true,
+    nativeDsOverworld = true,
+    integerBattleScale = 1,
+  }
 end

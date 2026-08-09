@@ -1,107 +1,84 @@
-# HGSS Visual Overhaul — Complete Sprite Mod for Gen1Recomp
+# HGSS Visual Overhaul 2.3
 
-> **O primeiro mod que substitui TUDO de uma vez**: sprites de batalha, overworld, treinadores e UI inteira no estilo HeartGold/SoulSilver.
+> **Native DS density:** this release keeps the source 80x80 battle sprites
+> and 32x32 overworld cells intact. Battle art is drawn at 1:1 from the
+> original PNGs; overworld sheets use a narrow `engine_internals` adapter because
+> the stock 16px renderer would otherwise crop them into GBC-sized fragments.
 
-## ✨ Features
+Este mod converte a apresentação de **Pokémon Yellow no g1recomp 0.1.75** para uma linguagem visual inspirada em Pokémon HeartGold/SoulSilver. A maior parte usa a Mod API 2; o único acesso interno é o adaptador estreito que permite desenhar as folhas overworld DS em 32×32.
 
-- 🎮 **151 Pokémon** — Sprites de batalha (front + back) estilo HGSS
-- 🗺️ **Overworld Completo** — Pokémon followers e NPCs no estilo DS
-- ⚔️ **Treinadores** — Sprites de batalha (front + back) + overworld
-- 🖥️ **UI Redesign** — Text boxes, HP bars, menus, badges, bag no estilo HGSS
-- 🎨 **Palette Enhancement** — Cores mais ricas e vibrantes para assets não substituídos
+## O que realmente é substituído
 
-## 📦 Instalação
+- 151 sprites frontais e 151 sprites traseiros de batalha, preservados em 80×80 e desenhados a escala 1:1;
+- 151 ícones de party específicos por espécie, com dois frames coloridos em folhas 32×64 na densidade nativa do DS;
+- todos os charsets humanos e Pokémon que o registro overworld de Yellow expõe;
+- Red (folha HGSS 4×4 preservada, com fundo removido sem perder o boné), bicicleta, Blue, Oak, Pikachu seguidor e Surfing Pikachu nos caminhos corretos;
+- as 46 classes de retrato de treinador esperadas pelo cache de Yellow;
+- Red de costas na batalha e Red de frente no Trainer Card/Hall of Fame;
+- frame, selos, faces e oito badges Kanto do Trainer Card;
+- bordas, cursores e setas globais em estilo DS, mantendo a fonte 8×8 nativa e legível;
+- paletas de HP inspiradas em HGSS para batalha, party e summary;
+- uma opção `CRISP DISPLAY` que usa `FIXED`, `CENTERED`, zoom FIT e remove tilt/efeitos que deformam a grade.
 
-### Método 1: ZIP Import (Recomendado)
-1. Baixe o release `.zip` mais recente
-2. No Gen1Recomp, vá em **MODS → Import mod .zip**
-3. Selecione o arquivo `.zip`
-4. Ative o mod no Mod Manager
+As telas continuam usando a geometria 160×144 do jogo recompilado. O mod troca arte, ícones e o chrome global da interface, preservando a fonte 8×8 para que as colunas continuem legíveis; ele não reimplementa Bag, Pokédex ou Trainer Card com o layout de duas telas do Nintendo DS.
 
-### Método 2: Manual
-1. Copie a pasta `hgss_sprites/` para `gen1recomp/mods/`
-2. Reinicie o Gen1Recomp
-3. Ative o mod no Mod Manager
+Também é importante distinguir ícones de seguidores: Pokémon Yellow/g1recomp possui um sistema de seguidor para Pikachu. As outras 150 folhas são usadas como ícones animados da party; adicionar 151 seguidores ao mapa exigiria um sistema de gameplay separado.
 
-## 🛠️ Build — Processando os Sprites
+## Instalação
 
-Os sprites precisam ser baixados manualmente do [Spriters Resource](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/) e processados com nosso script.
+Use o ZIP de release, cuja raiz já contém `manifest.json`:
 
-### Passo 1: Baixar as Sprite Sheets
+1. Copie `HGSS_SPRITES-0.0.2.zip` para a pasta `mods` do g1recomp, ou extraia como `mods/HGSS_SPRITES/`.
+2. Abra o gerenciador de mods do g1recomp e deixe **HGSS Visual Overhaul** habilitado.
+3. Reinicie o jogo depois de atualizar uma versão anterior; a v1.x alterava módulos do renderer em memória.
 
-Baixe os seguintes assets e coloque na pasta `tools/raw/`:
+O mod é direcionado a g1recomp `>=0.1.75 <0.2.0` e Pokémon Yellow.
 
-| Arquivo | Link | Categoria |
-|---------|------|-----------|
-| Pokémon Gen 1 (Batalha) | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/132565/) | Battle |
-| Pokémon Gen 1 (Overworld) | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26794/) | Overworld |
-| Treinadores (Front) | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/28037/) | Trainers |
-| Treinadores (Back) | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/41995/) | Trainers |
-| Treinadores (Overworld) | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26955/) | Overworld |
-| Items | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/28036/) | UI |
-| Text Boxes | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26753/) | UI |
-| HP Bars | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/30540/) | UI |
-| Badge Case | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/29323/) | UI |
-| Bag | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26746/) | UI |
-| Poké Balls | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/233231/) | UI |
-| Fonts | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/27044/) | UI |
-| Introduction | [Download](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26748/) | UI |
+## Build e verificação
 
-### Passo 2: Processar os Sprites
+Na raiz deste repositório:
 
-```bash
-cd tools/
-pip install Pillow
-python sprite_cutter.py
+```powershell
+python scripts/build_mod_assets.py
+python scripts/build_mod_assets.py --check
+python scripts/build_mod_assets.py --package
 ```
 
-O script recorta automaticamente as sprite sheets em sprites individuais e os organiza na estrutura de pastas correta.
+O primeiro comando reconstrói os arquivos runtime a partir das sheets fonte. O segundo confere contagens, dimensões e o contrato do manifest. O terceiro também cria `HGSS_SPRITES-0.0.2.zip`, contendo apenas os arquivos consumidos pelo motor.
 
-### Passo 3: Verificar
+Para a validação oficial do g1recomp:
 
-Confira que os sprites foram gerados em:
-```
-assets/graphics/pokemon/front/    → 151 PNGs
-assets/graphics/pokemon/back/     → 151 PNGs
-assets/graphics/pokemon/overworld/ → 151 PNGs
-assets/graphics/trainers/front/   → ~45 PNGs
-assets/graphics/trainers/back/    → ~45 PNGs
-assets/graphics/trainers/overworld/ → ~100 PNGs
-assets/graphics/ui/               → UI elements
+```powershell
+python tools/gen1_official/tools/modkit.py --repo tools/gen1_official validate hgss_sprites --strict --base imported
+python tools/gen1_official/tools/modkit.py --repo tools/gen1_official lint hgss_sprites
 ```
 
-## 📁 Estrutura do Mod
+O validador dinâmico precisa que `luajit` esteja disponível no `PATH`; a validação real deste projeto também é feita iniciando o executável 0.1.75 com drivers determinísticos de captura.
 
-```
-hgss_sprites/
-├── manifest.json          # Metadados do mod
-├── main.lua               # Entry point — registra todos os overrides
-├── transforms.lua         # Transformações programáticas de assets
-├── mod.card               # Preview no Mod Manager
-├── README.md              # Este arquivo
-├── assets/
-│   └── graphics/
-│       ├── pokemon/
-│       │   ├── front/     # Sprites de batalha frontais
-│       │   ├── back/      # Sprites de batalha traseiros
-│       │   └── overworld/ # Sprites de overworld/follower
-│       ├── trainers/
-│       │   ├── front/     # Sprites de batalha dos treinadores
-│       │   ├── back/      # Sprites traseiros dos treinadores
-│       │   └── overworld/ # Sprites de overworld dos treinadores
-│       └── ui/            # Elementos de UI (text boxes, HP, etc.)
-└── tools/
-    ├── raw/               # Sprite sheets brutas (não incluídas no release)
-    └── sprite_cutter.py   # Script de processamento
-```
+## Formatos runtime
 
-## 🎨 Créditos
+- walker overworld: 32×192, ordem `stand down/up/left`, `walk down/up/left`;
+- NPC parado: 32×96;
+- objeto parado: 32×32;
+- party icon: 32×64 (dois frames 32×32, desenhados em uma grade de seis células);
+- batalha: 80×80 a escala 1:1, filtro nearest;
+- chrome da UI: nove glyphs de 8×8 a partir do código privado `0x200`;
+- Trainer Card: frame 24×24, selo 8×8 e oito pares face/badge em 16×256.
 
-- **Sprites originais**: Game Freak / Nintendo / The Pokémon Company
-- **Sprite rips**: Dazz, Dragoon, Nx-Kun, HackMew, KurainoOni, Random Talking Bush, mufasakong (via [The Spriters Resource](https://www.spriters-resource.com/))
-- **Gen1Recomp**: [bryanthaboi](https://github.com/bryanthaboi/gen1recomp)
-- **Mod**: Luciano
+O adaptador `SpriteRenderer` é intencional e limitado às folhas 32×192 deste mod; ele é declarado pela permissão `engine_internals` e não altera os sprites vanilla.
 
-## ⚖️ Aviso Legal
+## Referências do motor
 
-Este mod não inclui sprites protegidos por copyright. Você deve baixar e processar os sprites manualmente usando as ferramentas fornecidas. Os sprites são propriedade da Nintendo/Game Freak/The Pokémon Company.
+- [Art Pipeline](https://github.com/bryanthaboi/gen1recomp/wiki/Guide-Art-Pipeline)
+- [Sprite and Text Tweak](https://github.com/bryanthaboi/gen1recomp/wiki/Tutorial-01-Sprite-And-Text-Tweak)
+- [Manifest Reference](https://github.com/bryanthaboi/gen1recomp/wiki/Reference-Manifest)
+- [Registry Reference](https://github.com/bryanthaboi/gen1recomp/wiki/Reference-Registries)
+
+## Fontes dos charsets Gen IV
+
+- [Trainers (Overworld) de HGSS — The Spriters Resource](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26955/)
+- [NPCs de Pokémon Platinum — The Spriters Resource](https://www.spriters-resource.com/ds_dsi/pokemonplatinum/asset/25791/)
+- [ALL Official Gen 4 Overworld Sprites — Vanilla Sunshine](https://www.eeveeexpo.com/resources/404/), com créditos adicionais a Neo-Spriteman, PurpleZaffre, Maicerochico e AtomicReactor conforme `assets/graphics/trainers/overworld/gen4_community/CREDITS.txt`.
+- Referências visuais individuais conferidas na [galeria Gen IV da Bulbapedia](https://bulbapedia.bulbagarden.net/wiki/User:Team_Rocket_Grunt/List_of_game_characters_by_overworld_sprite).
+
+Pokémon e os designs de HeartGold/SoulSilver pertencem à Nintendo/Game Freak. As sheets fonte mantêm os créditos embutidos de seus respectivos ripadores; este projeto é um mod visual não comercial.

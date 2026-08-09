@@ -1,19 +1,30 @@
-# HGSS Visual Overhaul
-## Mod Card
-
-**Replaces all Gen 1 graphics with HeartGold/SoulSilver style sprites.**
-
-### Features
-- 151 Pokémon battle sprites (front & back) in HGSS style
-- Overworld Pokémon follower sprites
-- Trainer battle & overworld sprites
-- Updated UI elements (text boxes, HP bars, menus)
-- Enhanced color palette
-
-### Credits
-- Sprites ripped from Pokémon HeartGold/SoulSilver (Nintendo/Game Freak)
-- Sprite sheets sourced from The Spriters Resource
-- Mod by Luciano
-
-### Version History
-- **1.0.0** — Initial release with full Gen 1 Pokémon sprite coverage
+return {
+  summary = "Native-density HGSS sprites, party icons, trainers and interface chrome for Yellow.",
+  author = "Luciano",
+  tags = { "graphics", "overhaul", "hgss", "pixel-art" },
+  differences = {
+    changed = {
+      "all 151 Pokemon front and back battle sprites",
+      "all character and Pokemon overworld sheets exposed by Pokemon Yellow",
+      "the player battle/card portrait and every trainer class, with distinct audited source art",
+      "global menu borders/cursors, HP palettes and Trainer Card chrome while preserving native 8x8 text metrics",
+    },
+    added = {
+      "151 animated, species-specific party icons",
+      "an optional crisp-display policy for integer-scaled presentation",
+    },
+    known = {
+      "Pokemon Yellow only implements Pikachu as a follower; the other party icons do not create new followers",
+      "Gen 1 menu geometry remains 160x144; this pack restyles it rather than replacing gameplay screens with DS layouts",
+      "battle trainers use a 320px post-canvas presentation layer; no four-color Game Boy filter is applied",
+    },
+  },
+  credits = {
+    { who = "Nintendo / Game Freak", for_ = "Pokemon HeartGold and SoulSilver source designs" },
+    { who = "The Pokemon Company / DeNA", for_ = "high-resolution Pokemon Masters character renders" },
+    { who = "Bulbagarden Archives contributors", for_ = "official sprite preservation and provenance" },
+    { who = "The Spriters Resource contributors", for_ = "the credited HGSS sprite sheets retained in the source-assets tree" },
+    { who = "Pokemon Gen 1 Recompilation Project", for_ = "g1recomp and its public Mod API 2" },
+  },
+  compat = { engine = ">=0.1.75 <0.2.0", modApi = 2 },
+}

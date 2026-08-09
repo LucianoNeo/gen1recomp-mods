@@ -1,8 +1,18 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "1.8.0",
+  "version": "0.0.9",
+  "api": 2,
   "entry": "main.lua",
+  "profile": "overhaul",
+  "category": "GRAPHICS",
+  "game_version": ">=0.1.75 <0.2.0",
+  "priority": 100,
+  "affects_link": true,
+  "permissions": ["engine_internals"],
+  "dependencies": [],
+  "optional_dependencies": [],
+  "conflicts": [],
   "author": "Luciano",
-  "description": "Replaces Gen 1 Pokémon battle sprites, overworld sprites, trainer sprites, and UI with official high-definition 32x32 DS Pokémon HeartGold / SoulSilver assets."
+  "description": "A native-density HGSS visual overhaul for Pokemon Yellow: original 80px battle art at integer scale, 32px overworld sheets, party icons, trainer portraits, and DS-style interface chrome."
 }
