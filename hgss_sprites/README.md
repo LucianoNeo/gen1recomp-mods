@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Versão](https://img.shields.io/badge/versão-0.0.10-gold)
+![Versão](https://img.shields.io/badge/versão-0.0.11-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.75-blue)
 ![Jogo](https://img.shields.io/badge/Pokémon-Yellow-yellow)
 
@@ -56,6 +56,20 @@ Os seis ícones são desenhados e animados pelo menu real do jogo.
 
 ![Tela Pokémon dentro do jogo](docs/media/gameplay-party-still.png)
 
+### Interface DS e barras de HP
+
+As caixas agora são desenhadas em RGB verdadeiro, com contorno azul-marinho,
+rebaixo azul-cinza e interior branco. Cursores ativos usam vermelho e não são
+reconvertidos para a paleta do Game Boy.
+
+As barras de HP também são RGB: verde para HP alto, amarelo para HP
+intermediário e vermelho para HP baixo. O estilo é compartilhado pelas telas
+de batalha, time e resumo.
+
+![Interface HGSS e barras amarela e vermelha dentro do jogo](docs/media/gameplay-hgss-ui-hp.png)
+
+![Interface HGSS e barras verdes na tela Pokémon](docs/media/gameplay-hgss-ui-party.png)
+
 ## Vídeos de gameplay
 
 Os vídeos abaixo foram montados exclusivamente com frames PNG capturados pela
@@ -91,7 +105,7 @@ função de screenshot do próprio g1recomp durante a execução.
 
 ## Instalação
 
-1. Baixe `HGSS_SPRITES-0.0.10.zip` na página de releases.
+1. Baixe `HGSS_SPRITES-0.0.11.zip` na página de releases.
 2. Copie o ZIP para a pasta `mods` do g1recomp ou extraia-o como
    `mods/HGSS_SPRITES/`.
 3. Habilite **HGSS Visual Overhaul** no gerenciador de mods.

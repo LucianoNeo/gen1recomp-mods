@@ -711,6 +711,54 @@ return function(mod)
     moreArrow = 0x208,
   })
 
+  -- Merely swapping the six 8x8 border glyphs still leaves a monochrome
+  -- Game Boy window. Draw the global boxes as true-color DS chrome instead:
+  -- navy outer edge, cool-gray inset and a clean white content surface.
+  -- Every menu continues to own its original geometry and text layout.
+  local UiFont = require("src.render.Font")
+  local UiPaletteFX = require("src.render.PaletteFX")
+  UiFont.drawBox = function(tx, ty, tw, th)
+    local x, y, w, h = tx * 8, ty * 8, tw * 8, th * 8
+    local r, g, b, a = love.graphics.getColor()
+    love.graphics.setColor(0.10, 0.18, 0.29, 1)
+    love.graphics.rectangle("fill", x, y, w, h)
+    love.graphics.setColor(0.55, 0.67, 0.76, 1)
+    love.graphics.rectangle("fill", x + 1, y + 1, w - 2, h - 2)
+    love.graphics.setColor(0.86, 0.91, 0.94, 1)
+    love.graphics.rectangle("fill", x + 2, y + 2, w - 4, h - 4)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("fill", x + 3, y + 3, w - 6, h - 6)
+    love.graphics.setColor(0.72, 0.82, 0.88, 1)
+    love.graphics.rectangle("fill", x + 3, y + 3, w - 6, 1)
+    UiPaletteFX.markTrueColor(x, y, w, h)
+    love.graphics.setColor(r, g, b, a)
+  end
+
+  local oldUiDrawCode = UiFont.drawCode
+  UiFont.drawCode = function(code, x, y)
+    local filled = code == 0x206 or code == 0xED
+    local hollow = code == 0x207 or code == 0xEC
+    local more = code == 0x208 or code == 0xEE
+    if not filled and not hollow and not more then
+      return oldUiDrawCode(code, x, y)
+    end
+    local r, g, b, a = love.graphics.getColor()
+    if more then
+      love.graphics.setColor(0.18, 0.39, 0.66, 1)
+      love.graphics.polygon("fill", x + 1, y + 2, x + 7, y + 2,
+                            x + 4, y + 6)
+    else
+      love.graphics.setColor(filled and 0.86 or 0.30,
+                            filled and 0.22 or 0.49,
+                            filled and 0.18 or 0.70, 1)
+      love.graphics.polygon(filled and "fill" or "line",
+                            x + 1, y + 1, x + 7, y + 4,
+                            x + 1, y + 7)
+    end
+    UiPaletteFX.markTrueColor(x, y, 8, 8)
+    love.graphics.setColor(r, g, b, a)
+  end
+
   -- HGSS-like health colors use the engine's supported four-shade palette
   -- path, so battle, party and summary bars stay correct in every renderer.
   mod.content.palettes:override("GREENBAR", {
@@ -722,6 +770,60 @@ return function(mod)
   mod.content.palettes:override("REDBAR", {
     { 255, 255, 255 }, { 248, 184, 176 }, { 232, 80, 72 }, { 24, 32, 32 },
   })
+
+  -- Render the actual fill as RGB after the legacy tile bar. This makes the
+  -- HGSS green/yellow/red states visible in battle, party and summary even
+  -- when the selected display filter would otherwise remap them to GB hues.
+  local UiHudTiles = require("src.render.HudTiles")
+  local function drawHgssHP(tx, ty, mon, segments)
+    segments = math.max(1, math.floor(segments or 6))
+    local maxHP = math.max(1, mon.stats.hp)
+    local ratio = math.max(0, math.min(1, mon.hp / maxHP))
+    local x, y, width = tx * 8 + 15, ty * 8 + 1, segments * 8 + 2
+    local color = ratio >= 0.5625 and { 0.20, 0.72, 0.31, 1 }
+      or ratio >= 0.2083 and { 0.96, 0.73, 0.12, 1 }
+      or { 0.89, 0.22, 0.18, 1 }
+    local r, g, b, a = love.graphics.getColor()
+    love.graphics.setColor(0.12, 0.16, 0.18, 1)
+    love.graphics.rectangle("fill", x, y, width, 6)
+    love.graphics.setColor(0.82, 0.86, 0.88, 1)
+    love.graphics.rectangle("fill", x + 1, y + 1, width - 2, 4)
+    if ratio > 0 then
+      love.graphics.setColor(color)
+      love.graphics.rectangle("fill", x + 2, y + 2,
+        math.max(1, math.floor((width - 4) * ratio)), 2)
+    end
+    UiPaletteFX.markTrueColor(x, y, width, 6)
+    love.graphics.setColor(r, g, b, a)
+  end
+  local oldUiHPBar = UiHudTiles.drawHPBar
+  UiHudTiles.drawHPBar = function(data, tx, ty, mon, barType, grayFill,
+                                  segments)
+    oldUiHPBar(data, tx, ty, mon, barType, grayFill, segments)
+    drawHgssHP(tx, ty, mon, segments)
+  end
+
+  -- BattleState cached the original drawHPBar function when its module was
+  -- loaded, so repaint its two live bars explicitly after the stock HUD.
+  local oldBattleDrawHUDs = BattleState.drawHUDs
+  BattleState.drawHUDs = function(self, slide)
+    local result = oldBattleDrawHUDs(self, slide)
+    if self.enemy and not self.showEnemyTrainer and not self.enemySendingOut
+       and slide == 0 and not self.introBalls and not self.enemy.fainted then
+      drawHgssHP(2, 2, {
+        hp = self.enemy.shownHP or self.enemy.mon.hp,
+        stats = self.enemy.mon.stats,
+      })
+    end
+    if self.player and not self.safari and not self.demo
+       and not self.showPlayerBack and slide == 0 then
+      drawHgssHP(10, 9, {
+        hp = self.player.shownHP or self.player.mon.hp,
+        stats = self.player.mon.stats,
+      })
+    end
+    return result
+  end
 
   -- These are live display settings, not a replacement renderer.  In
   -- particular, FILL, survey zoom and tilt can all make pixel sizes uneven
