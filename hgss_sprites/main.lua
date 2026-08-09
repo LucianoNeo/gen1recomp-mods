@@ -1224,7 +1224,9 @@ return function(mod)
     VIRIDIAN_POKECENTER = {
       VIRIDIANPOKECENTER_GENTLEMAN = "SPRITE_GENTLEMAN",
       VIRIDIANPOKECENTER_COOLTRAINER_M = "SPRITE_COOLTRAINER_M",
-      VIRIDIANPOKECENTER_LINK_RECEPTIONIST = "SPRITE_LINK_RECEPTIONIST",
+      -- Yellow's link-receptionist object is the counter clerk in this map;
+      -- use the HGSS clerk charset rather than the tiny link-terminal pose.
+      VIRIDIANPOKECENTER_LINK_RECEPTIONIST = "SPRITE_CLERK",
       VIRIDIANPOKECENTER_NURSE = "SPRITE_NURSE",
       VIRIDIANPOKECENTER_CHANSEY = "SPRITE_CHANSEY",
     },
