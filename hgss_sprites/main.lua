@@ -327,6 +327,49 @@ return function(mod)
     end
     billboards.mesh = nativeMesh
     billboards.shadowQuad = nativeMesh
+
+    -- Voxel's BattlePics reconstructs white interiors for alpha-keyed Gen 1
+    -- artwork. Our 80x80 HGSS battle sprites already contain authored RGB and
+    -- real alpha, so that flood fill mistakes legitimate openings (notably
+    -- the gap between Pikachu's tail and body) for white paint. Bypass the
+    -- reconstruction only for native-density pictures; vanilla 56px art
+    -- keeps the compatibility fill it needs.
+    local seenPics = {}
+    local function findBattlePics(value, depth)
+      if depth > 10 or seenPics[value] then return nil end
+      local kind = type(value)
+      if kind ~= "function" and kind ~= "table" then return nil end
+      seenPics[value] = true
+      if kind == "table" then
+        if type(value.filled) == "function" and value.FILL
+           and value.DRAIN then return value end
+        for _, child in pairs(value) do
+          local hit = findBattlePics(child, depth + 1)
+          if hit then return hit end
+        end
+      else
+        local index = 1
+        while true do
+          local name, child = debug.getupvalue(value, index)
+          if not name then break end
+          local hit = findBattlePics(child, depth + 1)
+          if hit then return hit end
+          index = index + 1
+        end
+      end
+      return nil
+    end
+    local battlePics = findBattlePics(voxel.drawWorld, 0)
+    if battlePics then
+      local originalFilled = battlePics.filled
+      battlePics.filled = function(image, ...)
+        if image and image.getDimensions then
+          local width, height = image:getDimensions()
+          if width >= 80 and height >= 80 then return image end
+        end
+        return originalFilled(image, ...)
+      end
+    end
     voxelBillboardsPatched = true
   end
 
