@@ -336,11 +336,37 @@ return function(mod)
   -- field has 64px of room on the right); all Pokemon and vanilla draws keep
   -- the engine's original path untouched.
   local oldBattleDrawPicsLayer = BattleState.drawPicsLayer
+  local voxelRedBackPath = mod.assets:path("assets/voxel/red_back_final.png")
+  local voxelOakBackPath = mod.assets:path("assets/voxel/oak_back_final.png")
+  local oldBattleEnter = BattleState.enter
+  BattleState.enter = function(self, ...)
+    local okP, Pipelines = pcall(require, "src.render.Pipelines")
+    local opts = self.game and self.game.save and self.game.save.options
+    local modOpts = opts and opts.modOptions and opts.modOptions.DRAMALESS_SHAPE
+    local staged = okP and Pipelines.level("voxel") > 0
+      and (not modOpts or modOpts.battles ~= false)
+    local pics = self.data and self.data.field and self.data.field.playerPics
+    if not (staged and pics) then return oldBattleEnter(self, ...) end
+    local key = self.oakDemo and "oakBack" or "back"
+    local original = pics[key]
+    pics[key] = self.oakDemo and voxelOakBackPath or voxelRedBackPath
+    local ok, a, b, c = pcall(oldBattleEnter, self, ...)
+    pics[key] = original
+    if not ok then error(a, 0) end
+    return a, b, c
+  end
+
   BattleState.drawPicsLayer = function(self, ...)
+    -- DRAMALESS_SHAPE renders each side into a private texture by temporarily
+    -- replacing the opposite battler with boolean false.  In that pass the
+    -- portrait must stay inside the voxel card; the post-presentation HD
+    -- overlay would otherwise create a second, giant trainer on the screen.
+    local voxelTexturePass = self.player == false or self.enemy == false
     local trainer = self.trainerPic and self:picImage(self.trainerPic)
     local trainerPath = self.trainer
       and (self.trainer.picJessieJames or self.trainer.pic)
-    self.hgssBattleTrainerHd = self.showEnemyTrainer and trainerPath
+    self.hgssBattleTrainerHd = not voxelTexturePass
+      and self.showEnemyTrainer and trainerPath
       and TRAINER_HD_BY_PATH[trainerPath] or nil
     local player = self.playerBackPic and self:picImage(self.playerBackPic)
     local playerWidth = player and player:getWidth() or 0
@@ -360,9 +386,14 @@ return function(mod)
         -- transparent source. Do not draw it underneath: covering it later
         -- with an opaque white 80x80 rectangle erased voxel/background mods.
         if self.hgssBattleTrainerHd then return end
+        if voxelTexturePass then return originalDraw(image, x, y, ...) end
         return originalDraw(image, x - 16, y, ...)
       end
-      if image == player and playerQuad and type(x) == "number" and type(y) == "number" then
+      local imageWidth, imageHeight = image:getDimensions()
+      local animatedImage = self.showPlayerBack and imageHeight == 80
+        and (imageWidth == 320 or imageWidth == 400)
+      if (image == player or animatedImage) and type(x) == "number"
+         and type(y) == "number" then
         -- Play the authored sequence once per battle, then hold the final
         -- pose: five frames for Red and four for Oak's Yellow tutorial.
         -- A modulo loop would keep either character gesturing forever.
@@ -371,8 +402,13 @@ return function(mod)
         local elapsed = math.max(0, love.timer.getTime()
           - self.hgssRedAnimStart)
         local frame = math.min(playerFrameCount - 1, math.floor(elapsed * 8))
-        playerQuad:setViewport(frame * 80, 0, 80, 80, playerWidth, 80)
-        return originalDraw(image, playerQuad, x, y, ...)
+        local quad = playerQuad
+        if image ~= player or imageWidth ~= playerWidth then
+          quad = love.graphics.newQuad(0, 0, 80, 80,
+                                       imageWidth, imageHeight)
+        end
+        quad:setViewport(frame * 80, 0, 80, 80, imageWidth, imageHeight)
+        return originalDraw(image, quad, x, y, ...)
       end
       return originalDraw(image, x, y, ...)
     end
@@ -984,7 +1020,7 @@ return function(mod)
     local sx, sy, ox, oy = presentationMetrics(self)
     love.graphics.setColor(1, 1, 1, 1)
 
-    if state.hgssBattleTrainerHd then
+    if state.hgssBattleTrainerHd and not state.dramaticShapeShot then
       -- Repaint the 320px source after presentation. Passing it through the
       -- 160x144 canvas first would throw away the extra character detail.
       -- WideBattle translates the classic enemy region by +136px, so its
