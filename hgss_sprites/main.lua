@@ -508,7 +508,12 @@ return function(mod)
     local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
     local y = math.floor(py - camY) - drawH + 16
     local stand = { down = 0, up = 1, left = 2, right = 2 }
-    local walk = { down = 3, up = 4, left = 5, right = 5 }
+    -- Native HGSS overworld sheets are authored as three facing idle cells
+    -- followed by the three walking cells: side, down, up.  The previous
+    -- mapping treated cell 3 as the down walk frame, which made characters
+    -- such as Viridian's Cooltrainer use a sideways/incorrect pose when
+    -- walking toward the camera.
+    local walk = { down = 4, up = 5, left = 3, right = 3 }
     local frame = (self.def.walker and walkPhase == 1)
       and walk[facing] or stand[facing]
     frame = frame or 0
