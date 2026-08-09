@@ -512,7 +512,13 @@ return function(mod)
       quad = self.hgssHalfFrames[frame]
     end
     local image = self.resolveImage and self:resolveImage() or self.image
+    -- Gen I stores one walking pose for each direction.  Consecutive
+    -- vertical steps alternate the leading foot by mirroring that pose;
+    -- ignoring stepFlip made Blue/Gary (and other native 32px walkers)
+    -- repeat one leg and visibly slide/limp through scripted movement.
     local flip = facing == "right"
+      or ((facing == "down" or facing == "up")
+          and self.def.walker and walkPhase == 1 and stepFlip)
     if self.def.trueColor and PaletteFX.markTrueColor then
       PaletteFX.markTrueColor(x, y, fw, topHalf and math.floor(fh / 2) or fh)
     end

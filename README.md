@@ -24,4 +24,5 @@ Voxel 3D do `DRAMALESS_SHAPE`.
 2. Importe-o pelo gerenciador de mods do g1recomp.
 3. Ative **HGSS Visual Overhaul** e reinicie o jogo.
 
-Versão atual: `0.0.21` · Compatível com g1recomp `>=0.1.75 <0.2.0`.
+Release publicada: `0.0.21` · Versão em desenvolvimento: `0.0.22` ·
+Compatível com g1recomp `>=0.1.75 <0.2.0`.
