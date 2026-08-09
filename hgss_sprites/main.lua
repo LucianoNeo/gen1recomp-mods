@@ -58,7 +58,10 @@ end
 
 local function patchOverworld(mod, shortId, frames, walker, file)
   file = file or shortId:lower()
-  local frameHeight = file == "scientist" and 48 or 32
+  -- All overworld sheets, including Scientist, use Red's 32x192 layout.
+  -- Keeping a legacy 48px Scientist frame height here makes the renderer
+  -- sample across adjacent cells and produces oversized/garbled sprites.
+  local frameHeight = 32
   local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
   mod.content.sprites:patch("SPRITE_" .. shortId, {
     -- DRAMALESS_SHAPE builds its billboard UVs from def.image and assumes a
@@ -75,10 +78,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     trueColor = true,
     hgssFrameWidth = 32,
     hgssFrameHeight = frameHeight,
-    -- The scientist source is unusually tall (32x48). Preserve the entire
-    -- frame, but fit it proportionally into the same 32px world height as
-    -- the rest of the HGSS cast instead of making a 1.5x giant billboard.
-    hgssVoxelWidth = frameHeight == 48 and (32 * 32 / 48) or 32,
+    hgssVoxelWidth = 32,
     hgssVoxelHeight = 32,
   })
 end
