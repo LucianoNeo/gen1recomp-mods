@@ -3,9 +3,9 @@
 -- The registries and hooks below are Mod API 2.  One deliberately narrow
 -- engine-internals hook is also installed for overworld sheets: g1recomp's
 -- public SpriteRenderer hard-codes 16x16 cells, while HGSS's authored cells
--- are 32x32.  Without this adapter the engine silently crops the DS art into
--- GBC-sized fragments.  The adapter only changes the quad size/anchor for
--- this mod's 32x192 sheets; every other sprite keeps the stock renderer.
+-- are 32x32 (and Jessie keeps a 4x-density 128px source). Without this adapter
+-- the engine silently crops the DS art into GBC-sized fragments. The adapter
+-- only changes native HGSS sheets; every other sprite keeps the stock renderer.
 
 local SPECIES = [[
 BULBASAUR IVYSAUR VENUSAUR CHARMANDER CHARMELEON CHARIZARD
@@ -58,10 +58,15 @@ end
 
 local function patchOverworld(mod, shortId, frames, walker, file)
   file = file or shortId:lower()
-  -- All overworld sheets, including Scientist, use Red's 32x192 layout.
-  -- Keeping a legacy 48px Scientist frame height here makes the renderer
-  -- sample across adjacent cells and produces oversized/garbled sprites.
-  local frameHeight = 32
+  -- Overworld sheets use Red's six-frame layout. Scientist remains 32x192;
+  -- keeping its old 48px frame height samples adjacent cells and produces
+  -- oversized/garbled sprites. Jessie alone carries the same layout at 4x.
+  -- Jessie keeps a 4x authored sheet.  It is still presented in the same
+  -- 32x32 logical box as Red; the extra texels preserve the generated art
+  -- instead of baking it down to a 20x24 miniature before rendering.
+  local frameSize = file == "jessie" and 128 or 32
+  local frameHeight = frameSize
+  local proxyFrameHeight = 32
   local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
   mod.content.sprites:patch("SPRITE_" .. shortId, {
     -- DRAMALESS_SHAPE builds its billboard UVs from def.image and assumes a
@@ -71,13 +76,17 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     -- voxel quad samples the complete 32/48px source instead of its top-left
     -- 16px fragment.  The proxy is never presented to the player.
     image = mod.assets:path("assets/voxel/frame_layout_" .. frames .. "_"
-      .. frameHeight .. ".png"),
+      .. proxyFrameHeight .. ".png"),
     hgssNativeImage = nativeImage,
     frames = frames,
     walker = walker,
     trueColor = true,
-    hgssFrameWidth = 32,
+    hgssFrameWidth = frameSize,
     hgssFrameHeight = frameHeight,
+    hgssDrawWidth = 32,
+    hgssDrawHeight = 32,
+    hgssLinearFilter = frameSize > 32,
+    hgssPostPresent = file == "jessie",
     hgssVoxelWidth = 32,
     hgssVoxelHeight = 32,
   })
@@ -264,6 +273,7 @@ return function(mod)
   local BattleState = require("src.battle.BattleState")
   local oldNew = SpriteRenderer.new
   local oldDraw = SpriteRenderer.draw
+  local overworldHdDraws = {}
 
   -- DRAMALESS_SHAPE deliberately keeps its namespace private, so there is
   -- no public billboard-size hook to call.  Locate its SpriteBillboards
@@ -472,6 +482,9 @@ return function(mod)
     local self = oldNew(spriteDef, seed)
     if self and spriteDef and spriteDef.hgssNativeImage then
       self.image = SpriteAssets.image(spriteDef.hgssNativeImage)
+      if spriteDef.hgssLinearFilter and self.image.setFilter then
+        self.image:setFilter("linear", "linear")
+      end
     end
     if self and self.image then
       local iw, ih = self.image:getDimensions()
@@ -503,10 +516,11 @@ return function(mod)
     -- Keep the same authored size and anchor as the known-good 0.0.26
     -- renderer.  Charset corrections are image replacements only; changing
     -- the runtime scale here makes every overworld character inconsistent.
-    local scale = 1
-    local drawW, drawH = fw, fh
-    local x = math.floor(px - camX) - math.floor(fw / 2) + 8
-    local y = math.floor(py - camY) - fh + 16
+    local drawW = tonumber(self.def.hgssDrawWidth) or fw
+    local drawH = tonumber(self.def.hgssDrawHeight) or fh
+    local scaleX, scaleY = drawW / fw, drawH / fh
+    local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
+    local y = math.floor(py - camY) - drawH + 16
     local stand = { down = 0, up = 1, left = 2, right = 2 }
     local walk = { down = 3, up = 4, left = 5, right = 5 }
     local frame = (self.def.walker and walkPhase == 1)
@@ -530,14 +544,24 @@ return function(mod)
     local flip = facing == "right"
       or ((facing == "down" or facing == "up")
           and self.def.walker and walkPhase == 1 and stepFlip)
+    if self.def.hgssPostPresent then
+      overworldHdDraws[#overworldHdDraws + 1] = {
+        image = image, quad = quad, x = x, y = y,
+        frameWidth = fw, frameHeight = topHalf and math.floor(fh / 2) or fh,
+        drawWidth = drawW,
+        drawHeight = topHalf and math.floor(drawH / 2) or drawH,
+        flip = flip,
+      }
+      return
+    end
     if self.def.trueColor and PaletteFX.markTrueColor then
-      PaletteFX.markTrueColor(x, y, fw,
-        topHalf and math.floor(fh / 2) or fh)
+      PaletteFX.markTrueColor(x, y, drawW,
+        topHalf and math.floor(drawH / 2) or drawH)
     end
     if flip then
-      love.graphics.draw(image, quad, x + drawW, y, 0, -scale, scale)
+      love.graphics.draw(image, quad, x + drawW, y, 0, -scaleX, scaleY)
     else
-      love.graphics.draw(image, quad, x, y, 0, scale, scale)
+      love.graphics.draw(image, quad, x, y, 0, scaleX, scaleY)
     end
   end
 
@@ -1097,7 +1121,40 @@ return function(mod)
     local sx, sy = up / dpiX, up / dpiY
     local ox = math.floor((pw - uiw * up) / 2) / dpiX
     local oy = math.floor((ph - uih * up) / 2) / dpiY
-    return sx, sy, ox, oy
+    return sx, sy, ox, oy, pw, ph, dpiX, dpiY
+  end
+
+  local function drawHdOverworld(renderer)
+    if not overworldHdDraws[1] then return end
+    -- A voxel pipeline already produced the character as part of its world
+    -- texture. Repainting a flat card here would duplicate it on the screen.
+    if renderer.worldOverride or not renderer.worldActive then return end
+    local _, _, _, _, pw, ph, dpiX, dpiY = presentationMetrics(renderer)
+    local Zoom = require("src.render.Zoom")
+    local sp = Zoom.scale(renderer:fitScale())
+    local sx, sy = sp / dpiX, sp / dpiY
+    local world = renderer.worldCanvas
+    local ww, wh = love.graphics.getDimensions()
+    local wvw = world and world:getWidth() or 160
+    local wvh = world and world:getHeight() or 144
+    local ox = math.floor((pw - wvw * sp) / 2) / dpiX
+    local oy = math.floor((ph - wvh * sp) / 2) / dpiY
+    love.graphics.setShader()
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.setScissor(0, 0, ww, wh)
+    for _, draw in ipairs(overworldHdDraws) do
+      local scaleX = sx * draw.drawWidth / draw.frameWidth
+      local scaleY = sy * draw.drawHeight / draw.frameHeight
+      local dx = ox + draw.x * sx
+      local dy = oy + draw.y * sy
+      if draw.flip then
+        love.graphics.draw(draw.image, draw.quad,
+          dx + draw.drawWidth * sx, dy, 0, -scaleX, scaleY)
+      else
+        love.graphics.draw(draw.image, draw.quad, dx, dy, 0, scaleX, scaleY)
+      end
+    end
+    love.graphics.setScissor()
   end
 
   local function visibleHdState()
@@ -1114,7 +1171,22 @@ return function(mod)
   end
 
   HdRenderer.endFrame = function(self, ...)
-    local a, b, c = oldRendererEndFrame(self, ...)
+    local originalDraw = love.graphics.draw
+    local hdWorldPainted = false
+    love.graphics.draw = function(image, ...)
+      -- The world has already reached the window and the UI paper is about to
+      -- be placed over it. This is the only seam that preserves HD texels while
+      -- still allowing menus and dialogue boxes to cover the character.
+      if not hdWorldPainted and image == self.canvas then
+        hdWorldPainted = true
+        drawHdOverworld(self)
+      end
+      return originalDraw(image, ...)
+    end
+    local ok, a, b, c = pcall(oldRendererEndFrame, self, ...)
+    love.graphics.draw = originalDraw
+    overworldHdDraws = {}
+    if not ok then error(a, 0) end
     local state = visibleHdState()
     if not state then return a, b, c end
     local sx, sy, ox, oy = presentationMetrics(self)
