@@ -3,7 +3,7 @@
 -- The registries and hooks below are Mod API 2.  One deliberately narrow
 -- engine-internals hook is also installed for overworld sheets: g1recomp's
 -- public SpriteRenderer hard-codes 16x16 cells, while HGSS's authored cells
--- are 32x32 (and Jessie keeps a 4x-density 128px source). Without this adapter
+-- are 32x32 (and Jessie/James keep 4x-density 128px sources). Without this adapter
 -- the engine silently crops the DS art into GBC-sized fragments. The adapter
 -- only changes native HGSS sheets; every other sprite keeps the stock renderer.
 
@@ -60,11 +60,12 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   file = file or shortId:lower()
   -- Overworld sheets use Red's six-frame layout. Scientist remains 32x192;
   -- keeping its old 48px frame height samples adjacent cells and produces
-  -- oversized/garbled sprites. Jessie alone carries the same layout at 4x.
-  -- Jessie keeps a 4x authored sheet.  It is still presented in the same
+  -- oversized/garbled sprites. Jessie and James carry the same layout at 4x.
+  -- Team Rocket keeps a 4x authored sheet. It is still presented in the same
   -- 32x32 logical box as Red; the extra texels preserve the generated art
   -- instead of baking it down to a 20x24 miniature before rendering.
-  local frameSize = file == "jessie" and 128 or 32
+  local highDensity = file == "jessie" or file == "james"
+  local frameSize = highDensity and 128 or 32
   local frameHeight = frameSize
   local proxyFrameHeight = 32
   local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
@@ -86,7 +87,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssDrawWidth = 32,
     hgssDrawHeight = 32,
     hgssLinearFilter = frameSize > 32,
-    hgssPostPresent = file == "jessie",
+    hgssPostPresent = highDensity,
     hgssVoxelWidth = 32,
     hgssVoxelHeight = 32,
   })
