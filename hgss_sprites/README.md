@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Versão](https://img.shields.io/badge/versão-0.0.11-gold)
+![Versão](https://img.shields.io/badge/versão-0.0.12-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.75-blue)
 ![Jogo](https://img.shields.io/badge/Pokémon-Yellow-yellow)
 
@@ -92,6 +92,7 @@ função de screenshot do próprio g1recomp durante a execução.
 - 151 ícones coloridos e animados para a tela do time;
 - 46 classes de treinadores com retratos distintos;
 - retratos HD de Oak, Red, Blue, Jessie, James, líderes e Elite Four;
+- retratos de batalha com transparência real, compatíveis com cenários voxel;
 - charsets overworld em 32×32 para Red, Blue, Oak, líderes, NPCs e Pokémon;
 - Pikachu seguidor e Surfing Pikachu nos registros corretos;
 - animação do Red de costas executada uma única vez ao iniciar a batalha;
@@ -104,7 +105,7 @@ função de screenshot do próprio g1recomp durante a execução.
 
 ## Instalação
 
-1. Baixe `HGSS_SPRITES-0.0.11.zip` na página de releases.
+1. Baixe `HGSS_SPRITES-0.0.12.zip` na página de releases.
 2. Copie o ZIP para a pasta `mods` do g1recomp ou extraia-o como
    `mods/HGSS_SPRITES/`.
 3. Habilite **HGSS Visual Overhaul** no gerenciador de mods.

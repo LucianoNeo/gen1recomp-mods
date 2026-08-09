@@ -276,6 +276,10 @@ return function(mod)
     end
     love.graphics.draw = function(image, x, y, ...)
       if image == trainer and type(x) == "number" and type(y) == "number" then
+        -- The native portrait is replaced after presentation by the 320px
+        -- transparent source. Do not draw it underneath: covering it later
+        -- with an opaque white 80x80 rectangle erased voxel/background mods.
+        if self.hgssBattleTrainerHd then return end
         return originalDraw(image, x - 16, y, ...)
       end
       if image == player and playerQuad and type(x) == "number" and type(y) == "number" then
@@ -888,10 +892,6 @@ return function(mod)
       local shakeX = state.fx and state.fx.shakeX or 0
       local shakeY = state.fx and state.fx.shakeY or 0
       trainerX = trainerX + (shakeX or 0)
-      love.graphics.setColor(1, 1, 1, 1)
-      love.graphics.rectangle("fill", ox + trainerX * sx,
-        oy + (shakeY or 0) * sy,
-        80 * sx, 80 * sy)
       love.graphics.draw(state.hgssBattleTrainerHd,
         ox + trainerX * sx, oy + (shakeY or 0) * sy,
         0, sx / 4, sy / 4)
@@ -911,9 +911,6 @@ return function(mod)
         off = math.floor((160 - x) *
           (1 - math.min(1, reveal.t / reveal.dur)))
       end
-      love.graphics.setColor(1, 1, 1, alpha)
-      love.graphics.rectangle("fill", ox + (x + off) * sx, oy + y * sy,
-        w * sx, h * sy)
       love.graphics.setColor(1, 1, 1, alpha)
       if state.picFlip then
         love.graphics.draw(hd, ox + (x + off + w) * sx, oy + y * sy,
