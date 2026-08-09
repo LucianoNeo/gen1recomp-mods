@@ -69,6 +69,19 @@ de batalha, time e resumo.
 
 ![Interface HGSS e barras verdes na tela Pokémon](docs/media/gameplay-hgss-ui-party.png)
 
+### Compatibilidade com cenários Voxel 3D
+
+Com o `DRAMALESS_SHAPE` habilitado, os personagens HGSS permanecem na escala
+correta sobre os cenários tridimensionais. A captura abaixo mostra Red, Blue e
+os NPCs dentro do laboratório do Professor Oak.
+
+![Personagens HGSS no laboratório em Voxel 3D](docs/media/gameplay-voxel-overworld.png)
+
+As batalhas Voxel também preservam a interface do mod. Barras, cores de HP e
+cursor são os mesmos da apresentação 2D, sem duplicar elementos na cena.
+
+![Batalha Voxel com barras e interface HGSS](docs/media/gameplay-voxel-battle.png)
+
 ## Vídeos de gameplay
 
 Os vídeos abaixo foram montados exclusivamente com frames PNG capturados pela
