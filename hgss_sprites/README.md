@@ -9,6 +9,35 @@ HeartGold e SoulSilver. Ele substitui sprites de batalha, personagens no
 mapa, ícones do time e elementos da interface, preservando cores RGB e a
 densidade dos assets de Nintendo DS sempre que o motor permite.
 
+## O núcleo do mod
+
+O foco principal é levar a identidade visual de **HeartGold e SoulSilver**
+para os elementos que permanecem visíveis durante toda a aventura: personagens,
+NPCs do mapa e Pokémon.
+
+### Personagens e Pokémon no overworld
+
+Red, o Pikachu seguidor, líderes, rivais e NPCs usam charsets coloridos em
+densidade de Nintendo DS, com direções e quadros próprios de caminhada.
+
+![Red, Pikachu e NPC no overworld](docs/media/core-red-pikachu.png)
+
+### NPCs nos interiores
+
+Os personagens dos mapas internos também recebem sprites HGSS dedicados. A
+captura abaixo mostra os cientistas no laboratório do Professor Oak dentro do
+jogo.
+
+![Cientistas HGSS no laboratório do Professor Oak](docs/media/core-overworld-npcs.png)
+
+### Pokémon e personagens em batalha
+
+Os 151 Pokémon têm sprites frontais e traseiros coloridos. Red, Oak, Blue,
+líderes, Elite Four e as demais classes de treinador usam retratos em resolução
+completa, sem redução para a paleta do Game Boy.
+
+![Red e Pikachu em batalha](docs/media/core-pokemon-battle.png)
+
 ## Capturas dentro do jogo
 
 Estas imagens foram extraídas de frames apresentados pelo próprio g1recomp
