@@ -67,7 +67,8 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     -- texture.  Both sheets have the same normalized frame layout, so the
     -- voxel quad samples the complete 32/48px source instead of its top-left
     -- 16px fragment.  The proxy is never presented to the player.
-    image = mod.assets:path("assets/voxel/frame_layout_" .. frames .. ".png"),
+    image = mod.assets:path("assets/voxel/frame_layout_" .. frames .. "_"
+      .. frameHeight .. ".png"),
     hgssNativeImage = nativeImage,
     frames = frames,
     walker = walker,
@@ -259,6 +260,71 @@ return function(mod)
   local oldNew = SpriteRenderer.new
   local oldDraw = SpriteRenderer.draw
 
+  -- DRAMALESS_SHAPE deliberately keeps its namespace private, so there is
+  -- no public billboard-size hook to call.  Locate its SpriteBillboards
+  -- table through the registered voxel callback once content has merged,
+  -- then widen only our proxy-backed cards.  Texture UVs remain untouched;
+  -- the native 32/48px image still supplies every authored pixel.
+  local voxelBillboardsPatched = false
+  local function patchVoxelBillboards()
+    if voxelBillboardsPatched or not (debug and debug.getupvalue) then return end
+    local okP, Pipelines = pcall(require, "src.render.Pipelines")
+    local voxel = okP and Pipelines.get and Pipelines.get("voxel")
+    if not (voxel and type(voxel.drawWorld) == "function") then return end
+    local seen = {}
+    local function find(value, depth)
+      if depth > 10 or seen[value] then return nil end
+      local kind = type(value)
+      if kind ~= "function" and kind ~= "table" then return nil end
+      seen[value] = true
+      if kind == "table" then
+        if type(value.mesh) == "function"
+          and type(value.shadowQuad) == "function" then return value end
+        for _, child in pairs(value) do
+          local hit = find(child, depth + 1)
+          if hit then return hit end
+        end
+      else
+        local index = 1
+        while true do
+          local name, child = debug.getupvalue(value, index)
+          if not name then break end
+          local hit = find(child, depth + 1)
+          if hit then return hit end
+          index = index + 1
+        end
+      end
+      return nil
+    end
+    local billboards = find(voxel.drawWorld, 0)
+    if not billboards then return end
+    local originalMesh = billboards.mesh
+    local sized = setmetatable({}, { __mode = "k" })
+    local function nativeMesh(def, frame)
+      local mesh = originalMesh(def, frame)
+      if not (mesh and def and def.hgssNativeImage) then return mesh end
+      local width = tonumber(def.hgssFrameWidth) or 32
+      local height = tonumber(def.hgssFrameHeight) or 32
+      local stamp = width .. "x" .. height
+      if sized[mesh] ~= stamp and mesh.getVertex and mesh.setVertex then
+        local left = 8 - width / 2
+        for vertex = 1, 4 do
+          local data = { mesh:getVertex(vertex) }
+          local right = data[1] > 8
+          local top = data[2] > 8
+          data[1] = right and (left + width) or left
+          data[2] = top and height or 0
+          mesh:setVertex(vertex, unpack(data))
+        end
+        sized[mesh] = stamp
+      end
+      return mesh
+    end
+    billboards.mesh = nativeMesh
+    billboards.shadowQuad = nativeMesh
+    voxelBillboardsPatched = true
+  end
+
   -- BattleState's trainer branch calls love.graphics.draw(image, x, y)
   -- directly and has no public scale/placement field.  Native 80px portraits
   -- are centered by shifting that one draw 16px left (the classic 160px
@@ -312,6 +378,7 @@ return function(mod)
   end
 
   SpriteRenderer.new = function(spriteDef, seed)
+    patchVoxelBillboards()
     local self = oldNew(spriteDef, seed)
     if self and spriteDef and spriteDef.hgssNativeImage then
       self.image = SpriteAssets.image(spriteDef.hgssNativeImage)
