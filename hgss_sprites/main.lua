@@ -500,13 +500,13 @@ return function(mod)
     end
     local fw = self.hgssFrameWidth or 32
     local fh = self.hgssFrameHeight or 32
-    local okPipelines, Pipelines = pcall(require, "src.render.Pipelines")
-    local voxelActive = okPipelines and Pipelines.get("voxel")
-      and Pipelines.level("voxel") > 0
-    local scale = voxelActive and 1 or 0.5
-    local drawW, drawH = fw * scale, fh * scale
-    local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
-    local y = math.floor(py - camY) - drawH + 16
+    -- Keep the same authored size and anchor as the known-good 0.0.26
+    -- renderer.  Charset corrections are image replacements only; changing
+    -- the runtime scale here makes every overworld character inconsistent.
+    local scale = 1
+    local drawW, drawH = fw, fh
+    local x = math.floor(px - camX) - math.floor(fw / 2) + 8
+    local y = math.floor(py - camY) - fh + 16
     local stand = { down = 0, up = 1, left = 2, right = 2 }
     local walk = { down = 3, up = 4, left = 5, right = 5 }
     local frame = (self.def.walker and walkPhase == 1)
@@ -531,8 +531,8 @@ return function(mod)
       or ((facing == "down" or facing == "up")
           and self.def.walker and walkPhase == 1 and stepFlip)
     if self.def.trueColor and PaletteFX.markTrueColor then
-      PaletteFX.markTrueColor(x, y, drawW,
-        topHalf and math.floor(fh / 2) * scale or drawH)
+      PaletteFX.markTrueColor(x, y, fw,
+        topHalf and math.floor(fh / 2) or fh)
     end
     if flip then
       love.graphics.draw(image, quad, x + drawW, y, 0, -scale, scale)
