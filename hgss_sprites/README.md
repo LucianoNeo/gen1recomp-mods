@@ -9,64 +9,40 @@ HeartGold e SoulSilver. Ele substitui sprites de batalha, personagens no
 mapa, ícones do time e elementos da interface, preservando cores RGB e a
 densidade dos assets de Nintendo DS sempre que o motor permite.
 
-## Capturas
+## Capturas dentro do jogo
 
-### Batalhas em layout WIDE
+Estas imagens foram extraídas de frames apresentados pelo próprio g1recomp
+com o mod carregado. Não são montagens, grades de sprites ou simulações.
 
-Retratos em alta resolução são apresentados depois do canvas de 160×144 para
-evitar a perda de detalhes. Os layouts clássico e WIDE possuem posicionamento
-independente.
+### Batalha em layout WIDE
 
-| Brock | Professor Oak |
-|:--:|:--:|
-| ![Batalha contra Brock](docs/media/battle-brock-wide.png) | ![Batalha com Professor Oak](docs/media/battle-oak.png) |
+O retrato HD acompanha o deslocamento de entrada do treinador e substitui a
+imagem de baixa resolução na mesma posição, sem duplicação.
 
-| Gary/Blue | Captura demonstrativa do Oak |
-|:--:|:--:|
-| ![Batalha contra Gary](docs/media/battle-rival.png) | ![Oak de costas](docs/media/oak-capture-demo.png) |
+![Batalha contra Brock dentro do jogo](docs/media/gameplay-battle-still.png)
 
-### Time e interface
+### Tela Pokémon
 
-Os ícones do time usam folhas coloridas de dois frames. Bordas, cursores e
-barras de HP seguem a linguagem visual de HGSS sem reduzir a interface à
-paleta do Game Boy.
+Os seis ícones são desenhados e animados pelo menu real do jogo.
 
-![Tela Pokémon do menu](docs/media/party-menu.png)
+![Tela Pokémon dentro do jogo](docs/media/gameplay-party-still.png)
 
-### Tela inicial
+## Vídeos de gameplay
 
-O Pikachu do título permanece original e respeita a ordem das camadas: menus
-e caixas de diálogo sempre aparecem à frente dele.
+Os vídeos abaixo foram montados exclusivamente com frames PNG capturados pela
+função de screenshot do próprio g1recomp durante a execução.
 
-![Menu sobre a tela inicial](docs/media/title-menu.png)
+### Entrada de batalha contra Brock
 
-## Demonstrações animadas
+![Gameplay da batalha contra Brock](docs/media/gameplay-battle.gif)
 
-### Movimento do Professor Oak
+[Abrir vídeo MP4](docs/media/gameplay-battle.mp4)
 
-Direções, alternância dos pés e baseline foram revisados para eliminar pulos,
-pisca-pisca e deslizamento.
+### Ícones animados na tela Pokémon
 
-![Professor Oak andando](docs/media/oak-movement.gif)
+![Gameplay da tela Pokémon](docs/media/gameplay-party.gif)
 
-[Abrir vídeo MP4](docs/media/oak-movement.mp4)
-
-### Padrão de caminhada lateral
-
-Os personagens novos usam a mesma cadência lateral validada no Red.
-
-![Red caminhando lateralmente](docs/media/red-side-walk.gif)
-
-[Abrir vídeo MP4](docs/media/red-side-walk.mp4)
-
-### NPCs novos
-
-Teste conjunto das folhas criadas ou adaptadas para personagens que não
-possuíam um charset HGSS completo disponível.
-
-![NPCs novos em movimento](docs/media/new-npcs-motion.gif)
-
-[Abrir vídeo MP4](docs/media/new-npcs-motion.mp4)
+[Abrir vídeo MP4](docs/media/gameplay-party.mp4)
 
 ## Principais modificações
 

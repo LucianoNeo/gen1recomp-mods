@@ -246,7 +246,7 @@ return function(mod)
     local trainer = self.trainerPic and self:picImage(self.trainerPic)
     local trainerPath = self.trainer
       and (self.trainer.picJessieJames or self.trainer.pic)
-    self.hgssBattleTrainerHd = trainerPath
+    self.hgssBattleTrainerHd = self.showEnemyTrainer and trainerPath
       and TRAINER_HD_BY_PATH[trainerPath] or nil
     local player = self.playerBackPic and self:picImage(self.playerBackPic)
     local playerWidth = player and player:getWidth() or 0
@@ -766,11 +766,19 @@ return function(mod)
       -- WideBattle translates the classic enemy region by +136px, so its
       -- trainer slot begins at 216 instead of the classic slot at 80.
       local trainerX = state.wideLayout and state:wideLayout() and 216 or 80
+      local slide = (state.introSlide or 0) * 2
+      local offset = state.picOffset and state:picOffset("foe") or 0
+      trainerX = trainerX - slide + offset
+      local shakeX = state.fx and state.fx.shakeX or 0
+      local shakeY = state.fx and state.fx.shakeY or 0
+      trainerX = trainerX + (shakeX or 0)
       love.graphics.setColor(1, 1, 1, 1)
-      love.graphics.rectangle("fill", ox + trainerX * sx, oy,
+      love.graphics.rectangle("fill", ox + trainerX * sx,
+        oy + (shakeY or 0) * sy,
         80 * sx, 80 * sy)
       love.graphics.draw(state.hgssBattleTrainerHd,
-        ox + trainerX * sx, oy, 0, sx / 4, sy / 4)
+        ox + trainerX * sx, oy + (shakeY or 0) * sy,
+        0, sx / 4, sy / 4)
       return a, b, c
     end
 
