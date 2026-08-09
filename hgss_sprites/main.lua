@@ -969,21 +969,25 @@ return function(mod)
     segments = math.max(1, math.floor(segments or 6))
     local maxHP = math.max(1, mon.stats.hp)
     local ratio = math.max(0, math.min(1, mon.hp / maxHP))
-    local x, y, width = tx * 8 + 15, ty * 8 + 1, segments * 8 + 2
+    -- HudTiles.drawHPBar places the six fill tiles immediately after the
+    -- two 8 px "HP:" tiles.  Paint strictly inside those same 48 pixels;
+    -- extending one pixel into either neighbouring tile made DRAMALESS
+    -- treat this as a second, displaced bar when it packed the HUD texture.
+    local x, y, width = tx * 8 + 16, ty * 8 + 2, segments * 8
     local color = ratio >= 0.5625 and { 0.20, 0.72, 0.31, 1 }
       or ratio >= 0.2083 and { 0.96, 0.73, 0.12, 1 }
       or { 0.89, 0.22, 0.18, 1 }
     local r, g, b, a = love.graphics.getColor()
     love.graphics.setColor(0.12, 0.16, 0.18, 1)
-    love.graphics.rectangle("fill", x, y, width, 6)
+    love.graphics.rectangle("fill", x, y, width, 4)
     love.graphics.setColor(0.82, 0.86, 0.88, 1)
-    love.graphics.rectangle("fill", x + 1, y + 1, width - 2, 4)
+    love.graphics.rectangle("fill", x + 1, y + 1, width - 2, 2)
     if ratio > 0 then
       love.graphics.setColor(color)
-      love.graphics.rectangle("fill", x + 2, y + 2,
-        math.max(1, math.floor((width - 4) * ratio)), 2)
+      love.graphics.rectangle("fill", x + 1, y + 1,
+        math.max(1, math.floor((width - 2) * ratio)), 2)
     end
-    UiPaletteFX.markTrueColor(x, y, width, 6)
+    UiPaletteFX.markTrueColor(x, y, width, 4)
     love.graphics.setColor(r, g, b, a)
   end
   local oldUiHPBar = UiHudTiles.drawHPBar
@@ -996,14 +1000,7 @@ return function(mod)
   -- BattleState cached the original drawHPBar function when its module was
   -- loaded, so repaint its two live bars explicitly after the stock HUD.
   local oldBattleDrawHUDs = BattleState.drawHUDs
-  BattleState.drawHUDs = function(self, slide)
-    local result = oldBattleDrawHUDs(self, slide)
-    -- DRAMALESS_SHAPE renders and relocates the complete HUD into its own
-    -- texture. Repainting at the classic fixed coordinates here produces a
-    -- second cream/white bar across the correctly positioned voxel HUD.
-    if self.dramaticShapeShot or rawget(self, "colorMode") == false then
-      return result
-    end
+  local function repaintBattleHP(self, slide)
     if self.enemy and not self.showEnemyTrainer and not self.enemySendingOut
        and slide == 0 and not self.introBalls and not self.enemy.fainted then
       drawHgssHP(2, 2, {
@@ -1018,6 +1015,41 @@ return function(mod)
         stats = self.player.mon.stats,
       })
     end
+  end
+
+  -- DRAMALESS_SHAPE keeps the engine drawHUDs function in a shared upvalue
+  -- named `innerHUDs` and uses that same function to build its relocated HUD
+  -- texture.  Compose our repaint into that seam when it is present.  This
+  -- makes the colored pixels part of the texture itself instead of drawing a
+  -- second bar later at the fixed 2D coordinates.
+  local voxelHudIntegrated = false
+  if debug and debug.getupvalue and debug.setupvalue then
+    for i = 1, 32 do
+      local name, inner = debug.getupvalue(oldBattleDrawHUDs, i)
+      if not name then break end
+      if name == "innerHUDs" and type(inner) == "function" then
+        debug.setupvalue(oldBattleDrawHUDs, i, function(self, slide)
+          local result = inner(self, slide)
+          repaintBattleHP(self, slide)
+          return result
+        end)
+        voxelHudIntegrated = true
+        break
+      end
+    end
+  end
+  BattleState.drawHUDs = function(self, slide)
+    local result = oldBattleDrawHUDs(self, slide)
+    if voxelHudIntegrated then return result end
+    -- DRAMALESS_SHAPE calls this once with colorMode temporarily replaced by
+    -- false while it captures the complete 2D HUD texture.  Keep the HGSS
+    -- repaint in that pass, but never paint it again at classic screen
+    -- coordinates during the later 3D scene draw.
+    local voxelTexturePass = rawget(self, "colorMode") == false
+    if self.dramaticShapeShot and not voxelTexturePass then
+      return result
+    end
+    repaintBattleHP(self, slide)
     return result
   end
 
