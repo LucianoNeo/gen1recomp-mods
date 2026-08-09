@@ -12,9 +12,9 @@ Voxel 3D do `DRAMALESS_SHAPE`.
 
 [Ver o mod, imagens e instruções](hgss_sprites/README.md)
 
-[Abrir a release mais recente](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.0.21)
+[Abrir a release mais recente](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.0.23)
 
-[Baixar HGSS_SPRITES 0.0.21](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.0.21/HGSS_SPRITES-0.0.21.zip)
+[Baixar HGSS_SPRITES 0.0.23](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.0.23/HGSS_SPRITES-0.0.23.zip)
 
 ![HGSS Visual Overhaul em batalha](hgss_sprites/docs/media/gameplay-battle-still.png)
 
@@ -24,5 +24,5 @@ Voxel 3D do `DRAMALESS_SHAPE`.
 2. Importe-o pelo gerenciador de mods do g1recomp.
 3. Ative **HGSS Visual Overhaul** e reinicie o jogo.
 
-Release publicada: `0.0.22` · Versão em desenvolvimento: `0.0.23` ·
+Release publicada: `0.0.23` · Pacote runtime enxuto ·
 Compatível com g1recomp `>=0.1.75 <0.2.0`.
