@@ -1,7 +1,7 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
@@ -11,7 +11,7 @@
   "affects_link": true,
   "permissions": ["engine_internals"],
   "dependencies": [],
-  "optional_dependencies": [],
+  "optional_dependencies": ["DRAMALESS_SHAPE"],
   "conflicts": [],
   "author": "Luciano",
   "description": "A native-density HGSS visual overhaul for Pokemon Yellow: original 80px battle art at integer scale, 32px overworld sheets, party icons, trainer portraits, and DS-style interface chrome."

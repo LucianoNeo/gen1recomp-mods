@@ -59,8 +59,16 @@ end
 local function patchOverworld(mod, shortId, frames, walker, file)
   file = file or shortId:lower()
   local frameHeight = file == "scientist" and 48 or 32
+  local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
   mod.content.sprites:patch("SPRITE_" .. shortId, {
-    image = mod.assets:path("overrides/sprites/" .. file .. ".png"),
+    -- DRAMALESS_SHAPE builds its billboard UVs from def.image and assumes a
+    -- 16px-tall Gen 1 frame.  Point that measurement at an equivalent proxy
+    -- sheet while the renderer below supplies the untouched native HGSS
+    -- texture.  Both sheets have the same normalized frame layout, so the
+    -- voxel quad samples the complete 32/48px source instead of its top-left
+    -- 16px fragment.  The proxy is never presented to the player.
+    image = mod.assets:path("assets/voxel/frame_layout_" .. frames .. ".png"),
+    hgssNativeImage = nativeImage,
     frames = frames,
     walker = walker,
     trueColor = true,
@@ -245,6 +253,7 @@ return function(mod)
   -- version-pinned compatibility adapter.  It preserves palette resolution,
   -- right-facing flips, walking cadence and the fishing top-half behavior.
   local SpriteRenderer = require("src.render.SpriteRenderer")
+  local SpriteAssets = require("src.render.Assets")
   local PaletteFX = require("src.render.PaletteFX")
   local BattleState = require("src.battle.BattleState")
   local oldNew = SpriteRenderer.new
@@ -304,6 +313,9 @@ return function(mod)
 
   SpriteRenderer.new = function(spriteDef, seed)
     local self = oldNew(spriteDef, seed)
+    if self and spriteDef and spriteDef.hgssNativeImage then
+      self.image = SpriteAssets.image(spriteDef.hgssNativeImage)
+    end
     if self and self.image then
       local iw, ih = self.image:getDimensions()
       local fw = tonumber(spriteDef and spriteDef.hgssFrameWidth) or 32
