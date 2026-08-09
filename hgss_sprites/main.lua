@@ -75,6 +75,11 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     trueColor = true,
     hgssFrameWidth = 32,
     hgssFrameHeight = frameHeight,
+    -- The scientist source is unusually tall (32x48). Preserve the entire
+    -- frame, but fit it proportionally into the same 32px world height as
+    -- the rest of the HGSS cast instead of making a 1.5x giant billboard.
+    hgssVoxelWidth = frameHeight == 48 and (32 * 32 / 48) or 32,
+    hgssVoxelHeight = 32,
   })
 end
 
@@ -303,8 +308,8 @@ return function(mod)
     local function nativeMesh(def, frame)
       local mesh = originalMesh(def, frame)
       if not (mesh and def and def.hgssNativeImage) then return mesh end
-      local width = tonumber(def.hgssFrameWidth) or 32
-      local height = tonumber(def.hgssFrameHeight) or 32
+      local width = tonumber(def.hgssVoxelWidth or def.hgssFrameWidth) or 32
+      local height = tonumber(def.hgssVoxelHeight or def.hgssFrameHeight) or 32
       local stamp = width .. "x" .. height
       if sized[mesh] ~= stamp and mesh.getVertex and mesh.setVertex then
         local left = 8 - width / 2
