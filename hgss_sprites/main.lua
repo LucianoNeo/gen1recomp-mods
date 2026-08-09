@@ -649,6 +649,26 @@ return function(mod)
     return speech
   end
 
+  -- OakSpeech still draws its native 56/80px picture into the low-resolution
+  -- canvas before the post-presentation HD layer. Once the white cover was
+  -- removed for transparency, that original became visible behind Red and
+  -- could also thicken the edges of Oak/Blue. Suppress only pictures that
+  -- have an HD replacement; Pokémon and shrink frames keep the stock path.
+  local oldOakSpeechDraw = OakSpeech.draw
+  OakSpeech.draw = function(self, ...)
+    local hd = self.pic and self.hgssHdPics and self.hgssHdPics[self.pic]
+    if not hd then return oldOakSpeechDraw(self, ...) end
+    local originalDraw = love.graphics.draw
+    love.graphics.draw = function(image, ...)
+      if image == self.pic then return end
+      return originalDraw(image, ...)
+    end
+    local ok, a, b, c = pcall(oldOakSpeechDraw, self, ...)
+    love.graphics.draw = originalDraw
+    if not ok then error(a, 0) end
+    return a, b, c
+  end
+
   -- TrainerState normally remaps portraits through the four-shade MEWMON
   -- palette. Our portrait PNGs are already an exact nearest 80->40 raster,
   -- so keep their authored HGSS colors instead of collapsing them to DMG
