@@ -1216,6 +1216,18 @@ return function(mod)
     POKEMON_MANSION_B1F = {
       POKEMONMANSIONB1F_BURGLAR = "SPRITE_BURGLAR",
     },
+    -- Viridian's Pokémon Center has three ordinary visitors whose Yellow
+    -- object records are not always resolved through the class table by the
+    -- renderer.  Bind them by their exact map-object names so the HGSS
+    -- charsets are used consistently (the nurse and Chansey remain their
+    -- dedicated standing sheets).
+    VIRIDIAN_POKECENTER = {
+      VIRIDIANPOKECENTER_GENTLEMAN = "SPRITE_GENTLEMAN",
+      VIRIDIANPOKECENTER_COOLTRAINER_M = "SPRITE_COOLTRAINER_M",
+      VIRIDIANPOKECENTER_LINK_RECEPTIONIST = "SPRITE_LINK_RECEPTIONIST",
+      VIRIDIANPOKECENTER_NURSE = "SPRITE_NURSE",
+      VIRIDIANPOKECENTER_CHANSEY = "SPRITE_CHANSEY",
+    },
   }
 
   local function applyLeaderSprites()
