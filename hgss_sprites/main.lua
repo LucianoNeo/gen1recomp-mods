@@ -500,8 +500,13 @@ return function(mod)
     end
     local fw = self.hgssFrameWidth or 32
     local fh = self.hgssFrameHeight or 32
-    local x = math.floor(px - camX) - math.floor(fw / 2) + 8
-    local y = math.floor(py - camY) - fh + 16
+    local okPipelines, Pipelines = pcall(require, "src.render.Pipelines")
+    local voxelActive = okPipelines and Pipelines.get("voxel")
+      and Pipelines.level("voxel") > 0
+    local scale = voxelActive and 1 or 0.5
+    local drawW, drawH = fw * scale, fh * scale
+    local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
+    local y = math.floor(py - camY) - drawH + 16
     local stand = { down = 0, up = 1, left = 2, right = 2 }
     local walk = { down = 3, up = 4, left = 5, right = 5 }
     local frame = (self.def.walker and walkPhase == 1)
@@ -526,12 +531,13 @@ return function(mod)
       or ((facing == "down" or facing == "up")
           and self.def.walker and walkPhase == 1 and stepFlip)
     if self.def.trueColor and PaletteFX.markTrueColor then
-      PaletteFX.markTrueColor(x, y, fw, topHalf and math.floor(fh / 2) or fh)
+      PaletteFX.markTrueColor(x, y, drawW,
+        topHalf and math.floor(fh / 2) * scale or drawH)
     end
     if flip then
-      love.graphics.draw(image, quad, x + fw, y, 0, -1, 1)
+      love.graphics.draw(image, quad, x + drawW, y, 0, -scale, scale)
     else
-      love.graphics.draw(image, quad, x, y)
+      love.graphics.draw(image, quad, x, y, 0, scale, scale)
     end
   end
 
