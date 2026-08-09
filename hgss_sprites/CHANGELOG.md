@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.0.24
+
+- Incluidos os arquivos de fallback `redb.png`, `profoakb.png` e
+  `gen1player.png`. Assim, entrar em batalha continua compativel quando o
+  Voxel esta ativo, mas as batalhas 3D do DRAMALESS_SHAPE estao desligadas.
+
 ## 0.0.2
 
 - Removida a quantizacao GB/SGB de todos os sprites true-color fornecidos pelo
