@@ -1224,9 +1224,7 @@ return function(mod)
     VIRIDIAN_POKECENTER = {
       VIRIDIANPOKECENTER_GENTLEMAN = "SPRITE_GENTLEMAN",
       VIRIDIANPOKECENTER_COOLTRAINER_M = "SPRITE_COOLTRAINER_M",
-      -- Yellow's link-receptionist object is the counter clerk in this map;
-      -- use the HGSS clerk charset rather than the tiny link-terminal pose.
-      VIRIDIANPOKECENTER_LINK_RECEPTIONIST = "SPRITE_CLERK",
+      VIRIDIANPOKECENTER_LINK_RECEPTIONIST = "SPRITE_LINK_RECEPTIONIST",
       VIRIDIANPOKECENTER_NURSE = "SPRITE_NURSE",
       VIRIDIANPOKECENTER_CHANSEY = "SPRITE_CHANSEY",
     },
@@ -1244,6 +1242,14 @@ return function(mod)
       local objectName = tostring(def and def.name or "")
       local target = (gymObjects and gymObjects[objectName])
         or (objectFixes and objectFixes[objectName])
+      -- Some map loaders expose this counter attendant under a generated
+      -- name instead of the ROM object label. Catch both forms so the
+      -- original 16px Yellow receptionist cannot leak through in Viridian.
+      if mapId == "VIRIDIAN_POKECENTER"
+          and (objectName:find("RECEPTIONIST", 1, true)
+            or tostring(def and def.sprite or "") == "SPRITE_LINK_RECEPTIONIST") then
+        target = "SPRITE_LINK_RECEPTIONIST"
+      end
       -- Yellow calls Gary/Blue simply RIVAL in every map object.  Those names
       -- are specific enough that this does not collide with generic NPCs.
       if not target and objectName:find("RIVAL", 1, true) then
