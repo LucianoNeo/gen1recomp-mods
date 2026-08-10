@@ -15,6 +15,14 @@ and HUD.
 
 ![HGSS overworld capture](hgss_sprites/docs/media/readme-after-overworld.png)
 
+### Outdoor Voxel 3D
+
+Fresh in-game captures with the Voxel pipeline enabled:
+
+![Pallet Town Voxel 3D](hgss_sprites/docs/media/readme-voxel-outdoor-pallet.png)
+![Route 1 Voxel 3D](hgss_sprites/docs/media/readme-voxel-outdoor-route1.png)
+![Cerulean City Voxel 3D](hgss_sprites/docs/media/readme-voxel-outdoor-cerulean.png)
+
 ## Quick installation
 
 1. Install Battle Art Voxel Fork.

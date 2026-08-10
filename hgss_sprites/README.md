@@ -29,6 +29,16 @@ are kept as documentation of the visual areas owned by this pack.
 |---|---|
 | ![Vanilla overworld](docs/media/readme-before-overworld.png) | ![HGSS overworld](docs/media/readme-after-overworld.png) |
 
+### Outdoor Voxel 3D
+
+These fresh captures were taken from the local g1recomp build with the Voxel
+pipeline enabled. They show the HGSS overworld charset rendered in outdoor
+scenes while Battle Art Voxel Fork supplies the 3D renderer.
+
+| Pallet Town | Route 1 | Cerulean City |
+|---|---|---|
+| ![Pallet Town in Voxel 3D](docs/media/readme-voxel-outdoor-pallet.png) | ![Route 1 in Voxel 3D](docs/media/readme-voxel-outdoor-route1.png) | ![Cerulean City in Voxel 3D](docs/media/readme-voxel-outdoor-cerulean.png) |
+
 Battle screenshots are intentionally omitted: this pack no longer modifies
 battle art or HUD.
 
