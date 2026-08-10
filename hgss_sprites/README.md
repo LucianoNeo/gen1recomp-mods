@@ -43,7 +43,7 @@ Voxel Fork remains the sole provider of battle Pokemon and trainer sprites.
 ## Installation
 
 1. Install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod).
-2. Download [HGSS_SPRITES-0.2.0.zip](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.2.0/HGSS_SPRITES-0.2.0.zip).
+2. Download the `HGSS_SPRITES` 0.2.0 asset from the [releases page](https://github.com/LucianoNeo/gen1recomp-mods/releases).
 3. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 4. Restart g1recomp after installing or updating either mod.
 

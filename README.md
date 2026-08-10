@@ -11,8 +11,7 @@ owner of battle and voxel artwork.
 
 [Mod documentation, screenshots and installation guide](hgss_sprites/README.md)
 
-[Latest release](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.2.0) ·
-[Download HGSS_SPRITES 0.2.0](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.2.0/HGSS_SPRITES-0.2.0.zip)
+[Releases](https://github.com/LucianoNeo/gen1recomp-mods/releases) · `HGSS_SPRITES` 0.2.0
 
 ![HGSS overworld capture](hgss_sprites/docs/media/readme-after-overworld.png)
 ![HGSS 2D battle HUD](hgss_sprites/docs/media/readme-after-battle.png)
