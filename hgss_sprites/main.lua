@@ -7,28 +7,6 @@
 -- the engine silently crops the DS art into GBC-sized fragments. The adapter
 -- only changes native HGSS sheets; every other sprite keeps the stock renderer.
 
-local SPECIES = [[
-BULBASAUR IVYSAUR VENUSAUR CHARMANDER CHARMELEON CHARIZARD
-SQUIRTLE WARTORTLE BLASTOISE CATERPIE METAPOD BUTTERFREE WEEDLE KAKUNA
-BEEDRILL PIDGEY PIDGEOTTO PIDGEOT RATTATA RATICATE SPEAROW FEAROW EKANS
-ARBOK PIKACHU RAICHU SANDSHREW SANDSLASH NIDORAN_F NIDORINA NIDOQUEEN
-NIDORAN_M NIDORINO NIDOKING CLEFAIRY CLEFABLE VULPIX NINETALES
-JIGGLYPUFF WIGGLYTUFF ZUBAT GOLBAT ODDISH GLOOM VILEPLUME PARAS
-PARASECT VENONAT VENOMOTH DIGLETT DUGTRIO MEOWTH PERSIAN PSYDUCK
-GOLDUCK MANKEY PRIMEAPE GROWLITHE ARCANINE POLIWAG POLIWHIRL POLIWRATH
-ABRA KADABRA ALAKAZAM MACHOP MACHOKE MACHAMP BELLSPROUT WEEPINBELL
-VICTREEBEL TENTACOOL TENTACRUEL GEODUDE GRAVELER GOLEM PONYTA RAPIDASH
-SLOWPOKE SLOWBRO MAGNEMITE MAGNETON FARFETCHD DODUO DODRIO SEEL DEWGONG
-GRIMER MUK SHELLDER CLOYSTER GASTLY HAUNTER GENGAR ONIX DROWZEE HYPNO
-KRABBY KINGLER VOLTORB ELECTRODE EXEGGCUTE EXEGGUTOR CUBONE MAROWAK
-HITMONLEE HITMONCHAN LICKITUNG KOFFING WEEZING RHYHORN RHYDON CHANSEY
-TANGELA KANGASKHAN HORSEA SEADRA GOLDEEN SEAKING STARYU STARMIE MR_MIME
-SCYTHER JYNX ELECTABUZZ MAGMAR PINSIR TAUROS MAGIKARP GYARADOS LAPRAS
-DITTO EEVEE VAPOREON JOLTEON FLAREON PORYGON OMANYTE OMASTAR KABUTO
-KABUTOPS AERODACTYL SNORLAX ARTICUNO ZAPDOS MOLTRES DRATINI DRAGONAIR
-DRAGONITE MEWTWO MEW
-]]
-
 local WALKERS = [[
 AGATHA BEAUTY BIKER BIRD BLUE BRUNETTE_GIRL BRUNO CHANNELER COOK
 COOLTRAINER_F COOLTRAINER_M DAISY FAIRY FISHER GAMBLER GENTLEMAN GIOVANNI
@@ -47,13 +25,6 @@ SILPH_PRESIDENT SILPH_WORKER_M WARDEN
 
 local function words(text)
   return text:gmatch("[%w_]+")
-end
-
-local function assetName(species)
-  if species == "NIDORAN_F" then return "nidoranf" end
-  if species == "NIDORAN_M" then return "nidoranm" end
-  if species == "MR_MIME" then return "mr.mime" end
-  return species:lower()
 end
 
 local function patchOverworld(mod, shortId, frames, walker, file)
@@ -94,32 +65,8 @@ local function patchOverworld(mod, shortId, frames, walker, file)
 end
 
 return function(mod)
-  -- BATTLE ART VOXEL FORK owns the battle presentation when it is active.
-  -- Keep this adapter deliberately narrow in that configuration: its voxel
-  -- battle art, trainer art and Pokemon art must not be replaced by a second
-  -- set of battle assets.  We still provide our intro, overworld and flat
-  -- 2D HUD layers below.
-  -- Battle Art Voxel Fork is declared as a hard dependency in the manifest;
-  -- this package is intentionally its visual complement, not a competing
-  -- battle-art replacement.
-  local battleArtPresent = true
-
-  -- Any raster supplied by this overhaul already carries its authored HGSS
-  -- colors. Normalize separators once so the same check works on Windows and
-  -- packaged builds, then use it at every engine path that would otherwise
-  -- quantize the image through a four-shade GB/SGB palette.
-  local function isHgssTrueColorPath(path)
-    if type(path) ~= "string" then return false end
-    path = path:gsub("\\", "/")
-    return path:find("overrides/battle/", 1, true) ~= nil
-        or path:find("overrides/sprites/", 1, true) ~= nil
-        or path:find("overrides/title/", 1, true) ~= nil
-        or path:find("assets/icons/", 1, true) ~= nil
-        or path:find("overrides/trainer_card/", 1, true) ~= nil
-        or path:find("assets/graphics/intro_hd/", 1, true) ~= nil
-        or path:find("assets/graphics/pokemon/front_hd/", 1, true) ~= nil
-        or path:find("assets/graphics/trainers/front_hd/", 1, true) ~= nil
-  end
+  -- Battle Art Voxel Fork owns battle artwork. This companion only supplies
+  -- the intro portraits and HGSS overworld charsets.
 
   local function loadHdImage(path)
     local ok, image = pcall(love.graphics.newImage, mod.assets:path(path))
@@ -136,108 +83,6 @@ return function(mod)
       default = true,
     },
   })
-
-  -- Keep the original 80x80 HGSS PNGs and render them 1:1.  This is the
-  -- reference composition: a Pikachu's authored ~48px silhouette and Red's
-  -- full back sprite remain visible instead of being shrunk to GBC scale.
-  for species in words(SPECIES) do
-    -- The base game already provides an icon record for every Gen I species.
-    -- Registering those same IDs collides in the record registry, so update
-    -- the existing records instead of trying to create duplicates.
-    if not battleArtPresent then
-      mod.content.pokemon:patch(species, {
-        trueColor = true,
-        battleScaleFront = 1,
-        battleScaleBack = 1,
-      })
-      mod.content.icons:patch(species, {
-        image = mod.assets:path("assets/icons/" .. assetName(species) .. ".png"),
-        frames = 2,
-      })
-    end
-  end
-
-  -- The player's trainer back is not species-keyed, so route it to the
-  -- bundled image through the public field registry and scale that path.
-  local playerBack = mod.assets:path("overrides/battle/redb.png")
-  if not battleArtPresent then
-    mod.content.field:patch("playerPics", {
-      back = playerBack,
-      oakBack = mod.assets:path("overrides/battle/profoakb.png"),
-    })
-    mod.content.battle_sprite_scales:register("hgss_player_back", {
-      path = playerBack,
-      scale = 1,
-    })
-    local oakBack = mod.assets:path("overrides/battle/profoakb.png")
-    mod.content.battle_sprite_scales:register("hgss_oak_back", {
-      path = oakBack,
-      scale = 1,
-    })
-  end
-
-  -- Trainer portraits are data records rather than a public image registry.
-  -- Keep the authored 80x80 DS raster; the narrow draw adapter below centers
-  -- it in the original trainer slot without throwing away half the pixels.
-  local TRAINER_PICS = {
-    OPP_AGATHA = "agatha", OPP_BEAUTY = "beauty", OPP_BIKER = "biker",
-    OPP_BIRD_KEEPER = "birdkeeper", OPP_BLACKBELT = "blackbelt",
-    OPP_BLAINE = "blaine", OPP_BROCK = "brock", OPP_BRUNO = "bruno",
-    OPP_BUG_CATCHER = "bugcatcher", OPP_BURGLAR = "burglar",
-    OPP_CHANNELER = "channeler", OPP_COOLTRAINER_F = "cooltrainerf",
-    OPP_COOLTRAINER_M = "cooltrainerm", OPP_CUE_BALL = "cueball",
-    OPP_ENGINEER = "engineer", OPP_ERIKA = "erika", OPP_FISHER = "fisher",
-    OPP_GAMBLER = "gambler", OPP_GENTLEMAN = "gentleman",
-    OPP_GIOVANNI = "giovanni", OPP_HIKER = "hiker",
-    OPP_JR_TRAINER_F = "jr.trainerf",
-    OPP_JR_TRAINER_M = "jr.trainerm", OPP_JUGGLER = "juggler",
-    OPP_KOGA = "koga", OPP_LANCE = "lance", OPP_LASS = "lass",
-    OPP_LORELEI = "lorelei", OPP_LT_SURGE = "lt.surge", OPP_MISTY = "misty",
-    OPP_POKEMANIAC = "pokemaniac", OPP_PROF_OAK = "prof.oak",
-    OPP_PSYCHIC_TR = "psychic", OPP_RIVAL1 = "rival1", OPP_RIVAL2 = "rival2",
-    OPP_RIVAL3 = "rival3", OPP_ROCKER = "rocker", OPP_ROCKET = "rocket",
-    OPP_SABRINA = "sabrina", OPP_SAILOR = "sailor", OPP_SCIENTIST = "scientist",
-    OPP_SUPER_NERD = "supernerd", OPP_SWIMMER = "swimmer", OPP_TAMER = "tamer",
-    OPP_YOUNGSTER = "youngster",
-  }
-  local TRAINER_HD_BY_PATH = {}
-  for trainerId, file in pairs(TRAINER_PICS) do
-    local portrait = mod.assets:path("overrides/battle/trainers/" .. file .. ".png")
-    TRAINER_HD_BY_PATH[portrait] = loadHdImage(
-      "assets/graphics/trainers/front_hd/" .. file .. ".png")
-    if not battleArtPresent then
-      mod.content.trainers:patch(trainerId, {
-        pic = portrait,
-        trueColor = true,
-      })
-      mod.content.battle_sprite_scales:register("hgss_trainer_" .. file, {
-        path = portrait,
-        scale = 1,
-      })
-    end
-  end
-  -- Jessie & James are not a separate Yellow trainer class. Their four
-  -- encounters are Rocket parties 42-45, which the engine selects through
-  -- picJessieJames. Keep the normal Rocket portrait for every other grunt.
-  local jessieJamesPic = mod.assets:path(
-    "overrides/battle/trainers/jessie_james.png")
-  if not battleArtPresent then
-    mod.content.trainers:patch("OPP_ROCKET", {
-      picJessieJames = jessieJamesPic,
-    })
-  end
-  TRAINER_HD_BY_PATH[jessieJamesPic] = loadHdImage(
-    "assets/graphics/trainers/front_hd/jessie_james.png")
-  if not battleArtPresent then
-    mod.content.battle_sprite_scales:register("hgss_trainer_jessie_james", {
-      path = jessieJamesPic,
-      scale = 1,
-    })
-  end
-
-  -- Battle Art Voxel Fork owns the player battle sprite.  Do not install a
-  -- global player.sprite hook here: even a trueColor flag on that hook can
-  -- make the engine treat the fork's Red/Ash selection as HGSS-owned art.
 
   for shortId in words(WALKERS) do
     patchOverworld(mod, shortId, 6, true)
@@ -283,7 +128,6 @@ return function(mod)
   local SpriteRenderer = require("src.render.SpriteRenderer")
   local SpriteAssets = require("src.render.Assets")
   local PaletteFX = require("src.render.PaletteFX")
-  local BattleState = require("src.battle.BattleState")
   local oldNew = SpriteRenderer.new
   local oldDraw = SpriteRenderer.draw
   local overworldHdDraws = {}
@@ -351,145 +195,7 @@ return function(mod)
     billboards.mesh = nativeMesh
     billboards.shadowQuad = nativeMesh
 
-    -- Voxel's BattlePics reconstructs white interiors for alpha-keyed Gen 1
-    -- artwork. Our 80x80 HGSS battle sprites already contain authored RGB and
-    -- real alpha, so that flood fill mistakes legitimate openings (notably
-    -- the gap between Pikachu's tail and body) for white paint. Bypass the
-    -- reconstruction only for native-density pictures; vanilla 56px art
-    -- keeps the compatibility fill it needs.
-    local seenPics = {}
-    local function findBattlePics(value, depth)
-      if depth > 10 or seenPics[value] then return nil end
-      local kind = type(value)
-      if kind ~= "function" and kind ~= "table" then return nil end
-      seenPics[value] = true
-      if kind == "table" then
-        if type(value.filled) == "function" and value.FILL
-           and value.DRAIN then return value end
-        for _, child in pairs(value) do
-          local hit = findBattlePics(child, depth + 1)
-          if hit then return hit end
-        end
-      else
-        local index = 1
-        while true do
-          local name, child = debug.getupvalue(value, index)
-          if not name then break end
-          local hit = findBattlePics(child, depth + 1)
-          if hit then return hit end
-          index = index + 1
-        end
-      end
-      return nil
-    end
-    local battlePics = findBattlePics(voxel.drawWorld, 0)
-    if battlePics then
-      local originalFilled = battlePics.filled
-      battlePics.filled = function(image, ...)
-        if image and image.getDimensions then
-          local width, height = image:getDimensions()
-          if width >= 80 and height >= 80 then return image end
-        end
-        return originalFilled(image, ...)
-      end
-    end
     voxelBillboardsPatched = true
-  end
-
-  -- BattleState's trainer branch calls love.graphics.draw(image, x, y)
-  -- directly and has no public scale/placement field.  Native 80px portraits
-  -- are centered by shifting that one draw 16px left (the classic 160px
-  -- field has 64px of room on the right); all Pokemon and vanilla draws keep
-  -- the engine's original path untouched.
-  local oldBattleDrawPicsLayer = BattleState.drawPicsLayer
-  local voxelRedBackPath = mod.assets:path("assets/voxel/red_back_final.png")
-  local voxelOakBackPath = mod.assets:path("assets/voxel/oak_back_final.png")
-  local oldBattleEnter = BattleState.enter
-  BattleState.enter = function(self, ...)
-    if battleArtPresent then return oldBattleEnter(self, ...) end
-    local okP, Pipelines = pcall(require, "src.render.Pipelines")
-    local opts = self.game and self.game.save and self.game.save.options
-    local modOpts = opts and opts.modOptions and opts.modOptions.DRAMALESS_SHAPE
-    local staged = okP and Pipelines.level("voxel") > 0
-      and (not modOpts or modOpts.battles ~= false)
-    local pics = self.data and self.data.field and self.data.field.playerPics
-    if not (staged and pics) then return oldBattleEnter(self, ...) end
-    local key = self.oakDemo and "oakBack" or "back"
-    local original = pics[key]
-    pics[key] = self.oakDemo and voxelOakBackPath or voxelRedBackPath
-    local ok, a, b, c = pcall(oldBattleEnter, self, ...)
-    pics[key] = original
-    if not ok then error(a, 0) end
-    return a, b, c
-  end
-
-  BattleState.drawPicsLayer = function(self, ...)
-    if battleArtPresent then return oldBattleDrawPicsLayer(self, ...) end
-    -- DRAMALESS_SHAPE renders each side into a private texture by temporarily
-    -- replacing the opposite battler with boolean false.  In that pass the
-    -- portrait must stay inside the voxel card; the post-presentation HD
-    -- overlay would otherwise create a second, giant trainer on the screen.
-    local voxelTexturePass = self.player == false or self.enemy == false
-    local okPipelines, Pipelines = pcall(require, "src.render.Pipelines")
-    local opts = self.game and self.game.save and self.game.save.options
-    local modOpts = opts and opts.modOptions and opts.modOptions.DRAMALESS_SHAPE
-    local voxelBattleActive = okPipelines and Pipelines.get("voxel")
-      and Pipelines.level("voxel") > 0
-      and (not modOpts or modOpts.battles ~= false)
-    local trainer = self.trainerPic and self:picImage(self.trainerPic)
-    local trainerPath = self.trainer
-      and (self.trainer.picJessieJames or self.trainer.pic)
-    self.hgssBattleTrainerHd = voxelBattleActive and not voxelTexturePass
-      and self.showEnemyTrainer and trainerPath
-      and TRAINER_HD_BY_PATH[trainerPath] or nil
-    local player = self.playerBackPic and self:picImage(self.playerBackPic)
-    local playerWidth = player and player:getWidth() or 0
-    local animatedPlayer = playerWidth == 400 or playerWidth == 320
-    if (not trainer or trainer:getWidth() < 80) and not animatedPlayer then
-      return oldBattleDrawPicsLayer(self, ...)
-    end
-    local originalDraw = love.graphics.draw
-    local playerQuad
-    local playerFrameCount = playerWidth == 320 and 4 or 5
-    if animatedPlayer then
-      playerQuad = love.graphics.newQuad(0, 0, 80, 80, playerWidth, 80)
-    end
-    love.graphics.draw = function(image, x, y, ...)
-      if image == trainer and type(x) == "number" and type(y) == "number" then
-        -- The native portrait is replaced after presentation by the 320px
-        -- transparent source. Do not draw it underneath: covering it later
-        -- with an opaque white 80x80 rectangle erased voxel/background mods.
-        if self.hgssBattleTrainerHd then return end
-        if voxelTexturePass then return originalDraw(image, x, y, ...) end
-        return originalDraw(image, x - 16, y, ...)
-      end
-      local imageWidth, imageHeight = image:getDimensions()
-      local animatedImage = self.showPlayerBack and imageHeight == 80
-        and (imageWidth == 320 or imageWidth == 400)
-      if (image == player or animatedImage) and type(x) == "number"
-         and type(y) == "number" then
-        -- Play the authored sequence once per battle, then hold the final
-        -- pose: five frames for Red and four for Oak's Yellow tutorial.
-        -- A modulo loop would keep either character gesturing forever.
-        self.hgssRedAnimStart = self.hgssRedAnimStart
-          or love.timer.getTime()
-        local elapsed = math.max(0, love.timer.getTime()
-          - self.hgssRedAnimStart)
-        local frame = math.min(playerFrameCount - 1, math.floor(elapsed * 8))
-        local quad = playerQuad
-        if image ~= player or imageWidth ~= playerWidth then
-          quad = love.graphics.newQuad(0, 0, 80, 80,
-                                       imageWidth, imageHeight)
-        end
-        quad:setViewport(frame * 80, 0, 80, 80, imageWidth, imageHeight)
-        return originalDraw(image, quad, x, y, ...)
-      end
-      return originalDraw(image, x, y, ...)
-    end
-    local ok, a, b, c = pcall(oldBattleDrawPicsLayer, self, ...)
-    love.graphics.draw = originalDraw
-    if not ok then error(a, 0) end
-    return a, b, c
   end
 
   SpriteRenderer.new = function(spriteDef, seed)
@@ -580,6 +286,9 @@ return function(mod)
     end
   end
 
+  -- PartyMenu's legacy replacement is retained only as historical reference;
+  -- Battle Art owns the party/battle presentation in the active configuration.
+  if false then
   -- PartyMenu's public icon registry is intentionally compatible with the
   -- Game Boy path: it assumes 16x16 OBP art and sends the whole UI canvas
   -- through the four-shade SGB shader.  HGSS party art is authored at 32x32
@@ -829,6 +538,8 @@ return function(mod)
     love.graphics.setColor(1, 1, 1, 1)
   end
 
+  end
+
   -- OakSpeech resolves trainer descriptors without carrying trainer metadata
   -- into its trueColor return value. As a result, the intro's full-color Oak
   -- portrait was still collapsed to purple/orange GB shades. Propagate the
@@ -896,6 +607,7 @@ return function(mod)
     return a, b, c
   end
 
+  if false then
   -- TrainerState normally remaps portraits through the four-shade MEWMON
   -- palette. Our portrait PNGs are already an exact nearest 80->40 raster,
   -- so keep their authored HGSS colors instead of collapsing them to DMG
@@ -944,6 +656,8 @@ return function(mod)
   patchOverworld(mod, "UNUSED_RED_1", 6, true, "red")
   patchOverworld(mod, "UNUSED_RED_2", 6, true, "red")
   patchOverworld(mod, "UNUSED_RED_3", 6, true, "red")
+
+  end
 
   -- HUD ownership stays with the base game/Battle Art Voxel Fork.  Keep the
   -- old implementation below in an unreachable block for easy auditing,
