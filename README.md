@@ -17,6 +17,11 @@ Fresh in-game outdoor capture with the Voxel pipeline enabled:
 
 ![Red and Pikachu outdoors](hgss_sprites/docs/media/readme-voxel-outdoor-pikachu.png)
 
+### Gym captures
+
+![Pewter Gym with Brock](hgss_sprites/docs/media/readme-voxel-gym-brock.png)
+![Cerulean Gym with Misty](hgss_sprites/docs/media/readme-voxel-gym-misty.png)
+
 ### HGSS party icons
 
 The party screen keeps the custom full-color HGSS icon set:

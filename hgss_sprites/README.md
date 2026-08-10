@@ -21,6 +21,11 @@ Outdoor Voxel capture:
 
 ![Red with Pikachu outdoors](docs/media/readme-voxel-outdoor-pikachu.png)
 
+### Gym captures
+
+![Pewter Gym with Brock](docs/media/readme-voxel-gym-brock.png)
+![Cerulean Gym with Misty](docs/media/readme-voxel-gym-misty.png)
+
 ### Party icons
 
 The party menu retains the full-color HGSS icon set:
