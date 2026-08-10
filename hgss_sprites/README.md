@@ -18,16 +18,7 @@ This pack owns only two visual areas:
 Battle Pokemon, trainer portraits, voxel battle presentation and HUD are not
 overridden. They remain exclusively with Battle Art Voxel Fork.
 
-## Before and after
-
-These captures were made directly from g1recomp runs. The comparison images
-are kept as documentation of the visual areas owned by this pack.
-
-### Overworld
-
-| Vanilla Yellow | HGSS overworld |
-|---|---|
-| ![Vanilla overworld](docs/media/readme-before-overworld.png) | ![HGSS overworld](docs/media/readme-after-overworld.png) |
+## Current in-game captures
 
 ### Outdoor Voxel 3D
 
