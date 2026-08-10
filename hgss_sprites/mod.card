@@ -1,22 +1,20 @@
 return {
-  summary = "Native-density HGSS sprites, party icons, trainers and interface chrome for Yellow.",
+  summary = "HGSS intro portraits, overworld charsets and party icons for Yellow.",
   author = "Luciano",
   tags = { "graphics", "overhaul", "hgss", "pixel-art" },
   differences = {
     changed = {
-      "all 151 Pokemon front and back battle sprites",
-      "all character and Pokemon overworld sheets exposed by Pokemon Yellow",
-      "the player battle/card portrait and every trainer class, with distinct audited source art",
-      "global menu borders/cursors, HP palettes and Trainer Card chrome while preserving native 8x8 text metrics",
+      "the Nidoran, Professor Oak, Red and Blue intro portraits",
+      "HGSS overworld sheets with native walking directions and animation frames",
+      "151 full-color, animated party icons",
     },
     added = {
-      "151 animated, species-specific party icons",
       "an optional crisp-display policy for integer-scaled presentation",
     },
     known = {
       "Pokemon Yellow only implements Pikachu as a follower; the other party icons do not create new followers",
       "Gen 1 menu geometry remains 160x144; this pack restyles it rather than replacing gameplay screens with DS layouts",
-      "battle trainers use a 320px post-canvas presentation layer; no four-color Game Boy filter is applied",
+      "battle art, battle trainers, voxel presentation and HUD remain outside this pack",
     },
   },
   credits = {

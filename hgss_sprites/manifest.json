@@ -10,10 +10,10 @@
   "priority": 100,
   "affects_link": true,
   "permissions": ["engine_internals"],
-  "dependencies": ["BATTLE_ART_VOXEL_FORK"],
+  "dependencies": [],
   "optional_dependencies": [],
   "conflicts": [],
-  "author": "Luciano",
+  "author": "LucianoNeo",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "HGSS intro and overworld companion for Battle Art Voxel Fork. Replaces only the intro portraits (Nidoran, Oak, Red and Blue) and adds HGSS overworld sheets while leaving battle art, voxel rendering and HUD untouched."
+  "description": "HGSS intro and overworld companion. Replaces only the intro portraits and adds HGSS overworld sheets."
 }
