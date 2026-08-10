@@ -287,8 +287,8 @@ return function(mod)
   end
 
   -- PartyMenu's legacy replacement is retained only as historical reference;
-  -- Battle Art owns the party/battle presentation in the active configuration.
-  if false then
+  -- battle art remains separate, while the 32px HGSS party icons stay active.
+  local battleArtPresent = false
   -- PartyMenu's public icon registry is intentionally compatible with the
   -- Game Boy path: it assumes 16x16 OBP art and sends the whole UI canvas
   -- through the four-shade SGB shader.  HGSS party art is authored at 32x32
@@ -536,8 +536,6 @@ return function(mod)
                          y0 + (self.subIndex - 1) * 16)
     end
     love.graphics.setColor(1, 1, 1, 1)
-  end
-
   end
 
   -- OakSpeech resolves trainer descriptors without carrying trainer metadata
