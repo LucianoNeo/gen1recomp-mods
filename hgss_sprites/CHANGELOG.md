@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.2
+
+- Removed the global `player.sprite` hook so Battle Art Voxel Fork exclusively
+  selects and renders the player battle sprite.
+
 ## 0.2.1
 
 - Removed all custom HUD registration and battle HUD draw hooks after

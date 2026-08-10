@@ -235,20 +235,9 @@ return function(mod)
     })
   end
 
-  -- The public hook supplies the true-color flag; Oak's tutorial back is
-  -- provided through the dedicated playerPics oakBack asset above.
-  mod.hooks:wrap("player.sprite", function(next, path, ctx)
-    local resolved = next(path, ctx)
-    if ctx.oakDemo then
-      -- The Yellow Pallet tutorial uses Oak in the player's back slot.
-      -- Keep the authored HGSS colors; the vanilla demo palette turns the
-      -- coat into broken purple/orange fragments.
-      ctx.trueColor = true
-    elseif not ctx.demo then
-      ctx.trueColor = true
-    end
-    return resolved
-  end)
+  -- Battle Art Voxel Fork owns the player battle sprite.  Do not install a
+  -- global player.sprite hook here: even a trueColor flag on that hook can
+  -- make the engine treat the fork's Red/Ash selection as HGSS-owned art.
 
   for shortId in words(WALKERS) do
     patchOverworld(mod, shortId, 6, true)
