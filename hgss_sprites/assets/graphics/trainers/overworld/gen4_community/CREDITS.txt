@@ -1,0 +1,76 @@
+#==============================================================================#
+#                                                                              #
+#                             Gen 4 OW Collection                              #
+#                                                                              #
+#                    Compiled & Created by Vanilla Sunshine                    #
+#                         With help from Neo-Spriteman,                        #
+#                Purple Zaffre, Maicerochico, and Atomic Reactor               #
+#                                                                              #
+#            Intended for use with Mr. Gela's Trainer Sprites and PBS.         #
+#                     https://reliccastle.com/resources/391                    #
+#                                                                              #
+#==============================================================================#
+
+  ** Credits **
+--------------------------------------------------------------------------------
+
+	Neo-Spriteman - Originally formatting most HGSS OWs for RMXP
+
+	Vanilla Sunshine - Formatting the OWs missing from Neo's resource for RMXP
+					   Formatting most DPPt OWs for RMXP
+					   Animating the Object boulder file
+					   Creating the following Custom OWs:
+		trchar017 - Bug Catcher (HGSS)
+		trchar020 - Ninja Boy
+		trchar049 - Scientist
+		trchar067 - Teacher
+		trchar083 - Skier
+		trchar116 - Poke Maniac
+		trchar128 - Aroma Lady
+		trchar130 - Bird Keeper M
+		trchar131 - Bird Keeper F
+		trchar134 - Poke Fan M
+		trchar136 - Poke Fan F
+		trchar142 - Gentleman
+		trchar157 - Rocket Grunt M
+		trchar158 - Rocket Grunt F
+		trchar177 - Young Couple (DPPt)
+		trchar178 - Young Couple (HGSS)
+
+	PurpleZaffre - Ripping & Formatting the following OWs:
+		NPC 83 - Looker
+		NPC 84 - Charon
+		NPC 85 - Chubby Man (Beta/Unreleased)
+		NPC 86 - Spikey Hair (Beta/Unreleased)
+		NPC 87 - Blushy Girl (Beta/Unreleased)
+		NPC 88 - Director (Beta/Unreleased)
+			Creating the following Custom OWs: (Commissioned by Maicerochico)
+		trchar107 - Gambler
+		trchar117 - Dragon Tamer
+		trchar118 - Breeder M
+		trchar120 - Breeder F
+		trchar146 - Veteran
+
+	AtomicReactor - Creating the following Custom OWs:
+		trchar124 - Ranger M
+		trchar126 - Ranger F
+
+--------------------------------------------------------------------------------
+
+Thank you so much to PurpleZaffre and AtomicReactor for giving me permission
+to use their custom OWs for this public resource! Their generocity allowed me
+to release this resource much quicker than anticipated!
+
+Please credit ALL of the contributors to this resource with the following:
+
+Gen 4 OW Sprites by:
+Neo-Spriteman
+Vanilla Sunshine
+PurpleZaffre & Maicerochico
+AtomicReactor
+
+Please do not redistribute this resource anywhere. 
+If you'd like to share it, please link to its page from Relic Castle.
+
+I also recommend DiegoWT's Gen 5 OWs in Gen 4 Style resource:
+https://reliccastle.com/resources/370/

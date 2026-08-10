@@ -867,8 +867,11 @@ return function(mod)
     map(speech.rivalPic, "assets/graphics/trainers/front_hd/rival1.png")
     map(speech.playerPic, "assets/graphics/intro_hd/red.png")
     if speech.demoSpecies then
+      local demoName = speech.demoSpecies
+      -- The intro data uses the gendered Gen I IDs, whose authored files keep
+      -- the underscore (NIDORAN_F/NIDORAN_M).
       map(speech.demoPic, "assets/graphics/pokemon/front_hd/"
-        .. assetName(speech.demoSpecies):upper() .. ".png")
+        .. tostring(demoName):upper() .. ".png")
     end
     return speech
   end
