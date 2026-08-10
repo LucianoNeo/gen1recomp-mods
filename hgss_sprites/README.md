@@ -1,168 +1,125 @@
 # HGSS Visual Overhaul
 
-![Versão](https://img.shields.io/badge/versão-0.1.0-gold)
+![Version](https://img.shields.io/badge/version-0.1.0-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.75-blue)
-![Jogo](https://img.shields.io/badge/Pokémon-Yellow-yellow)
+![Game](https://img.shields.io/badge/Pokémon-Yellow-yellow)
 
-Mod visual para **Pokémon Yellow no g1recomp**, inspirado em Pokémon
-HeartGold e SoulSilver. Ele substitui sprites de batalha, personagens no
-mapa, ícones do time e elementos da interface, preservando cores RGB e a
-densidade dos assets de Nintendo DS sempre que o motor permite.
+A visual overhaul for **Pokémon Yellow on g1recomp**, inspired by Pokémon
+HeartGold and SoulSilver. It replaces battle sprites, overworld characters,
+party icons, and interface elements while preserving RGB color and Nintendo DS
+asset density wherever the engine supports it.
 
-## O núcleo do mod
+## Before and after
 
-O foco principal é levar a identidade visual de **HeartGold e SoulSilver**
-para os elementos que permanecem visíveis durante toda a aventura: personagens,
-NPCs do mapa e Pokémon.
+These four images were captured directly from fresh g1recomp runs on the same
+maps and battle flow. The “Before” run had `HGSS_SPRITES` disabled; the “After”
+run had version `0.1.0` enabled. They are not sprite-sheet mockups or edited
+gameplay screenshots.
 
-### Personagens e Pokémon no overworld
+### Overworld characters
 
-Red, o Pikachu seguidor, líderes, rivais e NPCs usam charsets coloridos em
-densidade de Nintendo DS, com direções e quadros próprios de caminhada.
-
-![Red, Pikachu e NPC no overworld](docs/media/core-red-pikachu.png)
-
-### NPCs nos interiores
-
-Os personagens dos mapas internos também recebem sprites HGSS dedicados. A
-captura abaixo mostra Daisy em sua casa, renderizada pelo mapa real do jogo.
-
-![Daisy com sprite HGSS no interior](docs/media/core-overworld-npcs.png)
-
-### Pokémon e personagens em batalha
-
-Os 151 Pokémon têm sprites frontais e traseiros coloridos. Red, Oak, Blue,
-líderes, Elite Four e as demais classes de treinador usam retratos em resolução
-completa, sem redução para a paleta do Game Boy.
-
-![Red e Pikachu em batalha](docs/media/core-pokemon-battle.png)
-
-## Capturas dentro do jogo
-
-Estas imagens foram extraídas de frames apresentados pelo próprio g1recomp
-com o mod carregado. Não são montagens, grades de sprites ou simulações.
-
-### Batalha em layout WIDE
-
-O retrato HD acompanha o deslocamento de entrada do treinador e substitui a
-imagem de baixa resolução na mesma posição, sem duplicação.
-
-![Batalha contra Brock dentro do jogo](docs/media/gameplay-battle-still.png)
-
-### Tela Pokémon
-
-Os seis ícones são desenhados e animados pelo menu real do jogo.
-
-![Tela Pokémon dentro do jogo](docs/media/gameplay-party-still.png)
-
-### Interface DS e barras de HP
-
-As caixas agora são desenhadas em RGB verdadeiro, com contorno azul-marinho,
-rebaixo azul-cinza e interior branco. Cursores ativos usam vermelho e não são
-reconvertidos para a paleta do Game Boy.
-
-As barras de HP também são RGB: verde para HP alto, amarelo para HP
-intermediário e vermelho para HP baixo. O estilo é compartilhado pelas telas
-de batalha, time e resumo.
-
-![Interface HGSS e barras amarela e vermelha dentro do jogo](docs/media/gameplay-hgss-ui-hp.png)
-
-![Interface HGSS e barras verdes na tela Pokémon](docs/media/gameplay-hgss-ui-party.png)
-
-### Compatibilidade com cenários Voxel 3D
-
-Com o `DRAMALESS_SHAPE` habilitado, os personagens HGSS permanecem na escala
-correta sobre os cenários tridimensionais. A captura abaixo mostra Red, Blue e
-os NPCs dentro do laboratório do Professor Oak.
-
-![Personagens HGSS no laboratório em Voxel 3D](docs/media/gameplay-voxel-overworld.png)
-
-As batalhas Voxel também preservam a interface do mod. Barras, cores de HP e
-cursor são os mesmos da apresentação 2D, sem duplicar elementos na cena.
-
-![Batalha Voxel com barras e interface HGSS](docs/media/gameplay-voxel-battle.png)
-
-## Vídeos de gameplay
-
-Os vídeos abaixo foram montados exclusivamente com frames PNG capturados pela
-função de screenshot do próprio g1recomp durante a execução.
-
-### Entrada de batalha contra Brock
-
-![Gameplay da batalha contra Brock](docs/media/gameplay-battle.gif)
-
-[Abrir vídeo MP4](docs/media/gameplay-battle.mp4)
-
-### Ícones animados na tela Pokémon
-
-![Gameplay da tela Pokémon](docs/media/gameplay-party.gif)
-
-[Abrir vídeo MP4](docs/media/gameplay-party.mp4)
-
-## Principais modificações
-
-- 151 sprites frontais e 151 sprites traseiros de Pokémon em batalha;
-- 151 ícones coloridos e animados para a tela do time;
-- 46 classes de treinadores com retratos distintos;
-- retratos HD de Oak, Red, Blue, Jessie, James, líderes e Elite Four;
-- retratos de batalha com transparência real, compatíveis com cenários voxel;
-- charsets overworld em 32×32 para Red, Blue, Oak, líderes, NPCs e Pokémon;
-- Pikachu seguidor e Surfing Pikachu nos registros corretos;
-- animação do Red de costas executada uma única vez ao iniciar a batalha;
-- sprite dedicado do Oak de costas no tutorial de captura;
-- Trainer Card com Red, moldura, selos e oito insígnias de Kanto;
-- bordas e cursores globais em estilo DS;
-- barras de HP verdes, amarelas e vermelhas em estilo HGSS;
-- correções específicas para o layout de batalha WIDE;
-- opção `CRISP DISPLAY` para evitar escala fracionária e deformações.
-
-## Instalação
-
-1. Baixe `HGSS_SPRITES-0.1.0.zip` na página de releases.
-2. Copie o ZIP para a pasta `mods` do g1recomp ou extraia-o como
-   `mods/HGSS_SPRITES/`.
-3. Habilite **HGSS Visual Overhaul** no gerenciador de mods.
-4. Reinicie o jogo depois de atualizar uma versão anterior.
-
-Compatibilidade: g1recomp `>=0.1.75 <0.2.0`, Pokémon Yellow e Mod API 2.
-
-## Formatos utilizados
-
-| Asset | Formato runtime |
+| Vanilla Yellow | HGSS Visual Overhaul |
 |---|---|
-| Overworld com caminhada | `32×192`, seis frames |
-| NPC parado | `32×96` |
-| Objeto parado | `32×32` |
-| Ícone do time | `32×64`, dois frames |
-| Pokémon em batalha | `80×80` |
-| Retrato HD de treinador | `320×320` |
-| Chrome da interface | glyphs de `8×8` |
+| ![Vanilla Yellow overworld capture](docs/media/readme-before-overworld.png) | ![HGSS overworld capture](docs/media/readme-after-overworld.png) |
 
-O adaptador interno é limitado às folhas deste mod e está declarado pela
-permissão `engine_internals`. Ele não modifica os sprites vanilla de outros
-mods.
+The same Viridian Pokémon Center scene shows the original low-resolution
+characters on the left and the color HGSS overworld charsets on the right.
 
-## Verificação
+### Battle trainers and player
 
-O pacote é validado por contagem, dimensões e capturas determinísticas geradas
-diretamente pelo motor:
+| Vanilla Yellow | HGSS Visual Overhaul |
+|---|---|
+| ![Vanilla Yellow battle capture](docs/media/readme-before-battle.png) | ![HGSS battle capture](docs/media/readme-after-battle.png) |
+
+The same trainer-battle transition shows the original Game Boy artwork versus
+the full-color HGSS trainer presentation, with the player back sprite and
+dialogue frame preserved in their real game positions.
+
+## What the mod changes
+
+### Overworld characters and Pokémon
+
+Red, the following Pikachu, leaders, rivals, Team Rocket, Oak, and NPC classes
+use color HGSS charsets with dedicated directions and walking frames.
+
+![Red, Pikachu, and NPC in the overworld](docs/media/core-red-pikachu.png)
+
+The same sprite pipeline also covers interior maps and keeps characters at
+Red's logical size in both 2D and Voxel presentation.
+
+### Battle Pokémon and trainers
+
+All 151 Pokémon have color front and back battle sprites. Red, Oak, Blue,
+Jessie, James, gym leaders, the Elite Four, and trainer classes use full-color
+trainer portraits with real transparency.
+
+![Red and Pikachu in battle](docs/media/core-pokemon-battle.png)
+
+### HGSS interface
+
+The battle, party, and summary screens use DS-style borders and cursors, plus
+green, yellow, and red HGSS HP-bar states without a forced Game Boy palette.
+
+![HGSS interface and HP bars](docs/media/gameplay-hgss-ui-hp.png)
+
+### Voxel compatibility
+
+With `DRAMALESS_SHAPE` enabled, the same characters remain correctly scaled on
+3D scenes. Voxel battles preserve the mod's interface and do not duplicate
+trainer artwork.
+
+![HGSS characters in a Voxel overworld](docs/media/gameplay-voxel-overworld.png)
+
+![Voxel battle with HGSS interface](docs/media/gameplay-voxel-battle.png)
+
+## Installation
+
+1. Download [`HGSS_SPRITES-0.1.0.zip`](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.1.0/HGSS_SPRITES-0.1.0.zip).
+2. Import the ZIP through the g1recomp mod manager, or extract it as
+   `mods/HGSS_SPRITES/`.
+3. Enable **HGSS Visual Overhaul**.
+4. Restart g1recomp after installing or updating the mod.
+
+Compatibility: g1recomp `>=0.1.75 <0.2.0`, Pokémon Yellow, and Mod API 2.
+
+## Runtime formats
+
+| Asset | Runtime format |
+|---|---|
+| Walking overworld sheet | `32×192`, six frames |
+| HD Jessie / James walking sheet | `128×768`, six frames |
+| Standing NPC | `32×96` |
+| Standing object | `32×32` |
+| Party icon | `32×64`, two frames |
+| Battle Pokémon | `80×80` |
+| HD trainer portrait | `320×320` |
+| Interface chrome | `8×8` glyphs |
+
+The internal adapter is limited to this mod's sheets and is declared through
+the `engine_internals` permission. Vanilla sprites from other mods are not
+modified.
+
+## Verification
+
+The runtime package is checked by dimensions, asset counts, ZIP import, and
+deterministic screenshots captured directly by g1recomp:
 
 ```powershell
 python scripts/build_mod_assets.py --check
 python scripts/build_mod_assets.py --package
 ```
 
-Os testes atuais verificam 151 pares de batalha, 151 ícones, todos os sprites
-overworld mapeados, tela inicial, menu do time, tutorial do Oak e retratos de
-treinadores nos layouts clássico e WIDE.
+The current QA flow covers battle pairs, party icons, mapped overworld
+sprites, the title screen, the party menu, Oak's tutorial, trainer portraits,
+and classic/WIDE presentation paths.
 
-## Referências
+## References
 
-- [Art Pipeline do g1recomp](https://github.com/bryanthaboi/gen1recomp/wiki/Guide-Art-Pipeline)
-- [Referência de manifests](https://github.com/bryanthaboi/gen1recomp/wiki/Reference-Manifest)
-- [Referência de registries](https://github.com/bryanthaboi/gen1recomp/wiki/Reference-Registries)
-- [Trainers HGSS — The Spriters Resource](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26955/)
-- [Galeria de personagens — Bulbapedia](https://bulbapedia.bulbagarden.net/wiki/User:Team_Rocket_Grunt/List_of_game_characters_by_overworld_sprite)
+- [g1recomp art pipeline](https://github.com/bryanthaboi/gen1recomp/wiki/Guide-Art-Pipeline)
+- [Manifest reference](https://github.com/bryanthaboi/gen1recomp/wiki/Reference-Manifest)
+- [Registry reference](https://github.com/bryanthaboi/gen1recomp/wiki/Reference-Registries)
+- [HGSS trainers — The Spriters Resource](https://www.spriters-resource.com/ds_dsi/pokemonheartgoldsoulsilver/asset/26955/)
+- [Character overworld gallery — Bulbapedia](https://bulbapedia.bulbagarden.net/wiki/User:Team_Rocket_Grunt/List_of_game_characters_by_overworld_sprite)
 
-Pokémon e os designs de HeartGold/SoulSilver pertencem à Nintendo, Game Freak
-e The Pokémon Company. Este é um projeto visual não comercial.
+Pokémon and the HeartGold/SoulSilver designs belong to Nintendo, Game Freak,
+and The Pokémon Company. This is a non-commercial visual project.

@@ -1,28 +1,27 @@
 # Gen1Recomp Mods
 
-Repositório de mods para o [g1recomp](https://github.com/bryanthaboi/gen1recomp).
+Mods for [g1recomp](https://github.com/bryanthaboi/gen1recomp).
 
 ## HGSS Visual Overhaul
 
-Uma reformulação visual de **Pokémon Yellow** inspirada em
-**Pokémon HeartGold e SoulSilver**, com sprites coloridos de Pokémon,
-personagens e NPCs, charsets de overworld, ícones do time e interface em
-estilo Nintendo DS. O mod também oferece compatibilidade visual com cenários
-Voxel 3D do `DRAMALESS_SHAPE`.
+A **Pokémon Yellow** visual overhaul inspired by **Pokémon HeartGold and
+SoulSilver**. It replaces battle art, overworld characters, Pokémon party
+icons, and interface elements while preserving full RGB color and Nintendo DS
+asset density wherever the engine allows it.
 
-[Ver o mod, imagens e instruções](hgss_sprites/README.md)
+[Open the mod documentation, screenshots, and installation guide](hgss_sprites/README.md)
 
-[Abrir a release mais recente](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.1.0)
+[Open the latest release](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.1.0)
 
-[Baixar HGSS_SPRITES 0.1.0](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.1.0/HGSS_SPRITES-0.1.0.zip)
+[Download HGSS_SPRITES 0.1.0](https://github.com/LucianoNeo/gen1recomp-mods/releases/download/v0.1.0/HGSS_SPRITES-0.1.0.zip)
 
-![HGSS Visual Overhaul em batalha](hgss_sprites/docs/media/gameplay-battle-still.png)
+![HGSS Visual Overhaul battle capture](hgss_sprites/docs/media/readme-after-battle.png)
 
-## Instalação rápida
+## Quick installation
 
-1. Baixe o ZIP da release mais recente.
-2. Importe-o pelo gerenciador de mods do g1recomp.
-3. Ative **HGSS Visual Overhaul** e reinicie o jogo.
+1. Download the ZIP from the latest release.
+2. Import it through the g1recomp mod manager.
+3. Enable **HGSS Visual Overhaul** and restart the game.
 
-Release publicada: `0.1.0` · Pacote runtime enxuto ·
-Compatível com g1recomp `>=0.1.75 <0.2.0`.
+Release: `0.1.0` · Lean runtime package ·
+Compatible with g1recomp `>=0.1.75 <0.2.0`.
