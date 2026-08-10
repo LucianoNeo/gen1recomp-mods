@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.2.0-gold)
+![Version](https://img.shields.io/badge/version-0.2.2-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.75-blue)
 
 A companion visual pack for Pokemon Yellow on g1recomp, inspired by
@@ -10,15 +10,13 @@ which remains the owner of battle and voxel artwork.
 
 ## Scope
 
-This pack owns only three areas:
+This pack owns only two visual areas:
 
-- the opening portraits (Nidoran, Professor Oak, Red and Blue);
+- the opening portraits (Nidorino, Professor Oak, Red and Blue);
 - HGSS overworld charsets, including walking directions and frames;
-- no battle or HUD replacement; those remain with the required fork.
 
 Battle Pokemon, trainer portraits, voxel battle presentation and HUD are not
-overridden, so the Battle Art Voxel Fork can provide them without duplicates,
-giant sprites or broken layering.
+overridden. They remain exclusively with Battle Art Voxel Fork.
 
 ## Before and after
 
@@ -31,20 +29,13 @@ are kept as documentation of the visual areas owned by this pack.
 |---|---|
 | ![Vanilla overworld](docs/media/readme-before-overworld.png) | ![HGSS overworld](docs/media/readme-after-overworld.png) |
 
-### Battle presentation
-
-| Vanilla HUD | HGSS 2D HUD |
-|---|---|
-| ![Vanilla battle](docs/media/readme-before-battle.png) | ![HGSS battle HUD](docs/media/readme-after-battle.png) |
-
-The battle-art images are reference captures only; the installed Battle Art
-Voxel Fork remains the sole provider of battle Pokemon, trainer sprites and
-HUD.
+Battle screenshots are intentionally omitted: this pack no longer modifies
+battle art or HUD.
 
 ## Installation
 
 1. Install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod).
-2. Download the `HGSS_SPRITES` 0.2.0 asset from the [releases page](https://github.com/LucianoNeo/gen1recomp-mods/releases).
+2. Download the `HGSS_SPRITES` 0.2.2 asset from the [releases page](https://github.com/LucianoNeo/gen1recomp-mods/releases).
 3. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 4. Restart g1recomp after installing or updating either mod.
 
