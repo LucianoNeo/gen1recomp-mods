@@ -35,6 +35,16 @@ The same trainer-battle transition shows the original Game Boy artwork versus
 the full-color HGSS trainer presentation, with the player back sprite and
 dialogue frame preserved in their real game positions.
 
+### Battle Pokémon
+
+| Vanilla Yellow | HGSS Visual Overhaul |
+|---|---|
+| ![Vanilla Yellow Pokémon battle capture](docs/media/readme-before-pokemon-battle.png) | ![HGSS Pokémon battle capture](docs/media/readme-after-pokemon-battle.png) |
+
+This fresh wild-battle capture compares the original monochrome Pikachu with
+the full-color HGSS battle sprite while keeping the same player, text box, and
+battle layout.
+
 ## What the mod changes
 
 ### Overworld characters and Pokémon
