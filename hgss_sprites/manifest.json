@@ -1,7 +1,7 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
@@ -15,5 +15,5 @@
   "conflicts": [],
   "author": "Luciano",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "HGSS overworld and 2D HUD companion for Battle Art Voxel Fork. Replaces only the intro portraits (Nidoran, Oak, Red and Blue), preserves the fork's battle and voxel art, and adds HGSS overworld sheets plus DS-style 2D battle chrome."
+  "description": "HGSS intro and overworld companion for Battle Art Voxel Fork. Replaces only the intro portraits (Nidoran, Oak, Red and Blue) and adds HGSS overworld sheets while leaving battle art, voxel rendering and HUD untouched."
 }

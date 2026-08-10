@@ -6,15 +6,14 @@ Mods for [g1recomp](https://github.com/bryanthaboi/gen1recomp).
 
 A companion for [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod)
 for Pokemon Yellow. It replaces only the intro portraits, adds HGSS overworld
-charsets, and provides the new flat 2D battle HUD. The cited fork remains the
-owner of battle and voxel artwork.
+charsets. The cited fork remains the owner of battle, voxel artwork and HUD.
 
 [Mod documentation, screenshots and installation guide](hgss_sprites/README.md)
 
 [Releases](https://github.com/LucianoNeo/gen1recomp-mods/releases) · `HGSS_SPRITES` 0.2.0
 
 ![HGSS overworld capture](hgss_sprites/docs/media/readme-after-overworld.png)
-![HGSS 2D battle HUD](hgss_sprites/docs/media/readme-after-battle.png)
+![HGSS overworld capture](hgss_sprites/docs/media/readme-after-overworld.png)
 
 ## Quick installation
 

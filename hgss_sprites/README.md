@@ -14,9 +14,9 @@ This pack owns only three areas:
 
 - the opening portraits (Nidoran, Professor Oak, Red and Blue);
 - HGSS overworld charsets, including walking directions and frames;
-- the flat 2D battle HUD: DS-style borders, cursor and colored HP bars.
+- no battle or HUD replacement; those remain with the required fork.
 
-Battle Pokemon, trainer portraits and voxel battle presentation are not
+Battle Pokemon, trainer portraits, voxel battle presentation and HUD are not
 overridden, so the Battle Art Voxel Fork can provide them without duplicates,
 giant sprites or broken layering.
 
@@ -31,14 +31,15 @@ are kept as documentation of the visual areas owned by this pack.
 |---|---|
 | ![Vanilla overworld](docs/media/readme-before-overworld.png) | ![HGSS overworld](docs/media/readme-after-overworld.png) |
 
-### 2D battle HUD
+### Battle presentation
 
 | Vanilla HUD | HGSS 2D HUD |
 |---|---|
 | ![Vanilla battle](docs/media/readme-before-battle.png) | ![HGSS battle HUD](docs/media/readme-after-battle.png) |
 
 The battle-art images are reference captures only; the installed Battle Art
-Voxel Fork remains the sole provider of battle Pokemon and trainer sprites.
+Voxel Fork remains the sole provider of battle Pokemon, trainer sprites and
+HUD.
 
 ## Installation
 

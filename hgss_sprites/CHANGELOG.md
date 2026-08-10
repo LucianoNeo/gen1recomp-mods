@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1
+
+- Removed all custom HUD registration and battle HUD draw hooks after
+  compatibility issues in 2D and 3D battles.
+- The base game/Battle Art Voxel Fork now owns borders, cursors, HP bars and
+  all battle presentation.
+
 ## 0.2.0
 
 - Battle Art Voxel Fork is now a required companion and owns all battle and

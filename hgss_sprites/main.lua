@@ -953,6 +953,11 @@ return function(mod)
   patchOverworld(mod, "UNUSED_RED_2", 6, true, "red")
   patchOverworld(mod, "UNUSED_RED_3", 6, true, "red")
 
+  -- HUD ownership stays with the base game/Battle Art Voxel Fork.  Keep the
+  -- old implementation below in an unreachable block for easy auditing,
+  -- but do not register fonts, themes, HP palettes or HUD draw wrappers.
+  local liveGame
+  if false then
   -- A private high-code page supplies six border pieces and three menu
   -- markers.  field.theme routes the global UI to them without colliding
   -- with the native text/charmap pages.
@@ -1020,8 +1025,6 @@ return function(mod)
     if more then UiPaletteFX.markTrueColor(x, y, 8, 8) end
     love.graphics.setColor(r, g, b, a)
   end
-
-  local liveGame
 
   -- HGSS-like health colors use the engine's supported four-shade palette
   -- path, so battle, party and summary bars stay correct in every renderer.
@@ -1125,6 +1128,8 @@ return function(mod)
     end
     repaintBattleHP(self, slide)
     return result
+  end
+
   end
 
   -- These are live display settings, not a replacement renderer.  In
