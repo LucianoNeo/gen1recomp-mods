@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.3
+
+- Added verified Brock and Misty Voxel gym captures to the documentation.
+- Kept Battle Art Voxel Fork optional; it is not a manifest dependency.
+
 ## 0.2.2
 
 - Removed the global `player.sprite` hook so Battle Art Voxel Fork exclusively

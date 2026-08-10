@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.2.2-gold)
+![Version](https://img.shields.io/badge/version-0.2.3-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.75-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -36,7 +36,7 @@ The party menu retains the full-color HGSS icon set:
 ## Installation
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for the Voxel renderer.
-2. Download the `HGSS_SPRITES` 0.2.2 asset from the [releases page](https://github.com/LucianoNeo/gen1recomp-mods/releases).
+2. Download the `HGSS_SPRITES` 0.2.3 asset from the [releases page](https://github.com/LucianoNeo/gen1recomp-mods/releases).
 3. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 4. Restart g1recomp after installing or updating either mod.
 

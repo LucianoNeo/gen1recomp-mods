@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Releases](https://github.com/LucianoNeo/gen1recomp-mods/releases) · `HGSS_SPRITES` 0.2.2
+[Releases](https://github.com/LucianoNeo/gen1recomp-mods/releases) · `HGSS_SPRITES` 0.2.3
 
 ### Outdoor Voxel 3D
 
@@ -35,5 +35,5 @@ The party screen keeps the custom full-color HGSS icon set:
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
-Package: `0.2.2` · Lean runtime package · Compatible with g1recomp
+Package: `0.2.3` · Lean runtime package · Compatible with g1recomp
 `>=0.1.75 <0.2.0`.
