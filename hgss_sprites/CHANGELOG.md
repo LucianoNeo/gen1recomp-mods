@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- Battle Art Voxel Fork is now a required companion and owns all battle and
+  voxel artwork.
+- HGSS battle Pokemon, trainer portraits, party icons and player battle backs
+  are no longer patched by this mod, preventing duplicate or oversized art.
+- Kept the intro portraits, HGSS overworld charsets and the flat 2D HUD as
+  this mod's supported visual scope.
+
 ## 0.1.0
 
 - Jessie e James agora preservam os charsets em alta densidade, mantendo a

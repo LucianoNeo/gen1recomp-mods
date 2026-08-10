@@ -1,7 +1,7 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
@@ -10,10 +10,10 @@
   "priority": 100,
   "affects_link": true,
   "permissions": ["engine_internals"],
-  "dependencies": [],
-  "optional_dependencies": ["DRAMALESS_SHAPE"],
+  "dependencies": ["BATTLE_ART_VOXEL_FORK"],
+  "optional_dependencies": [],
   "conflicts": [],
   "author": "Luciano",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "A native-density HGSS visual overhaul for Pokemon Yellow: original 80px battle art at integer scale, 32px overworld sheets, party icons, trainer portraits, and DS-style interface chrome."
+  "description": "HGSS overworld and 2D HUD companion for Battle Art Voxel Fork. Replaces only the intro portraits (Nidoran, Oak, Red and Blue), preserves the fork's battle and voxel art, and adds HGSS overworld sheets plus DS-style 2D battle chrome."
 }

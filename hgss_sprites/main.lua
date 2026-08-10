@@ -94,6 +94,16 @@ local function patchOverworld(mod, shortId, frames, walker, file)
 end
 
 return function(mod)
+  -- BATTLE ART VOXEL FORK owns the battle presentation when it is active.
+  -- Keep this adapter deliberately narrow in that configuration: its voxel
+  -- battle art, trainer art and Pokemon art must not be replaced by a second
+  -- set of battle assets.  We still provide our intro, overworld and flat
+  -- 2D HUD layers below.
+  -- Battle Art Voxel Fork is declared as a hard dependency in the manifest;
+  -- this package is intentionally its visual complement, not a competing
+  -- battle-art replacement.
+  local battleArtPresent = true
+
   -- Any raster supplied by this overhaul already carries its authored HGSS
   -- colors. Normalize separators once so the same check works on Windows and
   -- packaged builds, then use it at every engine path that would otherwise
@@ -106,6 +116,9 @@ return function(mod)
         or path:find("overrides/title/", 1, true) ~= nil
         or path:find("assets/icons/", 1, true) ~= nil
         or path:find("overrides/trainer_card/", 1, true) ~= nil
+        or path:find("assets/graphics/intro_hd/", 1, true) ~= nil
+        or path:find("assets/graphics/pokemon/front_hd/", 1, true) ~= nil
+        or path:find("assets/graphics/trainers/front_hd/", 1, true) ~= nil
   end
 
   local function loadHdImage(path)
@@ -128,36 +141,40 @@ return function(mod)
   -- reference composition: a Pikachu's authored ~48px silhouette and Red's
   -- full back sprite remain visible instead of being shrunk to GBC scale.
   for species in words(SPECIES) do
-    mod.content.pokemon:patch(species, {
-      trueColor = true,
-      battleScaleFront = 1,
-      battleScaleBack = 1,
-    })
     -- The base game already provides an icon record for every Gen I species.
     -- Registering those same IDs collides in the record registry, so update
     -- the existing records instead of trying to create duplicates.
-    mod.content.icons:patch(species, {
-      image = mod.assets:path("assets/icons/" .. assetName(species) .. ".png"),
-      frames = 2,
-    })
+    if not battleArtPresent then
+      mod.content.pokemon:patch(species, {
+        trueColor = true,
+        battleScaleFront = 1,
+        battleScaleBack = 1,
+      })
+      mod.content.icons:patch(species, {
+        image = mod.assets:path("assets/icons/" .. assetName(species) .. ".png"),
+        frames = 2,
+      })
+    end
   end
 
   -- The player's trainer back is not species-keyed, so route it to the
   -- bundled image through the public field registry and scale that path.
   local playerBack = mod.assets:path("overrides/battle/redb.png")
-  mod.content.field:patch("playerPics", {
-    back = playerBack,
-    oakBack = mod.assets:path("overrides/battle/profoakb.png"),
-  })
-  mod.content.battle_sprite_scales:register("hgss_player_back", {
-    path = playerBack,
-    scale = 1,
-  })
-  local oakBack = mod.assets:path("overrides/battle/profoakb.png")
-  mod.content.battle_sprite_scales:register("hgss_oak_back", {
-    path = oakBack,
-    scale = 1,
-  })
+  if not battleArtPresent then
+    mod.content.field:patch("playerPics", {
+      back = playerBack,
+      oakBack = mod.assets:path("overrides/battle/profoakb.png"),
+    })
+    mod.content.battle_sprite_scales:register("hgss_player_back", {
+      path = playerBack,
+      scale = 1,
+    })
+    local oakBack = mod.assets:path("overrides/battle/profoakb.png")
+    mod.content.battle_sprite_scales:register("hgss_oak_back", {
+      path = oakBack,
+      scale = 1,
+    })
+  end
 
   -- Trainer portraits are data records rather than a public image registry.
   -- Keep the authored 80x80 DS raster; the narrow draw adapter below centers
@@ -188,29 +205,35 @@ return function(mod)
     local portrait = mod.assets:path("overrides/battle/trainers/" .. file .. ".png")
     TRAINER_HD_BY_PATH[portrait] = loadHdImage(
       "assets/graphics/trainers/front_hd/" .. file .. ".png")
-    mod.content.trainers:patch(trainerId, {
-      pic = portrait,
-      trueColor = true,
-    })
-    mod.content.battle_sprite_scales:register("hgss_trainer_" .. file, {
-      path = portrait,
-      scale = 1,
-    })
+    if not battleArtPresent then
+      mod.content.trainers:patch(trainerId, {
+        pic = portrait,
+        trueColor = true,
+      })
+      mod.content.battle_sprite_scales:register("hgss_trainer_" .. file, {
+        path = portrait,
+        scale = 1,
+      })
+    end
   end
   -- Jessie & James are not a separate Yellow trainer class. Their four
   -- encounters are Rocket parties 42-45, which the engine selects through
   -- picJessieJames. Keep the normal Rocket portrait for every other grunt.
   local jessieJamesPic = mod.assets:path(
     "overrides/battle/trainers/jessie_james.png")
-  mod.content.trainers:patch("OPP_ROCKET", {
-    picJessieJames = jessieJamesPic,
-  })
+  if not battleArtPresent then
+    mod.content.trainers:patch("OPP_ROCKET", {
+      picJessieJames = jessieJamesPic,
+    })
+  end
   TRAINER_HD_BY_PATH[jessieJamesPic] = loadHdImage(
     "assets/graphics/trainers/front_hd/jessie_james.png")
-  mod.content.battle_sprite_scales:register("hgss_trainer_jessie_james", {
-    path = jessieJamesPic,
-    scale = 1,
-  })
+  if not battleArtPresent then
+    mod.content.battle_sprite_scales:register("hgss_trainer_jessie_james", {
+      path = jessieJamesPic,
+      scale = 1,
+    })
+  end
 
   -- The public hook supplies the true-color flag; Oak's tutorial back is
   -- provided through the dedicated playerPics oakBack asset above.
@@ -394,6 +417,7 @@ return function(mod)
   local voxelOakBackPath = mod.assets:path("assets/voxel/oak_back_final.png")
   local oldBattleEnter = BattleState.enter
   BattleState.enter = function(self, ...)
+    if battleArtPresent then return oldBattleEnter(self, ...) end
     local okP, Pipelines = pcall(require, "src.render.Pipelines")
     local opts = self.game and self.game.save and self.game.save.options
     local modOpts = opts and opts.modOptions and opts.modOptions.DRAMALESS_SHAPE
@@ -411,6 +435,7 @@ return function(mod)
   end
 
   BattleState.drawPicsLayer = function(self, ...)
+    if battleArtPresent then return oldBattleDrawPicsLayer(self, ...) end
     -- DRAMALESS_SHAPE renders each side into a private texture by temporarily
     -- replacing the opposite battler with boolean false.  In that pass the
     -- portrait must stay inside the voxel card; the post-presentation HD
@@ -623,6 +648,9 @@ return function(mod)
   end
 
   PartyMenu.drawIcon = function(game, mon, x, y, selected, counter, forceAlt)
+    if battleArtPresent then
+      return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
+    end
     local path = partyIconPath(game, mon)
     if not isHgssPartyIcon(path) then
       return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
@@ -751,6 +779,7 @@ return function(mod)
   end
 
   PartyMenu.draw = function(self)
+    if battleArtPresent then return oldPartyDraw(self) end
     local party = self.party or self.game.save.party
     local hasNative = false
     for _, mon in ipairs(party) do
@@ -881,6 +910,7 @@ return function(mod)
   -- shades. Vanilla portraits retain the engine's original palette path.
   local oldTrainerPalette = BattleState.trainerPalette
   BattleState.trainerPalette = function(data, trainer)
+    if battleArtPresent then return oldTrainerPalette(data, trainer) end
     local path = trainer and trainer.pic
     if isHgssTrueColorPath(path)
        or (trainer and trainer.trueColor) then
@@ -896,6 +926,7 @@ return function(mod)
   -- Pokemon sprites.
   local oldBattlePicImage = BattleState.picImage
   BattleState.picImage = function(self, image)
+    if battleArtPresent then return oldBattlePicImage(self, image) end
     local trainer = self and self.trainer
     local path = trainer and (trainer.picJessieJames or trainer.pic)
     if image == (self and self.trainerPic)
