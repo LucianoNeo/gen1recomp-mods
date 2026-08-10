@@ -40,6 +40,7 @@ Pikachu is placed in front of Red and never overlaps a building:
 The party menu retains the full-color HGSS icon set:
 
 ![HGSS party icons](docs/media/party-icons-hgss.png)
+![Party menu with six Pokémon](docs/media/readme-party-icons.png)
 
 Battle screenshots are intentionally omitted: this pack no longer modifies
 battle art or HUD.

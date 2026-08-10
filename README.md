@@ -27,6 +27,7 @@ Fresh in-game captures with the Voxel pipeline enabled:
 The party screen keeps the custom full-color HGSS icon set:
 
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
+![Party menu with six Pokémon](hgss_sprites/docs/media/readme-party-icons.png)
 
 ## Quick installation
 

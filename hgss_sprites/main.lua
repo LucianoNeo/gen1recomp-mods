@@ -7,6 +7,28 @@
 -- the engine silently crops the DS art into GBC-sized fragments. The adapter
 -- only changes native HGSS sheets; every other sprite keeps the stock renderer.
 
+local SPECIES = [[
+BULBASAUR IVYSAUR VENUSAUR CHARMANDER CHARMELEON CHARIZARD
+SQUIRTLE WARTORTLE BLASTOISE CATERPIE METAPOD BUTTERFREE WEEDLE KAKUNA
+BEEDRILL PIDGEY PIDGEOTTO PIDGEOT RATTATA RATICATE SPEAROW FEAROW EKANS
+ARBOK PIKACHU RAICHU SANDSHREW SANDSLASH NIDORAN_F NIDORINA NIDOQUEEN
+NIDORAN_M NIDORINO NIDOKING CLEFAIRY CLEFABLE VULPIX NINETALES
+JIGGLYPUFF WIGGLYTUFF ZUBAT GOLBAT ODDISH GLOOM VILEPLUME PARAS
+PARASECT VENONAT VENOMOTH DIGLETT DUGTRIO MEOWTH PERSIAN PSYDUCK
+GOLDUCK MANKEY PRIMEAPE GROWLITHE ARCANINE POLIWAG POLIWHIRL POLIWRATH
+ABRA KADABRA ALAKAZAM MACHOP MACHOKE MACHAMP BELLSPROUT WEEPINBELL
+VICTREEBEL TENTACOOL TENTACRUEL GEODUDE GRAVELER GOLEM PONYTA RAPIDASH
+SLOWPOKE SLOWBRO MAGNEMITE MAGNETON FARFETCHD DODUO DODRIO SEEL DEWGONG
+GRIMER MUK SHELLDER CLOYSTER GASTLY HAUNTER GENGAR ONIX DROWZEE HYPNO
+KRABBY KINGLER VOLTORB ELECTRODE EXEGGCUTE EXEGGUTOR CUBONE MAROWAK
+HITMONLEE HITMONCHAN LICKITUNG KOFFING WEEZING RHYHORN RHYDON CHANSEY
+TANGELA KANGASKHAN HORSEA SEADRA GOLDEEN SEAKING STARYU STARMIE MR_MIME
+SCYTHER JYNX ELECTABUZZ MAGMAR PINSIR TAUROS MAGIKARP GYARADOS LAPRAS
+DITTO EEVEE VAPOREON JOLTEON FLAREON PORYGON OMANYTE OMASTAR KABUTO
+KABUTOPS AERODACTYL SNORLAX ARTICUNO ZAPDOS MOLTRES DRATINI DRAGONAIR
+DRAGONITE MEWTWO MEW
+]]
+
 local WALKERS = [[
 AGATHA BEAUTY BIKER BIRD BLUE BRUNETTE_GIRL BRUNO CHANNELER COOK
 COOLTRAINER_F COOLTRAINER_M DAISY FAIRY FISHER GAMBLER GENTLEMAN GIOVANNI
@@ -25,6 +47,13 @@ SILPH_PRESIDENT SILPH_WORKER_M WARDEN
 
 local function words(text)
   return text:gmatch("[%w_]+")
+end
+
+local function assetName(species)
+  if species == "NIDORAN_F" then return "nidoranf" end
+  if species == "NIDORAN_M" then return "nidoranm" end
+  if species == "MR_MIME" then return "mr.mime" end
+  return species:lower()
 end
 
 local function patchOverworld(mod, shortId, frames, walker, file)
@@ -68,6 +97,14 @@ return function(mod)
   -- Battle Art Voxel Fork owns battle artwork. This companion only supplies
   -- the intro portraits and HGSS overworld charsets.
 
+  local function isHgssTrueColorPath(path)
+    if type(path) ~= "string" then return false end
+    path = path:gsub("\\", "/")
+    return path:find("overrides/sprites/", 1, true) ~= nil
+        or path:find("overrides/title/", 1, true) ~= nil
+        or path:find("assets/icons/", 1, true) ~= nil
+  end
+
   local function loadHdImage(path)
     local ok, image = pcall(love.graphics.newImage, mod.assets:path(path))
     if not ok or not image then return nil end
@@ -83,6 +120,18 @@ return function(mod)
       default = true,
     },
   })
+
+  -- Keep the full-color HGSS party icon registry wired to the game's existing
+  -- Gen I species records.  Without patching these records, PartyMenu falls
+  -- back to the tiny monochrome base-game icons even though the PNG assets are
+  -- present in the package.
+  for species in words(SPECIES) do
+    mod.content.icons:patch(species, {
+      image = mod.assets:path("assets/icons/" .. assetName(species) .. ".png"),
+      frames = 2,
+      trueColor = true,
+    })
+  end
 
   for shortId in words(WALKERS) do
     patchOverworld(mod, shortId, 6, true)
