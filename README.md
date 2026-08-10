@@ -20,6 +20,13 @@ Fresh in-game captures with the Voxel pipeline enabled:
 ![Pallet Town Voxel 3D](hgss_sprites/docs/media/readme-voxel-outdoor-pallet.png)
 ![Route 1 Voxel 3D](hgss_sprites/docs/media/readme-voxel-outdoor-route1.png)
 ![Cerulean City Voxel 3D](hgss_sprites/docs/media/readme-voxel-outdoor-cerulean.png)
+![Red and Pikachu outdoors](hgss_sprites/docs/media/readme-voxel-outdoor-pikachu.png)
+
+### HGSS party icons
+
+The party screen keeps the custom full-color HGSS icon set:
+
+![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 
 ## Quick installation
 

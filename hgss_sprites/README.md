@@ -30,6 +30,17 @@ scenes while Battle Art Voxel Fork supplies the 3D renderer.
 |---|---|---|
 | ![Pallet Town in Voxel 3D](docs/media/readme-voxel-outdoor-pallet.png) | ![Route 1 in Voxel 3D](docs/media/readme-voxel-outdoor-route1.png) | ![Cerulean City in Voxel 3D](docs/media/readme-voxel-outdoor-cerulean.png) |
 
+Red and his follower are shown on open ground in a separate outdoor capture;
+Pikachu is placed in front of Red and never overlaps a building:
+
+![Red with Pikachu outdoors](docs/media/readme-voxel-outdoor-pikachu.png)
+
+### Party icons
+
+The party menu retains the full-color HGSS icon set:
+
+![HGSS party icons](docs/media/party-icons-hgss.png)
+
 Battle screenshots are intentionally omitted: this pack no longer modifies
 battle art or HUD.
 
