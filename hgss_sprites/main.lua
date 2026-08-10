@@ -68,6 +68,12 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   local frameSize = highDensity and 128 or 32
   local frameHeight = frameSize
   local proxyFrameHeight = 32
+  -- Jessie and James use 4x-authored sheets whose artwork is intentionally
+  -- more compact than Red's native charset.  Keep the source texture intact
+  -- and enlarge only their presentation box by 1.3x (32 -> 42 logical px).
+  -- The same logical size is supplied to the voxel billboard so 2D and 3D
+  -- maps keep matching proportions.
+  local displaySize = highDensity and 42 or 32
   local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
   mod.content.sprites:patch("SPRITE_" .. shortId, {
     -- DRAMALESS_SHAPE builds its billboard UVs from def.image and assumes a
@@ -84,12 +90,12 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     trueColor = true,
     hgssFrameWidth = frameSize,
     hgssFrameHeight = frameHeight,
-    hgssDrawWidth = 32,
-    hgssDrawHeight = 32,
+    hgssDrawWidth = displaySize,
+    hgssDrawHeight = displaySize,
     hgssLinearFilter = frameSize > 32,
     hgssPostPresent = highDensity,
-    hgssVoxelWidth = 32,
-    hgssVoxelHeight = 32,
+    hgssVoxelWidth = displaySize,
+    hgssVoxelHeight = displaySize,
   })
 end
 
