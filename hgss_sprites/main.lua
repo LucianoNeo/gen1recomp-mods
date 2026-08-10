@@ -74,6 +74,10 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- The same logical size is supplied to the voxel billboard so 2D and 3D
   -- maps keep matching proportions.
   local displaySize = highDensity and 42 or 32
+  -- This source was authored on the compact 16px world grid.  Keep its
+  -- native 32px frame for the 2D renderer, while the voxel billboard uses
+  -- the 16px world footprint expected by the original map object.
+  local voxelSize = file == "gym_erika" and 16 or displaySize
   local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
   mod.content.sprites:patch("SPRITE_" .. shortId, {
     -- DRAMALESS_SHAPE builds its billboard UVs from def.image and assumes a
@@ -94,8 +98,8 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssDrawHeight = displaySize,
     hgssLinearFilter = frameSize > 32,
     hgssPostPresent = highDensity,
-    hgssVoxelWidth = displaySize,
-    hgssVoxelHeight = displaySize,
+    hgssVoxelWidth = voxelSize,
+    hgssVoxelHeight = voxelSize,
   })
 end
 
@@ -165,6 +169,7 @@ return function(mod)
     GYM_SABRINA = "gym_sabrina",
     GYM_BLAINE = "gym_blaine",
     GYM_GIOVANNI = "gym_giovanni",
+    GYM_ERIKA = "gym_erika",
     HGSS_BLUE = "gary",
   }
   for shortId, file in pairs(LEADER_SHEETS) do
@@ -1049,6 +1054,7 @@ return function(mod)
     SAFFRON_GYM = { SAFFRONGYM_SABRINA = "SPRITE_GYM_SABRINA" },
     CINNABAR_GYM = { CINNABARGYM_BLAINE = "SPRITE_GYM_BLAINE" },
     VIRIDIAN_GYM = { VIRIDIANGYM_GIOVANNI = "SPRITE_GYM_GIOVANNI" },
+    CELADON_GYM = { CELADONGYM_ERIKA = "SPRITE_GYM_ERIKA" },
   }
 
   -- Only these objects are Professor Oak himself.  OAKS_AIDE, OAKSLAB_GIRL,
