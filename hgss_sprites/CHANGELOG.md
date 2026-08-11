@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.5
+
+- Rebuilt the release archive with portable POSIX ZIP entry names.
+- Removed Windows backslashes and synthetic directory entries that could make
+  the g1recomp/PHYSFS recursive importer fail with `stack overflow`.
+- Added an import validation step using g1recomp's own
+  `LauncherMods.installZip` path before publishing.
+
 ## 0.2.4
 
 - Updated Jessie, James and Officer Jenny overworld charsets with the corrected
