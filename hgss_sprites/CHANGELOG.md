@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.4
+
+- Updated Jessie, James and Officer Jenny overworld charsets with the corrected
+  full-resolution sheets and standard six-frame layout.
+- Added `CRYSTAL_251` as an optional compatibility companion in the manifest.
+
 ## 0.2.3
 
 - Added verified Brock and Misty Voxel gym captures to the documentation.

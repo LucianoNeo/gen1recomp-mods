@@ -64,20 +64,36 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Team Rocket keeps a 4x authored sheet. It is still presented in the same
   -- 32x32 logical box as Red; the extra texels preserve the generated art
   -- instead of baking it down to a 20x24 miniature before rendering.
-  local highDensity = file == "jessie" or file == "james"
-  local frameSize = highDensity and 128 or 32
-  local frameHeight = frameSize
+  local hdSheet = file == "gym_sabrina" or file == "gym_erika"
+    or file == "agatha" or file == "officer_jenny"
+    or file == "jessie" or file == "james" or file == "lorelei"
+  local highDensity = file == "jessie" or file == "james" or hdSheet
+  local nativeWide = file == "jessie" or file == "james"
+    or file == "lorelei"
+  -- Jessie/James currently use 256px-wide frames; match the authored sheet
+  -- so the renderer samples each complete frame instead of shrinking it.
+  local frameSize = (file == "jessie" or file == "james") and 256
+    or (nativeWide and 394
+    or (hdSheet and 288 or (highDensity and 128 or 32)))
+  local frameHeight = (nativeWide or hdSheet) and 256 or frameSize
   local proxyFrameHeight = 32
   -- Jessie and James use 4x-authored sheets whose artwork is intentionally
   -- more compact than Red's native charset.  Keep the source texture intact
   -- and enlarge only their presentation box by 1.3x (32 -> 42 logical px).
   -- The same logical size is supplied to the voxel billboard so 2D and 3D
   -- maps keep matching proportions.
-  local displaySize = highDensity and 42 or 32
+  -- Only Jessie and James use the intentional 1.3x overworld enlargement.
+  -- HD leader sheets retain their native detail but keep Red's 32px logical
+  -- footprint so they do not become oversized on the map.
+  -- Keep every overworld character at the same native display scale as Red.
+  -- Jessie and James use their full-resolution sheets, but are not enlarged
+  -- through code.
+  local displaySize = 32
   -- This source was authored on the compact 16px world grid.  Keep its
   -- native 32px frame for the 2D renderer, while the voxel billboard uses
   -- the 16px world footprint expected by the original map object.
-  local voxelSize = file == "gym_erika" and 16 or displaySize
+  local voxelWidth = displaySize
+  local voxelHeight = displaySize
   local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
   mod.content.sprites:patch("SPRITE_" .. shortId, {
     -- DRAMALESS_SHAPE builds its billboard UVs from def.image and assumes a
@@ -98,8 +114,8 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssDrawHeight = displaySize,
     hgssLinearFilter = frameSize > 32,
     hgssPostPresent = highDensity,
-    hgssVoxelWidth = voxelSize,
-    hgssVoxelHeight = voxelSize,
+    hgssVoxelWidth = voxelWidth,
+    hgssVoxelHeight = voxelHeight,
   })
 end
 
@@ -170,6 +186,8 @@ return function(mod)
     GYM_BLAINE = "gym_blaine",
     GYM_GIOVANNI = "gym_giovanni",
     GYM_ERIKA = "gym_erika",
+    AGATHA = "agatha",
+    LORELEI = "lorelei",
     HGSS_BLUE = "gary",
   }
   for shortId, file in pairs(LEADER_SHEETS) do
@@ -1056,6 +1074,12 @@ return function(mod)
     VIRIDIAN_GYM = { VIRIDIANGYM_GIOVANNI = "SPRITE_GYM_GIOVANNI" },
     CELADON_GYM = { CELADONGYM_ERIKA = "SPRITE_GYM_ERIKA" },
   }
+  local ELITE_OBJECTS = {
+    AGATHAS_ROOM = { AGATHASROOM_AGATHA = "SPRITE_AGATHA" },
+    BRUNOS_ROOM = { BRUNOSROOM_BRUNO = "SPRITE_BRUNO" },
+    LORELEIS_ROOM = { LORELEISROOM_LORELEI = "SPRITE_LORELEI" },
+    LANCES_ROOM = { LANCESROOM_LANCE = "SPRITE_LANCE" },
+  }
 
   -- Only these objects are Professor Oak himself.  OAKS_AIDE, OAKSLAB_GIRL,
   -- Pokedex objects and similar names must retain their own charsets.
@@ -1110,11 +1134,13 @@ return function(mod)
     if not overworld or not overworld.npcs then return end
     local mapId = tostring(overworld.map and overworld.map.id or "")
     local gymObjects = GYM_LEADER_OBJECTS[mapId]
+    local eliteObjects = ELITE_OBJECTS[mapId]
     local objectFixes = OBJECT_SPRITE_FIXES[mapId]
     for _, npc in ipairs(overworld.npcs) do
       local def = npc.def
       local objectName = tostring(def and def.name or "")
       local target = (gymObjects and gymObjects[objectName])
+        or (eliteObjects and eliteObjects[objectName])
         or (objectFixes and objectFixes[objectName])
       -- Some map loaders expose this counter attendant under a generated
       -- name instead of the ROM object label. Catch both forms so the
