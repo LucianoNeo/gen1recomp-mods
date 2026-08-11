@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.6
+
+- Corrected voxel grounding for HGSS overworld replacements so characters sit
+  on the same ground plane as their shadows.
+- Updated the Agatha and Lorelei overworld sheets with the corrected authored
+  frames and preserved the existing full-resolution walking layout.
+- Kept battle art, battle HUD and companion-owned battle presentation outside
+  this package.
+
 ## 0.2.5
 
 - Rebuilt the release archive with portable POSIX ZIP entry names.

@@ -89,6 +89,22 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Jessie and James use their full-resolution sheets, but are not enlarged
   -- through code.
   local displaySize = 32
+  -- The HGSS Red sheet has transparent rows below the shoe pixels.  Keep the
+  -- source images untouched and lower each voxel entity relative to its
+  -- ground shadow; 2D rendering and map coordinates remain unchanged.
+  -- The voxel renderer's 16px ground anchor is shared by all overworld
+  -- charsets.  HGSS frames leave the same transparent rows beneath the
+  -- shoes, so apply the small grounding correction to every replacement
+  -- character (not just the player).
+  local voxelEntityYOffset = -4
+  -- These two sheets leave four transparent rows below the feet rather than
+  -- Red's two.  Ground them independently without resampling or editing the
+  -- authored pixels.
+  if file == "jessie" then
+    voxelEntityYOffset = -6
+  elseif file == "pikachu" or file == "fisher" then
+    voxelEntityYOffset = -8
+  end
   -- This source was authored on the compact 16px world grid.  Keep its
   -- native 32px frame for the 2D renderer, while the voxel billboard uses
   -- the 16px world footprint expected by the original map object.
@@ -116,6 +132,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssPostPresent = highDensity,
     hgssVoxelWidth = voxelWidth,
     hgssVoxelHeight = voxelHeight,
+    hgssVoxelEntityYOffset = voxelEntityYOffset,
   })
 end
 
@@ -223,7 +240,10 @@ return function(mod)
     if not (voxel and type(voxel.drawWorld) == "function") then return end
     local seen = {}
     local function find(value, depth)
-      if depth > 10 or seen[value] then return nil end
+      -- VoxelScene keeps SpriteBillboards behind a few nested closures;
+      -- walk the complete callback graph so the adapter is actually reached
+      -- after the voxel pipeline has initialized.
+      if depth > 32 or seen[value] then return nil end
       local kind = type(value)
       if kind ~= "function" and kind ~= "table" then return nil end
       seen[value] = true
@@ -272,6 +292,46 @@ return function(mod)
     end
     billboards.mesh = nativeMesh
     billboards.shadowQuad = nativeMesh
+
+    -- The voxel card and its shadow share a mesh.  Moving that mesh moves
+    -- both together, so it cannot correct a character that appears to float
+    -- above its ground shadow.  Patch the cast's entity call instead: every
+    -- replacement character is lowered, while the shadow remains anchored
+    -- to the map.
+    local scene
+    for i = 1, 32 do
+      local name, value = debug.getupvalue(voxel.drawWorld, i)
+      if not name then break end
+      if name == "VoxelScene" and type(value) == "table" then scene = value; break end
+    end
+    local render = scene and scene.render
+    local drawCast
+    if render then
+      for i = 1, 32 do
+        local name, value = debug.getupvalue(render, i)
+        if not name then break end
+        if name == "drawCast" and type(value) == "function" then drawCast = value; break end
+      end
+    end
+    if drawCast then
+      for i = 1, 16 do
+        local name, value = debug.getupvalue(drawCast, i)
+        if not name then break end
+        if name == "drawEntity" and type(value) == "function" then
+          local oldEntity = value
+          local function anchoredEntity(sprite, px, py, facing, phase, flip,
+                                        gh, colors, lift)
+            local def = sprite and sprite.def
+            if def and def.hgssVoxelEntityYOffset and def.hgssNativeImage then
+              gh = gh + (tonumber(def.hgssVoxelEntityYOffset) or 0)
+            end
+            return oldEntity(sprite, px, py, facing, phase, flip, gh, colors, lift)
+          end
+          debug.setupvalue(drawCast, i, anchoredEntity)
+          break
+        end
+      end
+    end
 
     voxelBillboardsPatched = true
   end
