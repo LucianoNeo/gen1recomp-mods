@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.2.6](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.2.6) · [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.3.0](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.3.0) · [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 
@@ -29,11 +29,12 @@ The party screen keeps the custom full-color HGSS icon set:
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 ![Party menu with six Pokemon](hgss_sprites/docs/media/readme-party-icons.png)
 
-### Character updates in 0.2.6
+### Character updates in 0.3.0
 
-Voxel grounding was corrected for the HGSS overworld replacements. Agatha and
-Lorelei use their corrected full-resolution sheets, while Jessie, James and
-Officer Jenny retain their standard six-frame walking layout.
+Voxel grounding was corrected for the HGSS overworld replacements. The mod
+menu now offers `PLAYER SELECT` (`RED`, `ASH`, `ETHAN`) and `PARTY MENU`
+(`ON`/`OFF`). Ash and Ethan keep a 28px logical footprint so their map scale
+matches Red.
 
 ## Quick installation
 
@@ -41,5 +42,5 @@ Officer Jenny retain their standard six-frame walking layout.
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
-Package: `0.2.6` · Lean runtime package · Compatible with g1recomp
+Package: `0.3.0` · Lean runtime package · Compatible with g1recomp
 `>=0.1.75 <0.2.0`.

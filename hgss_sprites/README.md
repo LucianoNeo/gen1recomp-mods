@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.2.6-gold)
+![Version](https://img.shields.io/badge/version-0.3.0-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.75-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -14,9 +14,16 @@ This pack owns three visual areas:
 - HGSS overworld charsets, including walking directions and frames;
 - full-color animated party icons.
 
-Version 0.2.6 includes corrected voxel grounding and updated full-resolution
-Agatha and Lorelei overworld sheets. Jessie, James and Officer Jenny retain
-the standard six-frame walking layout.
+Version 0.3.0 includes corrected voxel grounding, updated full-resolution
+Agatha and Lorelei overworld sheets, and two configurable presentation options:
+
+- **PLAYER SELECT** — choose `RED`, `ASH` or `ETHAN` for the overworld player.
+- **PARTY MENU** — turn the HGSS party screen and full-color icons `ON` or
+  leave the original party screen `OFF`.
+
+Ash and Ethan use native 256x1536 sheets at a 28px logical footprint, matching
+Red's map proportions in both 2D and Voxel modes. Restart g1recomp after
+changing either option so all maps rebuild consistently.
 
 ## Current in-game captures
 
@@ -40,7 +47,7 @@ The party menu retains the full-color HGSS icon set:
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for the Voxel renderer.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.2.6 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.2.6).
+3. Download the [`HGSS_SPRITES` 0.3.0 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.3.0).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 
@@ -52,4 +59,5 @@ Compatibility: g1recomp `>=0.1.75 <0.2.0`, Pokemon Yellow and Mod API 2.
 |---|---|
 | Walking overworld sheet | `32x192`, six frames |
 | Jessie / James / Officer Jenny source sheet | `256x1536`, six frames |
+| Ash / Ethan player source sheet | `256x1536`, six frames, 28px logical cell |
 | Intro portrait sheets | native transparent PNG |

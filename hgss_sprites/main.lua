@@ -30,12 +30,12 @@ DRAGONITE MEWTWO MEW
 ]]
 
 local WALKERS = [[
-AGATHA BEAUTY BIKER BIRD BLUE BRUNETTE_GIRL BRUNO CHANNELER COOK
+AGATHA ASH BEAUTY BIKER BIRD BLUE BRUNETTE_GIRL BRUNO CHANNELER COOK
 COOLTRAINER_F COOLTRAINER_M DAISY FAIRY FISHER GAMBLER GENTLEMAN GIOVANNI
 GIRL HIKER JAMES JESSIE KOGA LANCE LITTLE_GIRL LORELEI MIDDLE_AGED_MAN
 MIDDLE_AGED_WOMAN MONSTER MR_FUJI OAK OFFICER_JENNY PIKACHU RED RED_BIKE
 ROCKER ROCKET SAILOR SCIENTIST SEEL SILPH_WORKER_F SUPER_NERD
-SURFING_PIKACHU SWIMMER WAITER YOUNGSTER
+SURFING_PIKACHU SWIMMER WAITER YOUNGSTER ETHAN
 ]]
 
 local STANDING = [[
@@ -64,15 +64,19 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Team Rocket keeps a 4x authored sheet. It is still presented in the same
   -- 32x32 logical box as Red; the extra texels preserve the generated art
   -- instead of baking it down to a 20x24 miniature before rendering.
+  local playerSheet = file == "ash" or file == "ethan"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
+    or playerSheet
   local highDensity = file == "jessie" or file == "james" or hdSheet
   local nativeWide = file == "jessie" or file == "james"
-    or file == "lorelei"
-  -- Jessie/James currently use 256px-wide frames; match the authored sheet
-  -- so the renderer samples each complete frame instead of shrinking it.
-  local frameSize = (file == "jessie" or file == "james") and 256
+    or file == "lorelei" or playerSheet
+  -- Jessie/James, Ash and Ethan use 256px-wide authored frames; match the
+  -- source cell so the renderer samples each complete frame instead of
+  -- shrinking it or cutting off the head and feet.
+  local frameSize = (file == "jessie" or file == "james"
+      or playerSheet) and 256
     or (nativeWide and 394
     or (hdSheet and 288 or (highDensity and 128 or 32)))
   local frameHeight = (nativeWide or hdSheet) and 256 or frameSize
@@ -88,7 +92,9 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Keep every overworld character at the same native display scale as Red.
   -- Jessie and James use their full-resolution sheets, but are not enlarged
   -- through code.
-  local displaySize = 32
+  -- Ash and Ethan are supplied as 28px logical cells so the optional player
+  -- sprites keep exactly the same map footprint as the corrected Red sheet.
+  local displaySize = playerSheet and 28 or 32
   -- The HGSS Red sheet has transparent rows below the shoe pixels.  Keep the
   -- source images untouched and lower each voxel entity relative to its
   -- ground shadow; 2D rendering and map coordinates remain unchanged.
@@ -157,23 +163,56 @@ return function(mod)
 
   mod.options:define({
     {
-      key = "crisp_display",
-      label = "CRISP DISPLAY",
+      key = "player_select",
+      label = "PLAYER SELECT",
+      type = "choice",
+      default = "red",
+      choices = {
+        { "RED", "red" },
+        { "ASH", "ash" },
+        { "ETHAN", "ethan" },
+      },
+    },
+    {
+      key = "party_menu",
+      label = "PARTY MENU",
       type = "toggle",
       default = true,
     },
+    {
+      key = "crisp_display",
+      label = "CRISP DISPLAY",
+      type = "toggle",
+      default = false,
+    },
   })
 
-  -- Keep the full-color HGSS party icon registry wired to the game's existing
-  -- Gen I species records.  Without patching these records, PartyMenu falls
-  -- back to the tiny monochrome base-game icons even though the PNG assets are
-  -- present in the package.
+  local PLAYER_SPRITE_IDS = {
+    red = "SPRITE_RED",
+    ash = "SPRITE_ASH",
+    ethan = "SPRITE_ETHAN",
+  }
+
+  local function selectedPlayerSpriteId()
+    return PLAYER_SPRITE_IDS[mod.options:get("player_select") or "red"]
+      or PLAYER_SPRITE_IDS.red
+  end
+
+  -- Keep the option reversible while the mod manager is open. The live icon
+  -- table is adjusted only after every mod has finished loading, so OFF can
+  -- restore the original entries supplied by the game or a companion mod.
+  local partyIconEntries = {}
+
+  -- Keep full-color HGSS party icon entries local until game.ready. Applying
+  -- them at module load would overwrite the original registry before we can
+  -- snapshot it for PARTY MENU OFF.
   for species in words(SPECIES) do
-    mod.content.icons:patch(species, {
+    local entry = {
       image = mod.assets:path("assets/icons/" .. assetName(species) .. ".png"),
       frames = 2,
       trueColor = true,
-    })
+    }
+    partyIconEntries[species] = entry
   end
 
   for shortId in words(WALKERS) do
@@ -189,6 +228,13 @@ return function(mod)
     patchOverworld(mod, shortId, 3, false)
   end
   patchOverworld(mod, "SNORLAX", 1, false)
+
+  -- The selector changes only the field player charset.  Battle Art Voxel
+  -- Fork remains the owner of battle trainer art, while the selected native
+  -- sheet is used for the overworld player and the Oak intro player slot.
+  mod.content.field:patch("playerSprites", {
+    walk = selectedPlayerSpriteId(),
+  })
 
   -- Gym maps in Yellow deliberately reuse generic GBC character IDs.  Keep
   -- those generic IDs intact for ordinary NPCs and expose dedicated HGSS
@@ -442,8 +488,45 @@ return function(mod)
   local PartyTheme = require("src.ui.Theme")
   local oldPartyDraw = PartyMenu.draw
   local oldPartyDrawIcon = PartyMenu.drawIcon
+  local hgssPartyDraw
+  local hgssPartyDrawIcon
   local partyIconImages = {}
   local partyIconRoot = mod.assets:path("assets/icons/")
+  local originalPartyIcons = setmetatable({}, { __mode = "k" })
+
+  local function isVanillaPartyAsset(path)
+    if type(path) ~= "string" then return false end
+    path = path:gsub("\\", "/")
+    return path:find("assets/generated/sprites/", 1, true) == 1
+        or path:find("assets/generated/icons/", 1, true) == 1
+  end
+
+  -- Gen I's original party icons reuse overworld sheets named monster,
+  -- pikachu, seel, bird and fairy. HGSS_SPRITES intentionally overrides
+  -- those same generated paths for the map, so the stock PartyMenu renderer
+  -- would otherwise crop 16px fragments out of our large HGSS charsets.
+  -- Bypass the override search only while the vanilla icon is loaded.
+  local function vanillaPartyDrawIcon(game, mon, x, y, selected, counter,
+                                      forceAlt)
+    local oldResolve = PartyAssets.resolve
+    local oldImageData = PartyAssets.imageData
+    PartyAssets.resolve = function(path)
+      if isVanillaPartyAsset(path) then return path end
+      return oldResolve(path)
+    end
+    PartyAssets.imageData = function(path)
+      if isVanillaPartyAsset(path) then
+        return love.image.newImageData(path)
+      end
+      return oldImageData(path)
+    end
+    local ok, result = pcall(oldPartyDrawIcon, game, mon, x, y, selected,
+                             counter, forceAlt)
+    PartyAssets.resolve = oldResolve
+    PartyAssets.imageData = oldImageData
+    if not ok then error(result, 0) end
+    return result
+  end
 
   local function partyIconPath(game, mon)
     local icons = game.data and game.data.icons
@@ -471,6 +554,54 @@ return function(mod)
        and path:sub(1, #partyIconRoot) == partyIconRoot
   end
 
+  local function applyPartyMenuOption(game)
+    local data = game and game.data
+    local icons = data and data.icons
+    if not icons then return end
+    -- Snapshot the pre-HGSS table once per game-data instance. This preserves
+    -- the base game's species records (and entries supplied by another mod)
+    -- so PARTY MENU OFF is an exact restoration, not a fallback to a partial
+    -- generic Game Boy icon.
+    local snapshot = originalPartyIcons[icons]
+    if not snapshot then
+      snapshot = { table = icons.bySpecies, hadTable = icons.bySpecies ~= nil,
+                   entries = {} }
+      if icons.bySpecies then
+        for species in words(SPECIES) do
+          local entry = icons.bySpecies[species]
+          snapshot.entries[species] = entry
+        end
+      end
+      originalPartyIcons[icons] = snapshot
+    end
+    local enabled = mod.options:get("party_menu") ~= false
+    if enabled then
+      icons.bySpecies = icons.bySpecies or {}
+      for species in words(SPECIES) do
+        icons.bySpecies[species] = partyIconEntries[species]
+      end
+      if hgssPartyDrawIcon then PartyMenu.drawIcon = hgssPartyDrawIcon end
+      if hgssPartyDraw then PartyMenu.draw = hgssPartyDraw end
+    elseif snapshot.hadTable then
+      -- Restore the original table object, including any metatable used by
+      -- the core icon registry. Replacing it with a plain table makes the
+      -- vanilla renderer select only clipped fallback fragments.
+      icons.bySpecies = snapshot.table or {}
+      for species in words(SPECIES) do
+        icons.bySpecies[species] = snapshot.entries[species]
+      end
+    else
+      icons.bySpecies = nil
+    end
+    if not enabled then
+      -- Remove our methods as well as our data. This makes OFF behave exactly
+      -- like a run where HGSS_SPRITES was never loaded, including callers
+      -- that invoke PartyMenu.drawIcon directly (trade/battle switch flows).
+      PartyMenu.drawIcon = vanillaPartyDrawIcon
+      PartyMenu.draw = oldPartyDraw
+    end
+  end
+
   local function loadPartyIcon(path)
     local resolved = PartyAssets.resolve(path)
     if partyIconImages[resolved] == nil then
@@ -483,7 +614,7 @@ return function(mod)
     return partyIconImages[resolved] or nil
   end
 
-  PartyMenu.drawIcon = function(game, mon, x, y, selected, counter, forceAlt)
+  hgssPartyDrawIcon = function(game, mon, x, y, selected, counter, forceAlt)
     if battleArtPresent then
       return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
     end
@@ -614,7 +745,7 @@ return function(mod)
     end
   end
 
-  PartyMenu.draw = function(self)
+  hgssPartyDraw = function(self)
     if battleArtPresent then return oldPartyDraw(self) end
     local party = self.party or self.game.save.party
     local hasNative = false
@@ -1233,6 +1364,34 @@ return function(mod)
     end
   end
 
+  local function applyPlayerSelection(game)
+    local selectedId = selectedPlayerSpriteId()
+    local data = game and game.data
+    if not data then return end
+
+    -- Keep future Player.new calls on the selected charset.  The protected
+    -- assignment is intentionally narrow: old engine builds expose `field`
+    -- as a plain table, while a few development builds expose a read-only
+    -- proxy during boot.
+    local field = data.field
+    if field and field.playerSprites then
+      pcall(function() field.playerSprites.walk = selectedId end)
+    end
+
+    -- A menu change can happen while a save is already open. Refresh the
+    -- live player without touching surf/bike sprites or Battle Art's trainer
+    -- presentation. New maps will construct the same selected sprite from
+    -- field.playerSprites.walk.
+    local player = game.overworld and game.overworld.player
+    local spriteDef = data.sprites and data.sprites[selectedId]
+    if not player or not spriteDef then return end
+    if player.sprite and player.sprite.def == spriteDef then return end
+    player.sprite = SpriteRenderer.new(spriteDef, "player")
+    if player.sprite and player.sprite.def then
+      player.sprite.def.walker = true
+    end
+  end
+
   local function applyCrispDisplay(game)
     if not mod.options:get("crisp_display") then return end
     local options = game and game.save and game.save.options
@@ -1249,18 +1408,36 @@ return function(mod)
   mod.events:on("game.ready", function(ev)
     liveGame = ev and ev.game
     applyCrispDisplay(liveGame)
+    applyPartyMenuOption(liveGame)
+    applyPlayerSelection(liveGame)
     applyLeaderSprites()
   end)
-  mod.events:on("map.entered", applyLeaderSprites)
-  mod.events:on("map.reloaded", applyLeaderSprites)
+  mod.events:on("map.entered", function()
+    applyPlayerSelection(liveGame)
+    applyLeaderSprites()
+  end)
+  mod.events:on("map.reloaded", function()
+    applyPlayerSelection(liveGame)
+    applyLeaderSprites()
+  end)
+  mod.events:on("mod.options_changed", function(ev)
+    if ev and ev.mod == "HGSS_SPRITES" then
+      applyPartyMenuOption(liveGame)
+      applyPlayerSelection(liveGame)
+    end
+  end)
   -- CONTINUE restores the standalone options after game.ready.  Reapply the
   -- cosmetic policy only after that restore has completed.
   mod.events:on("save.loaded", function()
     applyCrispDisplay(liveGame)
+    applyPartyMenuOption(liveGame)
+    applyPlayerSelection(liveGame)
     applyLeaderSprites()
   end)
   mod.events:on("save.created", function()
     applyCrispDisplay(liveGame)
+    applyPartyMenuOption(liveGame)
+    applyPlayerSelection(liveGame)
     applyLeaderSprites()
   end)
 

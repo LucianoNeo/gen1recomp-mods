@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.0
+
+- Added **PLAYER SELECT** in the mod menu with RED, ASH and ETHAN choices.
+  Ash and Ethan use their native 256x1536 walking sheets at a 28px logical
+  footprint so they match Red on both 2D maps and Voxel billboards.
+- Added **PARTY MENU** ON/OFF. OFF leaves the game's original party screen and
+  icon renderer in control; ON keeps the full-color HGSS party presentation.
+- Kept Battle Art Voxel Fork as the owner of battle trainer art and HUD.
+
 ## 0.2.6
 
 - Corrected voxel grounding for HGSS overworld replacements so characters sit
