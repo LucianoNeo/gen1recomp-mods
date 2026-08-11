@@ -11,6 +11,10 @@
 tools/
 *.log
 
+# Local captures, builds, attachments and working assets
+.local/
+build/
+
 # System files
 .DS_Store
 Thumbs.db

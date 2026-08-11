@@ -134,10 +134,14 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssFrameHeight = frameHeight,
     hgssDrawWidth = displaySize,
     hgssDrawHeight = displaySize,
+    hgssBaseDrawWidth = displaySize,
+    hgssBaseDrawHeight = displaySize,
     hgssLinearFilter = frameSize > 32,
     hgssPostPresent = highDensity,
     hgssVoxelWidth = voxelWidth,
     hgssVoxelHeight = voxelHeight,
+    hgssBaseVoxelWidth = voxelWidth,
+    hgssBaseVoxelHeight = voxelHeight,
     hgssVoxelEntityYOffset = voxelEntityYOffset,
   })
 end
@@ -185,7 +189,26 @@ return function(mod)
       type = "toggle",
       default = false,
     },
+    {
+      key = "sprite_size",
+      label = "SPRITE SIZE",
+      type = "choice",
+      default = "1.0",
+      choices = {
+        { "0.5x", "0.5" },
+        { "0.6x", "0.6" },
+        { "0.7x", "0.7" },
+        { "0.8x", "0.8" },
+        { "0.9x", "0.9" },
+        { "1.0x", "1.0" },
+      },
+    },
   })
+
+  local function overworldSpriteScale()
+    local value = tonumber(mod.options:get("sprite_size")) or 1
+    return math.max(0.5, math.min(1.0, value))
+  end
 
   local PLAYER_SPRITE_IDS = {
     red = "SPRITE_RED",
@@ -319,8 +342,11 @@ return function(mod)
     local function nativeMesh(def, frame)
       local mesh = originalMesh(def, frame)
       if not (mesh and def and def.hgssNativeImage) then return mesh end
-      local width = tonumber(def.hgssVoxelWidth or def.hgssFrameWidth) or 32
-      local height = tonumber(def.hgssVoxelHeight or def.hgssFrameHeight) or 32
+      local size = overworldSpriteScale()
+      local width = (tonumber(def.hgssBaseVoxelWidth
+        or def.hgssVoxelWidth or def.hgssFrameWidth) or 32) * size
+      local height = (tonumber(def.hgssBaseVoxelHeight
+        or def.hgssVoxelHeight or def.hgssFrameHeight) or 32) * size
       local stamp = width .. "x" .. height
       if sized[mesh] ~= stamp and mesh.getVertex and mesh.setVertex then
         local left = 8 - width / 2
@@ -421,8 +447,11 @@ return function(mod)
     -- Keep the same authored size and anchor as the known-good 0.0.26
     -- renderer.  Charset corrections are image replacements only; changing
     -- the runtime scale here makes every overworld character inconsistent.
-    local drawW = tonumber(self.def.hgssDrawWidth) or fw
-    local drawH = tonumber(self.def.hgssDrawHeight) or fh
+    local size = overworldSpriteScale()
+    local drawW = (tonumber(self.def.hgssBaseDrawWidth
+      or self.def.hgssDrawWidth) or fw) * size
+    local drawH = (tonumber(self.def.hgssBaseDrawHeight
+      or self.def.hgssDrawHeight) or fh) * size
     local scaleX, scaleY = drawW / fw, drawH / fh
     local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
     local y = math.floor(py - camY) - drawH + 16

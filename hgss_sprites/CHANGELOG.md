@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.1
+
+- Added verified Voxel captures for the selectable Ash and Ethan overworld
+  players to the documentation.
+- Prepared package metadata and documentation for the 0.3.1 release.
+
 ## 0.3.0
 
 - Added **PLAYER SELECT** in the mod menu with RED, ASH and ETHAN choices.
@@ -7,6 +13,10 @@
   footprint so they match Red on both 2D maps and Voxel billboards.
 - Added **PARTY MENU** ON/OFF. OFF leaves the game's original party screen and
   icon renderer in control; ON keeps the full-color HGSS party presentation.
+- Added **SPRITE SIZE** (`0.5x`–`1.0x`) for uniform overworld scaling of the
+  player, NPCs and leaders without changing authored sprite pixels.
+- Verified import, overworld Voxel and battle Voxel smoke tests on g1recomp
+  `0.1.78`.
 - Kept Battle Art Voxel Fork as the owner of battle trainer art and HUD.
 
 ## 0.2.6
