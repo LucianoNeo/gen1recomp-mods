@@ -26,6 +26,11 @@
 - Added native six-frame HGSS overworld sheets for those objects, preserving
   32px authored cells and the existing Red movement/grounding layout.
 
+## 0.4.0
+
+- Prepared a clean import archive containing only the runtime mod files.
+- Verified coexistence with DRAMALESS_SHAPE 1.6.4 voxel overworld rendering.
+
 ## 0.3.1
 
 - Added verified Voxel captures for the selectable Ash and Ethan overworld

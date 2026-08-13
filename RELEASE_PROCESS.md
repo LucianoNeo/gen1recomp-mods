@@ -41,6 +41,9 @@ if ($missing.Count) { throw "Missing release tools: $($missing -join ', ')" }
    print or commit credentials.
 9. Do not move or recreate an existing release tag. Corrections require a new
    patch version.
+10. Write every JSON manifest and card as UTF-8 **without a BOM**. The
+    g1recomp JSON parser rejects a BOM as an unexpected `ï` character and the
+    Mod Manager reports `import failed: invalid mod manifest`.
 
 ## 1. Choose the version
 
@@ -179,6 +182,23 @@ Required result:
 ```text
 OK HGSS_SPRITES
 ```
+
+### Import failure checklist
+
+If the report says `invalid mod manifest` and mentions an unexpected `ï`,
+inspect the first bytes of the archive's manifest. They must begin with `{`
+(`7B`), not `EF BB BF`. Rebuild the package using a no-BOM writer, for
+example:
+
+```powershell
+$utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+[IO.File]::WriteAllText($manifestPath, $manifestText, $utf8NoBom)
+```
+
+Then rerun the archive-structure checks and the complete import test. Do not
+work around this by copying the mod directly into a `mods` folder: that does
+not exercise the Mod Manager's ZIP installer and can leave the UI showing
+“No mods installed”.
 
 The process exit code must be `0`, and stderr must be empty. Stop immediately
 if the report is missing, contains `ERROR`, or mentions `stack overflow`.
