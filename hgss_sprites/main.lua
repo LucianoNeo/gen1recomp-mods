@@ -250,6 +250,38 @@ return function(mod)
     return image
   end
 
+  -- Intro demo sprites can be animated atlases.  Keep the authored Gen 5
+  -- pixels in one texture and expose fixed-size quads to the presentation
+  -- layer so only one Pikachu frame is drawn at a time.  The battle renderer
+  -- has the same 16-column atlas convention, but the intro owns its own
+  -- state and must not depend on a battle mod being installed.
+  local function loadHdAnimation(path, frameWidth, frameHeight,
+                                 columns, frameCount, fps)
+    local image = loadHdImage(path)
+    if not image then return nil end
+    local imageWidth, imageHeight = image:getDimensions()
+    local quads = {}
+    for index = 0, frameCount - 1 do
+      local column = index % columns
+      local row = math.floor(index / columns)
+      local x = column * frameWidth
+      local y = row * frameHeight
+      if x + frameWidth <= imageWidth and y + frameHeight <= imageHeight then
+        quads[#quads + 1] = love.graphics.newQuad(
+          x, y, frameWidth, frameHeight, imageWidth, imageHeight)
+      end
+    end
+    if #quads == 0 then return nil end
+    return {
+      image = image,
+      quads = quads,
+      frameCount = #quads,
+      frameWidth = frameWidth,
+      frameHeight = frameHeight,
+      fps = fps or 10,
+    }
+  end
+
   mod.options:define({
     {
       key = "battle_scope",
@@ -1773,11 +1805,23 @@ return function(mod)
     map(speech.rivalPic, "assets/graphics/trainers/front_hd/rival1.png")
     map(speech.playerPic, "assets/graphics/intro_hd/red.png")
     if speech.demoSpecies then
-      local demoName = speech.demoSpecies
+      local demoName = tostring(speech.demoSpecies):upper()
       -- The intro data uses the gendered Gen I IDs, whose authored files keep
       -- the underscore (NIDORAN_F/NIDORAN_M).
-      map(speech.demoPic, "assets/graphics/pokemon/front_hd/"
-        .. tostring(demoName):upper() .. ".png")
+      if demoName == "PIKACHU" then
+        -- Yellow's introduction shows Pikachu rather than Nidorino.  This is
+        -- the full Gen 5 front animation atlas: 16 columns, 7 rows, 112
+        -- 50x46 frames.  Quads are advanced by the HD presentation layer.
+        local animation = loadHdAnimation(
+          "assets/graphics/pokemon/front_hd/PIKACHU.png",
+          50, 46, 16, 112, 10)
+        if speech.demoPic and animation then
+          speech.hgssHdPics[speech.demoPic] = animation
+        end
+      else
+        map(speech.demoPic, "assets/graphics/pokemon/front_hd/"
+          .. demoName .. ".png")
+      end
     end
     return speech
   end
@@ -2186,7 +2230,30 @@ return function(mod)
       -- canvas ended at y=112, so the box covered the trainer's feet. Fit
       -- the complete authored canvas into a 64px square, center it, and pin
       -- its bottom to y=92 for a four-pixel safety gap above the dialogue.
-      local hdw, hdh = hd:getDimensions()
+      local image = hd.image or hd
+      local quad = nil
+      local hdw, hdh
+      if hd.image then
+        -- Keep the presentation layer fail-safe when a state is torn down
+        -- while the intro animation is still advancing.  A stale state used
+        -- to leave us with a valid atlas but no frame quad, which made LÖVE
+        -- abort with "Quad expected, got nil" and looked like a blank game.
+        local quads = hd.quads or {}
+        local frameCount = hd.frameCount or #quads
+        if frameCount > 0 then
+          local frame = math.floor(love.timer.getTime() * (hd.fps or 10))
+            % frameCount + 1
+          quad = quads[frame] or quads[1]
+        end
+        hdw, hdh = hd.frameWidth, hd.frameHeight
+      else
+        hdw, hdh = hd:getDimensions()
+      end
+      if not quad and hd.image then
+        -- Do not pass a nil Quad to love.graphics.draw.  The stock picture
+        -- remains visible for this single transitional frame instead.
+        return a, b, c
+      end
       local logicalScale = 64 / math.max(hdw, hdh)
       local drawW, drawH = hdw * logicalScale, hdh * logicalScale
       local x = (160 - drawW) / 2
@@ -2201,11 +2268,23 @@ return function(mod)
       end
       love.graphics.setColor(1, 1, 1, alpha)
       if state.picFlip then
-        love.graphics.draw(hd, ox + (x + off + drawW) * sx, oy + y * sy,
-          0, -sx * logicalScale, sy * logicalScale)
+        local drawX, drawY = ox + (x + off + drawW) * sx, oy + y * sy
+        if quad then
+          love.graphics.draw(image, quad, drawX, drawY,
+            0, -sx * logicalScale, sy * logicalScale)
+        else
+          love.graphics.draw(image, drawX, drawY,
+            0, -sx * logicalScale, sy * logicalScale)
+        end
       else
-        love.graphics.draw(hd, ox + (x + off) * sx, oy + y * sy,
-          0, sx * logicalScale, sy * logicalScale)
+        local drawX, drawY = ox + (x + off) * sx, oy + y * sy
+        if quad then
+          love.graphics.draw(image, quad, drawX, drawY,
+            0, sx * logicalScale, sy * logicalScale)
+        else
+          love.graphics.draw(image, drawX, drawY,
+            0, sx * logicalScale, sy * logicalScale)
+        end
       end
       love.graphics.setColor(1, 1, 1, 1)
     end

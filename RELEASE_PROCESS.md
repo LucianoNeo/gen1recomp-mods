@@ -152,11 +152,15 @@ $stderrPath = Join-Path $app "import-$version-$runId.err"
 Set-Location $app
 $env:POKEPORT_DRIVER = "..\..\..\tools\test_mod_zip_import.lua"
 $env:POKEPORT_VERSION = "yellow"
-$env:POKEPORT_IDENTITY = "hgss-import-$($version.Replace('.', '-'))"
+# Do not invent a new POKEPORT_IDENTITY here.  A fresh identity has no ROM/save
+# cache and launches a blank/zeroed game.  The normal local identity is exactly
+# the cache used by the installed g1recomp instance, so leave this variable
+# unset (or remove it from the current PowerShell session first).
+Remove-Item Env:POKEPORT_IDENTITY -ErrorAction SilentlyContinue
 $env:HGSS_IMPORT_ZIP = Join-Path $root "build\HGSS_SPRITES-$version.zip"
 $env:HGSS_IMPORT_REPORT = $report
 
-$process = Start-Process -FilePath ".\gen1recomp.exe" `
+$process = Start-Process -FilePath (Join-Path $app "gen1recomp.exe") `
   -WorkingDirectory $app `
   -RedirectStandardOutput $stdoutPath `
   -RedirectStandardError $stderrPath `
@@ -213,10 +217,12 @@ New-Item -ItemType Directory -Path $captureDir -Force | Out-Null
 
 $env:POKEPORT_DRIVER = "..\..\..\tools\capture_clean_intro_all.lua"
 $env:POKEPORT_VERSION = "yellow"
-$env:POKEPORT_IDENTITY = "hgss-smoke-$($version.Replace('.', '-'))"
+# Keep the default identity so the smoke test opens the same populated local
+# game.  A new identity is an empty sandbox and must not be used for this test.
+Remove-Item Env:POKEPORT_IDENTITY -ErrorAction SilentlyContinue
 $env:HGSS_CAPTURE_DIR = $captureDir
 
-$process = Start-Process -FilePath ".\gen1recomp.exe" `
+$process = Start-Process -FilePath (Join-Path $app "gen1recomp.exe") `
   -WorkingDirectory $app `
   -RedirectStandardOutput $stdoutPath `
   -RedirectStandardError $stderrPath `

@@ -15,9 +15,12 @@ This pack owns three visual areas:
 - full-color animated party icons.
 - self-contained battle Pokemon collections and player trainer intros.
 
-Version 0.4.0 includes the 0.3.1 features plus the current voxel coexistence
-package test. Version 0.3.1 includes the 0.3.0 features plus verified Ash and Ethan Voxel
-captures. Version 0.3.0 introduced corrected voxel grounding and three
+Version 0.4.0 includes the 0.3.3 animated Pikachu intro and guarded HD quad
+presentation, plus the current voxel coexistence package test. Version 0.3.2
+includes the 0.3.1 features plus the verified map-object and normal-palette
+legendary-bird corrections. Version 0.3.1 includes the 0.3.0 features plus
+verified Ash and Ethan Voxel captures. Version 0.3.0 introduced corrected voxel
+grounding and three
 configurable presentation options:
 
 - **PLAYER SELECT** — choose `RED`, `ASH` or `ETHAN` for the overworld player
