@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- Prepared a clean import archive containing only the runtime mod files.
+- Verified coexistence with DRAMALESS_SHAPE 1.6.4 voxel overworld rendering.
+
 ## 0.3.1
 
 - Added verified Voxel captures for the selectable Ash and Ethan overworld

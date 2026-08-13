@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.3.1-gold)
+![Version](https://img.shields.io/badge/version-0.4.0-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.78-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -13,12 +13,15 @@ This pack owns three visual areas:
 - the opening portraits (Nidorino, Professor Oak, Red and Blue);
 - HGSS overworld charsets, including walking directions and frames;
 - full-color animated party icons.
+- self-contained battle Pokemon collections and player trainer intros.
 
-Version 0.3.1 includes the 0.3.0 features plus verified Ash and Ethan Voxel
+Version 0.4.0 includes the 0.3.1 features plus the current voxel coexistence
+package test. Version 0.3.1 includes the 0.3.0 features plus verified Ash and Ethan Voxel
 captures. Version 0.3.0 introduced corrected voxel grounding and three
 configurable presentation options:
 
-- **PLAYER SELECT** — choose `RED`, `ASH` or `ETHAN` for the overworld player.
+- **PLAYER SELECT** — choose `RED`, `ASH` or `ETHAN` for the overworld player
+  and the player battle intro.
 - **PARTY MENU** — turn the HGSS party screen and full-color icons `ON` or
   leave the original party screen `OFF`.
 - **SPRITE SIZE** — scale every HGSS overworld character (player, NPCs and
@@ -56,7 +59,7 @@ The party menu retains the full-color HGSS icon set:
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for the Voxel renderer.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.3.1 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.3.1).
+3. Download the [`HGSS_SPRITES` 0.4.0 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.0).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 

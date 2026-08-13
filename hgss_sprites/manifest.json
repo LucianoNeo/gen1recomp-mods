@@ -1,7 +1,7 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
@@ -15,5 +15,5 @@
   "conflicts": [],
   "author": "LucianoNeo",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "HGSS intro and overworld companion. Replaces only the intro portraits and adds HGSS overworld sheets."
+  "description": "HGSS intro, overworld and self-contained battle trainer/Pokemon artwork. PLAYER SELECT controls the player trainer in both map and battle."
 }

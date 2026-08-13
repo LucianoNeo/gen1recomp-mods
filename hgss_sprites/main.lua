@@ -64,19 +64,24 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Team Rocket keeps a 4x authored sheet. It is still presented in the same
   -- 32x32 logical box as Red; the extra texels preserve the generated art
   -- instead of baking it down to a 20x24 miniature before rendering.
-  local playerSheet = file == "ash" or file == "ethan"
+  -- Red's updated sheets use the same native 256x1536 six-cell layout as
+  -- Ash/Ethan. Keep Red's logical map footprint at 32px; only the source
+  -- sampling density changes so the complete HD frame is displayed.
+  local playerSheet = file == "red" or file == "ash" or file == "ethan"
+  local playerBikeSheet = file == "red_bike"
+    or file == "ash_bike" or file == "ethan_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
-    or playerSheet
+    or playerSheet or playerBikeSheet
   local highDensity = file == "jessie" or file == "james" or hdSheet
   local nativeWide = file == "jessie" or file == "james"
-    or file == "lorelei" or playerSheet
+    or file == "lorelei" or playerSheet or playerBikeSheet
   -- Jessie/James, Ash and Ethan use 256px-wide authored frames; match the
   -- source cell so the renderer samples each complete frame instead of
   -- shrinking it or cutting off the head and feet.
   local frameSize = (file == "jessie" or file == "james"
-      or playerSheet) and 256
+      or playerSheet or playerBikeSheet) and 256
     or (nativeWide and 394
     or (hdSheet and 288 or (highDensity and 128 or 32)))
   local frameHeight = (nativeWide or hdSheet) and 256 or frameSize
@@ -92,9 +97,18 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Keep every overworld character at the same native display scale as Red.
   -- Jessie and James use their full-resolution sheets, but are not enlarged
   -- through code.
-  -- Ash and Ethan are supplied as 28px logical cells so the optional player
-  -- sprites keep exactly the same map footprint as the corrected Red sheet.
-  local displaySize = playerSheet and 28 or 32
+  -- Ash and Ethan are supplied as 28px logical cells. Red's HD foot sheet
+  -- has a taller authored silhouette, so normalize only its vertical draw
+  -- height to the same 28px player height; the source pixels stay untouched.
+  local displaySize = (file == "ash" or file == "ethan"
+      or file == "ash_bike" or file == "ethan_bike") and 28 or 32
+  local displayHeight = file == "red" and 28 or displaySize
+  -- The authored sheets have different transparent padding below the shoes.
+  -- Keep the logical cell unchanged, but move the complete bitmap by the
+  -- small amount needed to put its visible footline on Red's ground line.
+  -- This is an anchor correction, not a sprite resize.
+  local hgssAnchorOffset = frameSize <= 32 and 2 or 1
+  if file == "red" then hgssAnchorOffset = 1 end
   -- The HGSS Red sheet has transparent rows below the shoe pixels.  Keep the
   -- source images untouched and lower each voxel entity relative to its
   -- ground shadow; 2D rendering and map coordinates remain unchanged.
@@ -115,7 +129,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- native 32px frame for the 2D renderer, while the voxel billboard uses
   -- the 16px world footprint expected by the original map object.
   local voxelWidth = displaySize
-  local voxelHeight = displaySize
+  local voxelHeight = displayHeight
   local nativeImage = mod.assets:path("overrides/sprites/" .. file .. ".png")
   mod.content.sprites:patch("SPRITE_" .. shortId, {
     -- DRAMALESS_SHAPE builds its billboard UVs from def.image and assumes a
@@ -127,17 +141,31 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     image = mod.assets:path("assets/voxel/frame_layout_" .. frames .. "_"
       .. proxyFrameHeight .. ".png"),
     hgssNativeImage = nativeImage,
+    hgssBikeScale2x = playerBikeSheet,
     frames = frames,
     walker = walker,
     trueColor = true,
     hgssFrameWidth = frameSize,
     hgssFrameHeight = frameHeight,
     hgssDrawWidth = displaySize,
-    hgssDrawHeight = displaySize,
+    hgssDrawHeight = displayHeight,
     hgssBaseDrawWidth = displaySize,
-    hgssBaseDrawHeight = displaySize,
+    hgssBaseDrawHeight = displayHeight,
+    hgssAnchorOffset = hgssAnchorOffset,
+    -- A few authored leader sheets are 288x256 per frame rather than square.
+    -- Fit those frames with one uniform source-to-destination scale instead
+    -- of stretching them into the 32x32 logical box. Red intentionally keeps
+    -- its separate 32x28 vertical normalization.
+    hgssPreserveAspect = file ~= "red",
     hgssLinearFilter = frameSize > 32,
-    hgssPostPresent = highDensity,
+    -- Keep every replacement charset on the native-image presentation path.
+    -- Standard 32px NPC sheets used to be rasterized into the 160x144 world
+    -- canvas while Red/other HD sheets were repainted afterwards.  At
+    -- SPRITE SIZE values below 1.0 that mixed path downsampled NPC frames and
+    -- produced visibly squashed/jagged silhouettes.  The post-present pass
+    -- uses the same uniform X/Y scale for every native sheet and is skipped
+    -- automatically when a voxel world has already rendered the entity.
+    hgssPostPresent = true,
     hgssVoxelWidth = voxelWidth,
     hgssVoxelHeight = voxelHeight,
     hgssBaseVoxelWidth = voxelWidth,
@@ -147,8 +175,8 @@ local function patchOverworld(mod, shortId, frames, walker, file)
 end
 
 return function(mod)
-  -- Battle Art Voxel Fork owns battle artwork. This companion only supplies
-  -- the intro portraits and HGSS overworld charsets.
+  -- This mod owns its intro, overworld and optional battle artwork. Battle
+  -- assets are self-contained; missing files fall back to the g1recomp ROM.
 
   local function isHgssTrueColorPath(path)
     if type(path) ~= "string" then return false end
@@ -166,6 +194,46 @@ return function(mod)
   end
 
   mod.options:define({
+    {
+      key = "battle_scope",
+      label = "BATTLE ART SCOPE",
+      type = "choice",
+      default = "complete",
+      choices = {
+        { "TRAINERS ONLY", "trainers" },
+        { "COMPLETE", "complete" },
+      },
+    },
+    {
+      key = "battle_front_gen",
+      label = "BATTLE FRONT GEN",
+      type = "choice",
+      default = "rom",
+      choices = {
+        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
+        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
+      },
+    },
+    {
+      key = "battle_back_gen",
+      label = "BATTLE BACK GEN",
+      type = "choice",
+      default = "rom",
+      choices = {
+        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
+        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
+      },
+    },
+    {
+      key = "battle_trainer_gen",
+      label = "BATTLE TRAINER GEN",
+      type = "choice",
+      default = "rom",
+      choices = {
+        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
+        { "GEN 3", "gen3" },
+      },
+    },
     {
       key = "player_select",
       label = "PLAYER SELECT",
@@ -205,9 +273,658 @@ return function(mod)
     },
   })
 
-  local function overworldSpriteScale()
+  -- Keep a live copy of the battle selectors.  The Mod Manager updates this
+  -- value before emitting `mod.options_changed`; scripted drivers and older
+  -- g1recomp builds emit the event directly, so reading only the cached
+  -- option object can incorrectly leave the selector at ROM.
+  local battleOptionValues = {}
+  local function battleTrace(_) end
+  local BATTLE_OPTION_KEYS = {
+    battle_scope = true,
+    battle_front_gen = true,
+    battle_back_gen = true,
+    battle_trainer_gen = true,
+  }
+  for key in pairs(BATTLE_OPTION_KEYS) do
+    local ok, value = pcall(mod.options.get, mod.options, key)
+    if ok then battleOptionValues[key] = value end
+  end
+  local function battleOption(key)
+    local value = battleOptionValues[key] or mod.options:get(key)
+    battleTrace(("option %s=%s"):format(tostring(key), tostring(value)))
+    return value
+  end
+  mod.events:on("mod.options_changed", function(ev)
+    if ev and ev.mod == mod.id and BATTLE_OPTION_KEYS[ev.key] then
+      battleOptionValues[ev.key] = ev.value
+      battleTrace(("event %s=%s"):format(tostring(ev.key), tostring(ev.value)))
+    end
+  end)
+
+  -- Self-contained generation collections. The selected generation is
+  -- resolved per species and side; missing files deliberately fall back to
+  -- the image supplied by the g1recomp engine.
+  local function battleSlug(value)
+    if type(value) == "table" then
+      value = value.id or value.name or value.species or value.dataId
+    end
+    local s = tostring(value or ""):lower()
+    s = s:gsub("♀", "-f"):gsub("♂", "-m")
+    s = s:gsub("['%.]", ""):gsub("[^%w]+", "-")
+    return s:gsub("^-+", ""):gsub("-+$", "")
+  end
+  local function battleSpeciesKey(value)
+    if type(value) == "table" then
+      value = value.id or value.name or value.species or value.dataId
+    end
+    local key = tostring(value or ""):upper()
+    return key:gsub("[^%w]+", "_"):gsub("_+$", "")
+  end
+  local function selectedBattlePokemonImage(species, side)
+    -- TRAINERS ONLY must leave both wild and party Pokemon entirely to the
+    -- engine.  This guard is needed here as well as in applyBattleGeneration:
+    -- the public pokemon.sprite hook can run before BattleState exists and
+    -- otherwise installs a generation sprite during the intro.
+    if battleOption("battle_scope") == "trainers" then return nil end
+    local gen = battleOption(side == "back"
+      and "battle_back_gen" or "battle_front_gen") or "rom"
+    if gen == "rom" then return nil end
+    local folder
+    if side == "back" then
+      folder = (gen == "gen3" or gen == "gen5")
+        and "back-animated" or "back-static"
+    else
+      folder = "front-animated"
+    end
+    -- Gen 1 fronts are one 56x56 frame, while later
+    -- generations use animated atlases. The event bridge below extracts the
+    -- selected atlas frame; this path remains the safe stock-hook fallback.
+    if side == "front" and gen == "gen1" then folder = "front-animated" end
+    local rel = ("assets/battle/%s/%s/%s.png"):format(
+      folder, gen, battleSlug(species))
+    if side == "back" and (gen == "gen3" or gen == "gen5") then
+      local animated = mod.assets:path(rel)
+      local fs = love and love.filesystem
+      if not (fs and fs.getInfo and fs.getInfo(animated)) then
+        folder = "back-static"
+        rel = ("assets/battle/%s/%s/%s.png"):format(
+          folder, gen, battleSlug(species))
+      end
+    end
+    local path = mod.assets:path(rel)
+    local fs = love and love.filesystem
+    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    -- pokemon.sprite returns the asset path/definition, not a drawable. This
+    -- keeps the hook compatible with the stock battle renderer.
+    return path
+  end
+
+  -- The engine applies decoded images directly to battler.sprite, so the path
+  -- hook above is supplemented by this battle-start adapter.
+  -- This small adapter follows the same seam and only writes when a concrete
+  -- generation PNG was selected and found. ROM/default mode is a no-op.
+  local battleTextureCache = {}
+  local battleDataCache = {}
+  local battleSourceCache = {}
+  local battleDefinition
+  local function normalizeBattleDefinition(def, side)
+    if not def then return nil end
+    local image = def.image
+    local path = image and mod.assets:path(image)
+    local fs = love and love.filesystem
+    if side == "back" and path and fs and fs.getInfo
+       and not fs.getInfo(path) then
+      local fallback = image:gsub("back%-animated", "back-static")
+      local fallbackPath = mod.assets:path(fallback)
+      if fs.getInfo(fallbackPath) then
+        -- Static Gen 5 backs are already cropped PNGs. Do not reuse the
+        -- animated atlas cell dimensions or the renderer would cut them.
+        return { image = fallback, static = true, frames = 1 }
+      end
+    end
+    return def
+  end
+  local function battleTexture(path, width, height, columns)
+    if not path then return nil end
+    local cacheKey = table.concat({ tostring(path), tostring(width or ""),
+      tostring(height or ""), tostring(columns or "") }, "|")
+    if battleTextureCache[cacheKey] == nil then
+      local ok, image = pcall(function()
+        local sheet = love.image.newImageData(path)
+        local data = sheet
+        -- Battle Art stores animated generations as a horizontal/row atlas.
+        -- Always extract one logical cell before handing it to the renderer;
+        -- passing the whole atlas makes the first sprite look enormous and
+        -- also prevents the engine from advancing frames correctly.
+        if width and height then
+          local sheetW, sheetH = sheet:getDimensions()
+          local frame = love.image.newImageData(width, height)
+          local columnsN = tonumber(columns) or 1
+          local x = 0
+          local y = 0
+          if columnsN > 1 then
+            x = 0
+            y = 0
+          end
+          if x + width > sheetW or y + height > sheetH then
+            return nil
+          end
+          frame:paste(sheet, 0, 0, x, y, width, height)
+          data = frame
+        end
+        local out = love.graphics.newImage(data)
+        if out.setFilter then out:setFilter("nearest", "nearest") end
+        return out
+      end)
+      battleTextureCache[cacheKey] = ok and image or false
+    end
+    return battleTextureCache[cacheKey] or nil
+  end
+
+  -- Keep the atlas animation independent from the renderer. The first image
+  -- installed at battle creation is replaced with the next cell on each
+  -- BattleState update, using the same durations as Battle Art.
+  local battleFramesCache = {}
+  local battleFrameStates = setmetatable({}, { __mode = "k" })
+  local function battleFrames(def)
+    if not def or not def.image then return nil end
+    local path = mod.assets:path(def.image)
+    local key = table.concat({ path, tostring(def.width), tostring(def.height),
+      tostring(def.columns), tostring(def.frames) }, "|")
+    if battleFramesCache[key] ~= nil then return battleFramesCache[key] or nil end
+    local ok, frames = pcall(function()
+      local sheet = love.image.newImageData(path)
+      local sheetW, sheetH = sheet:getDimensions()
+      local width, height = tonumber(def.width), tonumber(def.height)
+      local columns = math.max(1, tonumber(def.columns) or 1)
+      local count = math.max(1, tonumber(def.frames) or 1)
+      local out = {}
+      for index = 0, count - 1 do
+        local x = (index % columns) * width
+        local y = math.floor(index / columns) * height
+        if x + width > sheetW or y + height > sheetH then break end
+        local cell = love.image.newImageData(width, height)
+        cell:paste(sheet, 0, 0, x, y, width, height)
+        local image = love.graphics.newImage(cell)
+        if image.setFilter then image:setFilter("nearest", "nearest") end
+        out[#out + 1] = image
+      end
+      return #out > 0 and out or nil
+    end)
+    battleFramesCache[key] = ok and frames or false
+    return battleFramesCache[key] or nil
+  end
+
+  local function updateBattleFrame(battler, side, dt)
+    if not battler or not battler.sprite then return end
+    local gen = battleOption(side == "back" and "battle_back_gen"
+      or "battle_front_gen") or "rom"
+    if gen == "rom" or battleOption("battle_scope") == "trainers" then return end
+    local mon = battler.mon
+    local species = mon and (mon.species or mon.id or mon.dataId)
+    local def = battleDefinition(gen, side, species)
+    if def and def.static then return end
+    local frames = def and battleFrames(def)
+    if not frames then return end
+    local state = battleFrameStates[battler]
+    if not state or state.def ~= def or state.frames ~= frames then
+      state = { def = def, frames = frames, frame = 1, elapsed = 0 }
+      battleFrameStates[battler] = state
+    end
+    state.elapsed = state.elapsed + (tonumber(dt) or 0)
+    local durations = def.durations or {}
+    local duration = math.max(1, tonumber(durations[state.frame]) or 100) / 1000
+    while state.elapsed >= duration do
+      state.elapsed = state.elapsed - duration
+      state.frame = state.frame % #frames + 1
+      duration = math.max(1, tonumber(durations[state.frame]) or 100) / 1000
+    end
+    battler.sprite = frames[state.frame]
+  end
+
+  battleDefinition = function(gen, side, species)
+    local key = (side == "back" and "back" or "front") .. ":" .. gen
+    if battleDataCache[key] == nil then
+      local file = side == "back" and gen == "gen3"
+        and "animated_battle_backs_gen3.lua"
+        or (gen ~= "gen1" and "animated_battle_sprites_" .. gen .. ".lua")
+      if file then
+        local relSource = "assets/battle/" .. file
+        local source
+        if type(mod.read) == "function" then
+          local ok, text = pcall(function() return mod:read(relSource) end)
+          if ok and type(text) == "string" then source = text
+          end
+        end
+        if not source then
+          local path = mod.assets and mod.assets:path(relSource)
+          local ok, text = path and pcall(love.filesystem.read, path)
+          if ok and type(text) == "string" then source = text end
+        end
+        local loader = loadstring or load
+        local chunk = source and loader(source, "@battle/" .. file)
+        if not chunk then chunk = nil end
+        local ok, data = false, nil
+        if chunk then ok, data = pcall(chunk) end
+        if not ok then data = nil end
+        battleDataCache[key] = ok and type(data) == "table" and data or {}
+        battleSourceCache[key] = source
+      else
+        battleDataCache[key] = {}
+      end
+    end
+    local set = battleDataCache[key]
+    local speciesKey = battleSpeciesKey(species)
+    local rec = set and set[speciesKey]
+    if not rec and speciesKey == "RATTATA" then
+      rec = set and set.RATTATA
+    end
+    if rec and rec[side] then return normalizeBattleDefinition(rec[side], side) end
+    -- Some g1recomp builds expose `load` but discard the return value of a
+    -- data chunk. Parse the generated one-line records directly as a safe
+    -- fallback; this keeps the same definitions Battle Art uses without
+    -- depending on that build-specific loader behavior.
+    local source = battleSourceCache[key]
+    if source then
+      local body = source:match("%s" .. speciesKey .. "%s*=%s*{(.-)\n%s*},")
+      local line = body and body:match(side .. "%s*=%s*{(.-)}")
+      if line then
+        local image = line:match('image%s*=%s*"([^"]+)"')
+        local width = tonumber(line:match("width%s*=%s*(%d+)"))
+        local height = tonumber(line:match("height%s*=%s*(%d+)"))
+        local columns = tonumber(line:match("columns%s*=%s*(%d+)"))
+        if image and width and height then
+          local candidate = mod.assets:path(image)
+          local fs = love and love.filesystem
+          if fs and fs.getInfo and not fs.getInfo(candidate)
+             and side == "back" then
+            local fallback = image:gsub("back%-animated", "back-static")
+            if fs.getInfo(mod.assets:path(fallback)) then image = fallback end
+          end
+          return normalizeBattleDefinition({ image = image, width = width,
+            height = height, columns = columns }, side)
+        end
+      end
+    end
+    return nil
+  end
+
+  local battleOriginalSprites = setmetatable({}, { __mode = "k" })
+  local selectedBattlePlayerImage
+  local applyBattleGeneration
+  local function applyBattleGenerationDeferred(battle)
+    applyBattleGeneration(battle)
+    if not battle then return end
+    local enemy = battle.enemy and battle.enemy.mon
+    local player = battle.player and battle.player.mon
+    if enemy and player then applyBattleGeneration(battle) end
+  end
+
+  local function refreshBattleSprites(battle)
+    applyBattleGenerationDeferred(battle)
+    if not battle then return end
+    -- `applyBattleGeneration` is guarded, but this refresh path also runs
+    -- during BattleState construction and used to install the enemy's
+    -- generation Pokemon directly.  In TRAINERS ONLY that bypass left
+    -- Rattata/Pikachu using the new art while only the trainer was intended
+    -- to change.
+    if battleOption("battle_scope") == "trainers" then return end
+    local gen = battleOption("battle_front_gen") or "rom"
+    if gen == "rom" then return end
+    local mon = battle.enemy and battle.enemy.mon
+    local species = mon and (mon.species or mon.id or mon.dataId)
+    local def = battleDefinition(gen, "front", species)
+    local path = def and mod.assets:path(def.image)
+    if path and def then
+      local frames = not def.static and battleFrames(def) or nil
+      local image = frames and frames[1]
+        or battleTexture(path, def.width, def.height, def.columns)
+      if image and battle.enemy then battle.enemy.sprite = image end
+    end
+  end
+  applyBattleGeneration = function(battle)
+    if not battle then return end
+    local originals = battleOriginalSprites[battle]
+    if not originals then originals = {}; battleOriginalSprites[battle] = originals end
+    local function applyOne(battler, side)
+      if battleOption("battle_scope") == "trainers" then return end
+      local mon = battler and battler.mon
+      local species = mon and (mon.species or mon.id or mon.dataId)
+      local gen = battleOption(side == "back" and "battle_back_gen"
+        or "battle_front_gen") or "rom"
+      local path = selectedBattlePokemonImage(species, side)
+      local def = gen ~= "rom" and battleDefinition(gen, side, species) or nil
+      if def and def.image then path = mod.assets:path(def.image) end
+      local frames = def and not def.static and battleFrames(def) or nil
+      local image = frames and frames[1]
+        or battleTexture(path, def and def.width, def and def.height,
+          def and def.columns)
+      if def and def.static and path then
+        image = battleTexture(path)
+      end
+      if not image and def and side == "back" then
+        local fallback = path and path:gsub("back%-animated", "back-static")
+        image = battleTexture(fallback, def.width, def.height, def.columns)
+      end
+      if image then
+        if originals[battler] == nil then originals[battler] = battler.sprite end
+        battler.sprite = image
+      elseif originals[battler] ~= nil then
+        battler.sprite = originals[battler]
+      end
+    end
+    applyOne(battle.enemy, "front")
+    applyOne(battle.player, "back")
+  end
+
+  -- BattleState constructs its battlers before the public battle.started
+  -- event is emitted on some g1recomp builds.  Battle Art replaces the
+  -- sprites at that construction boundary, so mirror that seam here.  The
+  -- wrapper is guarded so a second copy of the mod cannot stack wrappers.
+  local okBattleCtor, BattleCtor = pcall(require, "src.battle.BattleState")
+  if okBattleCtor and BattleCtor and not BattleCtor.__hgssSpriteGenerationHook then
+    local oldNewTrainer = BattleCtor.newTrainer
+    if type(oldNewTrainer) == "function" then
+      BattleCtor.newTrainer = function(...)
+        local battle = oldNewTrainer(...)
+        refreshBattleSprites(battle)
+        return battle
+      end
+    end
+    local oldNewWild = BattleCtor.newWild
+    if type(oldNewWild) == "function" then
+      BattleCtor.newWild = function(...)
+        local battle = oldNewWild(...)
+        refreshBattleSprites(battle)
+        return battle
+      end
+    end
+    local oldUpdate = BattleCtor.update
+    if type(oldUpdate) == "function" then
+      BattleCtor.update = function(self, dt, ...)
+        local result = oldUpdate(self, dt, ...)
+        if self.showPlayerBack then
+          local playerImage = selectedBattlePlayerImage(self)
+          if playerImage then self.playerBackPic = playerImage end
+        end
+        refreshBattleSprites(self)
+        updateBattleFrame(self.enemy, "front", dt)
+        updateBattleFrame(self.player, "back", dt)
+        return result
+      end
+    end
+    BattleCtor.__hgssSpriteGenerationHook = true
+  end
+
+  mod.events:on("battle.started", function(payload)
+    local battle = payload and payload.battle
+    refreshBattleSprites(battle)
+    -- A few builds finish loading the battler records one frame after the
+    -- event. Reapply once on the next coroutine tick without touching ROM
+    -- mode or restoring any original sprite.
+    if battle then
+      coroutine.wrap(function()
+        coroutine.yield()
+        refreshBattleSprites(battle)
+      end)()
+    end
+  end)
+  mod.events:on("battle.ended", function(payload)
+    local battle = payload and payload.battle
+    local originals = battle and battleOriginalSprites[battle]
+    if not originals then return end
+    for battler, sprite in pairs(originals) do
+      if battler then battler.sprite = sprite end
+    end
+    battleOriginalSprites[battle] = nil
+  end)
+
+  local oldPokemonSpriteHook = mod.hooks and mod.hooks.wrap
+  if oldPokemonSpriteHook then
+    mod.hooks:wrap("pokemon.sprite", function(next, path, ctx)
+      local out = next(path, ctx)
+      if not (ctx and ctx.kind == "battle") then return out end
+      if battleOption("battle_scope") == "trainers" then return out end
+      local side = ctx.side == "back" and "back" or "front"
+      local species = ctx.species
+        or (ctx.data and ctx.data.pokemon and ctx.data.pokemon.species)
+      return selectedBattlePokemonImage(species, side) or out
+    end)
+  end
+
+  -- The engine presents trainer portraits through BattleState.picImage rather
+  -- than the pokemon.sprite seam. Keep this bridge defensive: older g1recomp
+  -- builds may not expose the method, and in that case the ROM renderer
+  -- remains completely untouched.
+  local trainerImageCache = {}
+  local playerTrainerFramesCache = {}
+  local playerTrainerStates = setmetatable({}, { __mode = "k" })
+
+  -- PLAYER SELECT is the single owner of the player trainer shown in battle.
+  -- Keep the generation-to-character mapping internal and expose only
+  -- RED/ASH/ETHAN through PLAYER SELECT in this mod.
+  local PLAYER_BATTLE_STRIPS = {
+    red = "redplayer.png",
+    ash = "ashplayer.png",
+    ethan = "gen2player.png",
+  }
+  local PLAYER_BATTLE_STATIC = {
+    red = "player.png",
+    ash = "ashplayer.png",
+    ethan = "gen2player.png",
+  }
+
+  local function selectedPlayerBattleKey()
+    local value = mod.options:get("player_select") or "red"
+    return PLAYER_BATTLE_STRIPS[value] and value or "red"
+  end
+
+  local function loadPlayerTrainerFrames(key)
+    local filename = PLAYER_BATTLE_STRIPS[key]
+    if not filename then return nil end
+    local path = mod.assets:path("assets/battle/back-animated/" .. filename)
+    local fs = love and love.filesystem
+    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    if playerTrainerFramesCache[path] ~= nil then
+      return playerTrainerFramesCache[path] or nil
+    end
+    local ok, frames = pcall(function()
+      local sheet = love.image.newImageData(path)
+      local sheetW, sheetH = sheet:getDimensions()
+      local columns = 5
+      if sheetW % columns ~= 0 or sheetH < 1 then return nil end
+      local width = sheetW / columns
+      local out = {}
+      for index = 0, columns - 1 do
+        local cell = love.image.newImageData(width, sheetH)
+        cell:paste(sheet, 0, 0, index * width, 0, width, sheetH)
+        local image = love.graphics.newImage(cell)
+        if image.setFilter then image:setFilter("nearest", "nearest") end
+        out[#out + 1] = image
+      end
+      return out
+    end)
+    playerTrainerFramesCache[path] = ok and frames or false
+    return playerTrainerFramesCache[path] or nil
+  end
+
+  local function selectedBattlePlayerStatic(key)
+    local filename = PLAYER_BATTLE_STATIC[key] or PLAYER_BATTLE_STATIC.red
+    local path = mod.assets:path("assets/battle/back-static/" .. filename)
+    local fs = love and love.filesystem
+    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    if trainerImageCache[path] == nil then
+      local ok, image = pcall(function()
+        local out = love.graphics.newImage(love.image.newImageData(path))
+        if out.setFilter then out:setFilter("nearest", "nearest") end
+        return out
+      end)
+      trainerImageCache[path] = ok and image or false
+    end
+    return trainerImageCache[path] or nil
+  end
+
+  local function playerTrainerProgress(battle)
+    if not battle or type(battle.picOffset) ~= "function" then return 0 end
+    local ok, offset = pcall(battle.picOffset, battle, "back")
+    if not ok then return 0 end
+    return math.max(0, math.min(72, -(tonumber(offset) or 0)))
+  end
+
+  selectedBattlePlayerImage = function(battle)
+    if not (battle and battle.showPlayerBack) then return nil end
+    -- Oak/Old Man's scripted introduction must retain its dedicated portrait.
+    if battle.demo then return nil end
+    local key = selectedPlayerBattleKey()
+    local frames = loadPlayerTrainerFrames(key)
+    if not frames then return selectedBattlePlayerStatic(key) end
+
+    local state = playerTrainerStates[battle]
+    if not state or state.key ~= key or state.frames ~= frames then
+      state = { key = key, frames = frames, frame = 1 }
+      playerTrainerStates[battle] = state
+    end
+    local progress = playerTrainerProgress(battle)
+    if progress <= 0 then
+      state.frame = 1
+    else
+      local movingFrames = math.max(1, #frames - 1)
+      state.frame = math.min(#frames,
+        2 + math.floor(math.max(0, progress - 1) * movingFrames / 72))
+    end
+    return frames[state.frame]
+  end
+  local function selectedBattleTrainerImage(name)
+    local gen = battleOption("battle_trainer_gen") or "rom"
+    if gen == "rom" then return nil end
+    local rawName = tostring(name or "")
+    -- BattleState exposes opponent classes with the OPP_ prefix (for
+    -- example OPP_RIVAL1).  Battle Art's collections are keyed by the
+    -- underlying class name (rival1.png), so strip that engine prefix before
+    -- resolving the bundled portrait.  Without this, Blue silently falls
+    -- back to the original Gen I picture while Jessie/James still work via
+    -- their special-case path.
+    local className = rawName:gsub("^[Oo][Pp][Pp]_", "")
+    local slug = (rawName == "true" or rawName == "42"
+      or rawName:upper() == "OPP_ROCKET" or rawName:lower():find("jessie", 1, true))
+      and "jessie-james" or battleSlug(className)
+    local rel = ("assets/battle/front-static/%s/%s.png"):format(
+      gen, slug)
+    local path = mod.assets:path(rel)
+    local fs = love and love.filesystem
+    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    if trainerImageCache[path] == nil then
+      local ok, image = pcall(function()
+        local data = love.image.newImageData(path)
+        local out = love.graphics.newImage(data)
+        if out.setFilter then out:setFilter("nearest", "nearest") end
+        return out
+      end)
+      trainerImageCache[path] = ok and image or false
+    end
+    return trainerImageCache[path] or nil
+  end
+
+  local okBattleState, BattleState = pcall(require, "src.battle.BattleState")
+  if okBattleState and BattleState and type(BattleState.picImage) == "function" then
+    local oldBattlePicImage = BattleState.picImage
+    BattleState.picImage = function(self, image)
+      local trainer = self and self.trainer
+      local name = self and (self.oppClass or (trainer and
+        (trainer.picJessieJames or trainer.id or trainer.name or trainer.class)))
+      if image == (self and self.trainerPic) and name then
+        return selectedBattleTrainerImage(name)
+          or oldBattlePicImage(self, image)
+      end
+      return oldBattlePicImage(self, image)
+    end
+  end
+  if okBattleState and BattleState and not BattleState.__hgssTrainerPictureHook then
+    local oldNewTrainer = BattleState.newTrainer
+    if type(oldNewTrainer) == "function" then
+      BattleState.newTrainer = function(...)
+        local battle = oldNewTrainer(...)
+        local custom = selectedBattlePlayerImage(battle)
+        if custom and battle then
+          battle.playerBackPic = custom
+        end
+        if battle and battle.showEnemyTrainer then
+          local id = battle.oppClass or (battle.trainer and battle.trainer.id)
+          -- Pass the engine class through the same resolver used by
+          -- BattleState.picImage. It strips OPP_ and maps OPP_RIVAL1 to the
+          -- bundled rival1.png; pre-slugging here used to turn it into
+          -- opp-rival1 and made Blue retain the ROM portrait.
+          local enemy = selectedBattleTrainerImage(id)
+          if enemy then battle.trainerPic = enemy end
+        end
+        return battle
+      end
+    end
+    BattleState.__hgssTrainerPictureHook = true
+  end
+  if okBattleState and BattleState and type(BattleState.picImage) == "function"
+     and not BattleState.__hgssPlayerPictureHook then
+    local oldPicImage = BattleState.picImage
+    BattleState.picImage = function(self, image)
+      local battle = self
+      if image and battle and image == battle.playerBackPic then
+        local custom = selectedBattlePlayerImage(battle)
+        if custom then return custom end
+      end
+      return oldPicImage(self, image)
+    end
+    BattleState.__hgssPlayerPictureHook = true
+  end
+
+  -- The stock battle renderer assumes Gen I pictures were authored at half
+  -- display resolution and applies its legacy 2x back-picture scale. The
+  -- bundled HGSS/BW images are already at display resolution, so that same
+  -- multiplier makes the player back and custom Pokemon look oversized.
+  -- Keep the source PNGs untouched and normalize only the presentation scale
+  -- for images selected by this mod, matching Battle Art's resolver seam.
+  if okBattleState and BattleState
+     and type(BattleState.resolveBattleScale) == "function"
+     and not BattleState.__hgssBattleScaleHook then
+    local oldResolveBattleScale = BattleState.resolveBattleScale
+    BattleState.resolveBattleScale = function(data, side, path, species)
+      local base = oldResolveBattleScale(data, side, path, species)
+      -- All bundled battle assets are already cropped to their logical battle
+      -- cell.  They must stay at 1:1; applying a half-scale here shrinks Gen
+      -- 2–5 Pokemon into tiny, jagged figures.  The player portrait is also
+      -- full-density and follows the same rule. ROM art keeps its engine
+      -- supplied scale below.
+      local externalScale = 1
+      local custom = false
+      if side == "back" then
+        if species then
+          -- In TRAINERS ONLY the party Pokemon are original art, so retain
+          -- the engine's native scale for this side.
+          custom = battleOption("battle_scope") ~= "trainers"
+             and battleOption("battle_back_gen") ~= "rom"
+        else
+          -- Trainer backs are independent from the Pokemon back selector.
+          -- They are already authored at display resolution, including Red;
+          -- remove the legacy Gen I 2x multiplier. Player back sheets are
+          -- already at their intended logical battle size.
+          custom = true
+        end
+      elseif side == "front" then
+        custom = battleOption("battle_scope") ~= "trainers"
+          and battleOption("battle_front_gen") ~= "rom"
+      end
+      if custom then return externalScale end
+      return base
+    end
+    BattleState.__hgssBattleScaleHook = true
+  end
+
+  local function overworldSpriteScale(def)
     local value = tonumber(mod.options:get("sprite_size")) or 1
-    return math.max(0.5, math.min(1.0, value))
+    value = math.max(0.5, math.min(1.0, value))
+    -- Mounted and on-foot charsets share the same logical scale.  The bike
+    -- PNGs already contain the complete vehicle silhouette, so do not apply
+    -- a hidden multiplier here; SPRITE SIZE is the only scale control.
+    return value
   end
 
   local PLAYER_SPRITE_IDS = {
@@ -216,9 +933,20 @@ return function(mod)
     ethan = "SPRITE_ETHAN",
   }
 
+  local PLAYER_BIKE_SPRITE_IDS = {
+    red = "SPRITE_RED_BIKE",
+    ash = "SPRITE_ASH_BIKE",
+    ethan = "SPRITE_ETHAN_BIKE",
+  }
+
   local function selectedPlayerSpriteId()
     return PLAYER_SPRITE_IDS[mod.options:get("player_select") or "red"]
       or PLAYER_SPRITE_IDS.red
+  end
+
+  local function selectedPlayerBikeSpriteId()
+    return PLAYER_BIKE_SPRITE_IDS[mod.options:get("player_select") or "red"]
+      or PLAYER_BIKE_SPRITE_IDS.red
   end
 
   -- Keep the option reversible while the mod manager is open. The live icon
@@ -241,6 +969,9 @@ return function(mod)
   for shortId in words(WALKERS) do
     patchOverworld(mod, shortId, 6, true)
   end
+  patchOverworld(mod, "RED_BIKE", 6, true, "red_bike")
+  patchOverworld(mod, "ASH_BIKE", 6, true, "ash_bike")
+  patchOverworld(mod, "ETHAN_BIKE", 6, true, "ethan_bike")
   -- A few Yellow map objects refer to fallback IDs (HIKER/SUPER_NERD) even
   -- though their names/classes are Blackbelt and Burglar.  Supply the
   -- missing native HGSS IDs so the object-local corrections below can point
@@ -252,11 +983,12 @@ return function(mod)
   end
   patchOverworld(mod, "SNORLAX", 1, false)
 
-  -- The selector changes only the field player charset.  Battle Art Voxel
-  -- Fork remains the owner of battle trainer art, while the selected native
-  -- sheet is used for the overworld player and the Oak intro player slot.
+  -- The selector changes only the field player charset. Battle trainer art
+  -- is resolved by this mod's self-contained collections;
+  -- the selected native sheet is used for the overworld player and Oak intro.
   mod.content.field:patch("playerSprites", {
     walk = selectedPlayerSpriteId(),
+    bike = selectedPlayerBikeSpriteId(),
   })
 
   -- Gym maps in Yellow deliberately reuse generic GBC character IDs.  Keep
@@ -295,6 +1027,7 @@ return function(mod)
   local oldNew = SpriteRenderer.new
   local oldDraw = SpriteRenderer.draw
   local overworldHdDraws = {}
+  local overworldHdOrder = 0
 
   -- DRAMALESS_SHAPE deliberately keeps its namespace private, so there is
   -- no public billboard-size hook to call.  Locate its SpriteBillboards
@@ -302,11 +1035,25 @@ return function(mod)
   -- then widen only our proxy-backed cards.  Texture UVs remain untouched;
   -- the native 32/48px image still supplies every authored pixel.
   local voxelBillboardsPatched = false
+  -- Set by the voxel world's own draw callback for the current frame.  The
+  -- callback runs before Renderer:endFrame presents the world, while the
+  -- pipeline registry is allowed to clear its transient owner afterwards;
+  -- keeping this one-frame latch avoids relying on that timing-sensitive
+  -- query when deciding whether a flat HD repaint would break depth order.
+  local voxelWorldRendered = false
   local function patchVoxelBillboards()
     if voxelBillboardsPatched or not (debug and debug.getupvalue) then return end
     local okP, Pipelines = pcall(require, "src.render.Pipelines")
     local voxel = okP and Pipelines.get and Pipelines.get("voxel")
     if not (voxel and type(voxel.drawWorld) == "function") then return end
+    if not voxel._hgssWorldDrawWrapped then
+      local oldVoxelDrawWorld = voxel.drawWorld
+      voxel.drawWorld = function(...)
+        voxelWorldRendered = true
+        return oldVoxelDrawWorld(...)
+      end
+      voxel._hgssWorldDrawWrapped = true
+    end
     local seen = {}
     local function find(value, depth)
       -- VoxelScene keeps SpriteBillboards behind a few nested closures;
@@ -342,11 +1089,26 @@ return function(mod)
     local function nativeMesh(def, frame)
       local mesh = originalMesh(def, frame)
       if not (mesh and def and def.hgssNativeImage) then return mesh end
-      local size = overworldSpriteScale()
-      local width = (tonumber(def.hgssBaseVoxelWidth
-        or def.hgssVoxelWidth or def.hgssFrameWidth) or 32) * size
-      local height = (tonumber(def.hgssBaseVoxelHeight
-        or def.hgssVoxelHeight or def.hgssFrameHeight) or 32) * size
+      local size = overworldSpriteScale(def)
+      -- Quantize the final billboard dimensions.  Fractional mesh extents
+      -- make the rasterizer sample different pixel columns on each frame
+      -- (most visible at 0.6x/0.7x), which looks like a stretched or pinched
+      -- NPC even though the source PNG is correct.
+      local baseW = tonumber(def.hgssBaseVoxelWidth
+        or def.hgssVoxelWidth or def.hgssFrameWidth) or 32
+      local baseH = tonumber(def.hgssBaseVoxelHeight
+        or def.hgssVoxelHeight or def.hgssFrameHeight) or 32
+      local width, height
+      if def.hgssPreserveAspect then
+        local fw = tonumber(def.hgssFrameWidth) or 32
+        local fh = tonumber(def.hgssFrameHeight) or 32
+        local uniform = math.min(baseW / fw, baseH / fh) * size
+        width = math.max(1, math.floor(fw * uniform + 0.5))
+        height = math.max(1, math.floor(fh * uniform + 0.5))
+      else
+        width = math.max(1, math.floor(baseW * size + 0.5))
+        height = math.max(1, math.floor(baseH * size + 0.5))
+      end
       local stamp = width .. "x" .. height
       if sized[mesh] ~= stamp and mesh.getVertex and mesh.setVertex then
         local left = 8 - width / 2
@@ -412,6 +1174,9 @@ return function(mod)
     patchVoxelBillboards()
     local self = oldNew(spriteDef, seed)
     if self and spriteDef and spriteDef.hgssNativeImage then
+      self.hgssIsPlayer = seed == "player"
+    end
+    if self and spriteDef and spriteDef.hgssNativeImage then
       self.image = SpriteAssets.image(spriteDef.hgssNativeImage)
       if spriteDef.hgssLinearFilter and self.image.setFilter then
         self.image:setFilter("linear", "linear")
@@ -432,6 +1197,36 @@ return function(mod)
         end
         self.isHgssSheet = true
       end
+      -- Record the visible bottom of each authored cell once.  Different
+      -- HGSS sheets (and even different poses in one sheet) contain varying
+      -- transparent rows below the shoes.  Using this alpha bound lets the
+      -- renderer put every pose on the exact same ground line without
+      -- editing or resampling the source PNG.
+      if spriteDef.hgssNativeImage and love.image
+         and love.image.newImageData then
+        local okData, data = pcall(love.image.newImageData,
+          spriteDef.hgssNativeImage)
+        if okData and data and data.getPixel then
+          self.hgssFrameBottoms = {}
+          local count = math.min(6, math.floor(ih / fh))
+          for frame = 0, count - 1 do
+            local bottom = 0
+            for yy = 0, fh - 1 do
+              local rowVisible = false
+              for xx = 0, fw - 1 do
+                local _, _, _, alpha = data:getPixel(xx, frame * fh + yy)
+                if (alpha or 0) > 0.01 then
+                  rowVisible = true
+                  break
+                end
+              end
+              if rowVisible then bottom = yy + 1 end
+            end
+            self.hgssFrameBottoms[frame] = bottom
+          end
+          if data.release then data:release() end
+        end
+      end
     end
     return self
   end
@@ -447,19 +1242,55 @@ return function(mod)
     -- Keep the same authored size and anchor as the known-good 0.0.26
     -- renderer.  Charset corrections are image replacements only; changing
     -- the runtime scale here makes every overworld character inconsistent.
-    local size = overworldSpriteScale()
-    local drawW = (tonumber(self.def.hgssBaseDrawWidth
-      or self.def.hgssDrawWidth) or fw) * size
-    local drawH = (tonumber(self.def.hgssBaseDrawHeight
-      or self.def.hgssDrawHeight) or fh) * size
+    local size = overworldSpriteScale(self.def)
+    -- Use integer destination dimensions for both axes.  LÖVE accepts
+    -- fractional scales, but the resulting half-pixel sampling makes the
+    -- 32px NPC sheets visibly warp when SPRITE SIZE is below 1.0.  Rounding
+    -- the common destination box preserves each sheet's aspect ratio while
+    -- keeping every frame on the same pixel grid as Red.
+    local baseW = tonumber(self.def.hgssBaseDrawWidth
+      or self.def.hgssDrawWidth) or fw
+    local baseH = tonumber(self.def.hgssBaseDrawHeight
+      or self.def.hgssDrawHeight) or fh
+    local drawW, drawH
+    if self.def.hgssPreserveAspect then
+      local uniform = math.min(baseW / fw, baseH / fh) * size
+      drawW = math.max(1, math.floor(fw * uniform + 0.5))
+      drawH = math.max(1, math.floor(fh * uniform + 0.5))
+    else
+      drawW = math.max(1, math.floor(baseW * size + 0.5))
+      drawH = math.max(1, math.floor(baseH * size + 0.5))
+    end
     local scaleX, scaleY = drawW / fw, drawH / fh
     local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
-    local y = math.floor(py - camY) - drawH + 16
     local stand = { down = 0, up = 1, left = 2, right = 2 }
     local walk = { down = 3, up = 4, left = 5, right = 5 }
     local frame = (self.def.walker and walkPhase == 1)
       and walk[facing] or stand[facing]
     frame = frame or 0
+    -- All overworld sheets use the same cell-foot anchor as the native Red
+    -- charset. The authored HD frames can contain transparent rows below the
+    -- shoes; anchor the selected frame from its visible bottom instead of
+    -- centering its raw canvas.
+    -- Keep the logical footline at the same cell bottom as Red. The stock
+    -- renderer intentionally ignores transparent padding in a charset; do
+    -- not derive a per-frame shift from the art because that makes a shorter
+    -- NPC appear to float beside a correctly anchored player.
+    local anchor = tonumber(self.def.hgssAnchorOffset) or 0
+    if not topHalf and self.hgssFrameBottoms
+       and self.hgssFrameBottoms[frame] then
+      local visibleBottom = self.hgssFrameBottoms[frame]
+      -- The common logical footline is `py + 16`.  Convert the source alpha
+      -- bound into the current (possibly reduced) destination height so the
+      -- correction scales together with SPRITE SIZE.
+      anchor = drawH - visibleBottom * drawH / fh
+    end
+    local y = math.floor(py - camY) - drawH + 16 + anchor
+    -- DS charsets are authored with a taller visual canvas than the native
+    -- 16px map cell. Their logical feet sit at the bottom of the draw box;
+    -- the stock renderer's +16 anchor therefore needs the same extra cell
+    -- offset for every replacement sheet. Red is the reference silhouette;
+    -- this only moves the complete frame and never rescales or crops it.
     local quad = self.hgssFrames[frame] or self.hgssFrames[0]
     if topHalf then
       self.hgssHalfFrames = self.hgssHalfFrames or {}
@@ -479,8 +1310,16 @@ return function(mod)
       or ((facing == "down" or facing == "up")
           and self.def.walker and walkPhase == 1 and stepFlip)
     if self.def.hgssPostPresent then
+      overworldHdOrder = overworldHdOrder + 1
       overworldHdDraws[#overworldHdDraws + 1] = {
         image = image, quad = quad, x = x, y = y,
+        -- `py` is the entity's ground point in world pixels. It is the
+        -- authoritative footline even when the source sheet has transparent
+        -- padding below the shoes. Keep it separate from the top-left `y`
+        -- used for drawing the image.
+        groundY = math.floor(py - camY) + 16,
+        isPlayer = self.hgssIsPlayer,
+        order = overworldHdOrder,
         frameWidth = fw, frameHeight = topHalf and math.floor(fh / 2) or fh,
         drawWidth = drawW,
         drawHeight = topHalf and math.floor(drawH / 2) or drawH,
@@ -500,7 +1339,7 @@ return function(mod)
   end
 
   -- PartyMenu's legacy replacement is retained only as historical reference;
-  -- battle art remains separate, while the 32px HGSS party icons stay active.
+  -- battle artwork is handled by the self-contained battle collections.
   local battleArtPresent = false
   -- PartyMenu's public icon registry is intentionally compatible with the
   -- Game Boy path: it assumes 16x16 OBP art and sends the whole UI canvas
@@ -955,7 +1794,7 @@ return function(mod)
 
   end
 
-  -- HUD ownership stays with the base game/Battle Art Voxel Fork.  Keep the
+  -- HUD ownership stays with the base game. Keep the
   -- old implementation below in an unreachable block for easy auditing,
   -- but do not register fonts, themes, HP palettes or HUD draw wrappers.
   local liveGame
@@ -1167,7 +2006,19 @@ return function(mod)
     if not overworldHdDraws[1] then return end
     -- A voxel pipeline already produced the character as part of its world
     -- texture. Repainting a flat card here would duplicate it on the screen.
-    if renderer.worldOverride or not renderer.worldActive then return end
+    if renderer.worldOverride or not renderer.worldActive
+       or voxelWorldRendered then return end
+    -- `worldActive` remains true while Dramatic Shape owns the world pass.
+    -- Use the engine's authoritative pipeline query instead of repainting all
+    -- HD cards after the voxel depth buffer.  The old post-present repaint
+    -- made Red (which is queued late) cover NPCs that were actually in front
+    -- of him on the map.  In classic 2D the query is nil, so the crisp HD
+    -- repaint continues to run exactly as before.
+    local okP, Pipelines = pcall(require, "src.render.Pipelines")
+    if okP and Pipelines and type(Pipelines.worldPipeline) == "function" then
+      local okWorld, worldPipeline = pcall(Pipelines.worldPipeline)
+      if okWorld and worldPipeline ~= nil then return end
+    end
     local _, _, _, _, pw, ph, dpiX, dpiY = presentationMetrics(renderer)
     local Zoom = require("src.render.Zoom")
     local sp = Zoom.scale(renderer:fitScale())
@@ -1181,7 +2032,25 @@ return function(mod)
     love.graphics.setShader()
     love.graphics.setColor(1, 1, 1, 1)
     love.graphics.setScissor(0, 0, ww, wh)
-    for _, draw in ipairs(overworldHdDraws) do
+    -- The native overworld renderer is y-sorted by the entity's ground point.
+    -- Repainting in insertion order made the player (usually queued last)
+    -- cover an NPC even when that NPC stood one row closer to the camera.
+    -- Sort only this transient repaint list; equal footlines retain the
+    -- engine's stable insertion order.
+    local ordered = {}
+    for i, draw in ipairs(overworldHdDraws) do
+      ordered[i] = draw
+    end
+    table.sort(ordered, function(a, b)
+      local ay = tonumber(a.groundY) or tonumber(a.y) or 0
+      local by = tonumber(b.groundY) or tonumber(b.y) or 0
+      if ay == by then
+        if a.isPlayer ~= b.isPlayer then return not a.isPlayer end
+        return (a.order or 0) < (b.order or 0)
+      end
+      return ay < by
+    end)
+    for _, draw in ipairs(ordered) do
       local scaleX = sx * draw.drawWidth / draw.frameWidth
       local scaleY = sy * draw.drawHeight / draw.frameHeight
       local dx = ox + draw.x * sx
@@ -1225,6 +2094,8 @@ return function(mod)
     local ok, a, b, c = pcall(oldRendererEndFrame, self, ...)
     love.graphics.draw = originalDraw
     overworldHdDraws = {}
+    overworldHdOrder = 0
+    voxelWorldRendered = false
     if not ok then error(a, 0) end
     local state = visibleHdState()
     if not state then return a, b, c end
@@ -1405,19 +2276,30 @@ return function(mod)
     local field = data.field
     if field and field.playerSprites then
       pcall(function() field.playerSprites.walk = selectedId end)
+      pcall(function()
+        field.playerSprites.bike = selectedPlayerBikeSpriteId()
+      end)
     end
 
     -- A menu change can happen while a save is already open. Refresh the
-    -- live player without touching surf/bike sprites or Battle Art's trainer
-    -- presentation. New maps will construct the same selected sprite from
-    -- field.playerSprites.walk.
+    -- live player and bicycle without touching surf sprites. New maps
+    -- construct both from field.playerSprites.
     local player = game.overworld and game.overworld.player
     local spriteDef = data.sprites and data.sprites[selectedId]
-    if not player or not spriteDef then return end
-    if player.sprite and player.sprite.def == spriteDef then return end
-    player.sprite = SpriteRenderer.new(spriteDef, "player")
-    if player.sprite and player.sprite.def then
-      player.sprite.def.walker = true
+    if not player then return end
+    if spriteDef and (not player.sprite or player.sprite.def ~= spriteDef) then
+      player.sprite = SpriteRenderer.new(spriteDef, "player")
+      if player.sprite and player.sprite.def then
+        player.sprite.def.walker = true
+      end
+    end
+    local bikeId = selectedPlayerBikeSpriteId()
+    local bikeDef = data.sprites and data.sprites[bikeId]
+    if bikeDef and (not player.bikeSprite or player.bikeSprite.def ~= bikeDef) then
+      player.bikeSprite = SpriteRenderer.new(bikeDef, "player")
+      if player.bikeSprite and player.bikeSprite.def then
+        player.bikeSprite.def.walker = true
+      end
     end
   end
 

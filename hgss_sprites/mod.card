@@ -10,13 +10,13 @@ return {
     },
     added = {
       "an optional crisp-display policy for integer-scaled presentation",
-      "PLAYER SELECT (RED, ASH or ETHAN) for the overworld player charset",
+      "PLAYER SELECT (RED, ASH or ETHAN) for the overworld charset and battle intro",
       "a PARTY MENU toggle for the HGSS party screen and icons",
     },
     known = {
       "Pokemon Yellow only implements Pikachu as a follower; the other party icons do not create new followers",
       "Gen 1 menu geometry remains 160x144; this pack restyles it rather than replacing gameplay screens with DS layouts",
-      "battle art, battle trainers, voxel presentation and HUD remain outside this pack",
+      "battle Pokemon generation selectors and trainer art are bundled; the player battle intro follows PLAYER SELECT",
     },
   },
   credits = {

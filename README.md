@@ -22,6 +22,15 @@ The selectable HGSS player sprites also work in the Voxel map renderer:
 ![Ash outdoors with Voxel enabled](hgss_sprites/docs/media/readme-voxel-ash.png)
 ![Ethan outdoors with Voxel enabled](hgss_sprites/docs/media/readme-voxel-ethan.png)
 
+Ash and Ethan also have dedicated bicycle sheets, selected automatically when
+the player mounts the bike.
+
+Battle artwork is self-contained. `BATTLE ART SCOPE` selects `TRAINERS ONLY`
+or `COMPLETE`, while the front/back/trainer generation selectors choose the
+bundled Gen 1–5 collections. `PLAYER SELECT` also chooses the battle trainer
+intro: RED, ASH or ETHAN. Missing files fall back to g1recomp's original
+sprites.
+
 ### Gym captures
 
 ![Pewter Gym with Brock](hgss_sprites/docs/media/readme-voxel-gym-brock.png)
@@ -45,7 +54,7 @@ so their map scale matches Red.
 
 ## Quick installation
 
-1. Battle Art Voxel Fork and `CRYSTAL_251` are optional compatibility companions.
+1. `CRYSTAL_251` is an optional compatibility companion; no battle-art mod is required.
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
