@@ -1318,6 +1318,11 @@ return function(mod)
   -- Hikers and Super Nerds elsewhere in the game.
   local OBJECT_SPRITE_FIXES = {
     BILLS_HOUSE = {
+      -- In Yellow the initial visible object is Bill transformed into a
+      -- Clefairy.  SPRITE_MONSTER is the generic Rhydon-like placeholder;
+      -- keep the story object and text intact while binding only its visual
+      -- charset to the dedicated Clefairy sheet.
+      BILLSHOUSE_BILL_POKEMON = "SPRITE_CLEFAIRY",
       BILLSHOUSE_BILL1 = "SPRITE_HGSS_BILL",
       BILLSHOUSE_BILL2 = "SPRITE_HGSS_BILL",
     },
@@ -1348,36 +1353,63 @@ return function(mod)
     },
   }
 
+  local function objectSpriteTarget(mapId, def)
+    if not def then return nil end
+    local objectName = tostring(def.name or "")
+    local target = OBJECT_SPRITE_FIXES[mapId]
+      and OBJECT_SPRITE_FIXES[mapId][objectName]
+
+    -- Some map loaders expose this counter attendant under a generated
+    -- name instead of the ROM object label. Catch both forms so the
+    -- original 16px Yellow receptionist cannot leak through in Viridian.
+    if mapId == "VIRIDIAN_POKECENTER"
+        and (objectName:find("RECEPTIONIST", 1, true)
+          or tostring(def.sprite or "") == "SPRITE_LINK_RECEPTIONIST") then
+      target = "SPRITE_LINK_RECEPTIONIST"
+    end
+
+    -- Yellow calls Gary/Blue simply RIVAL in every map object. These names
+    -- are specific enough that this does not collide with generic NPCs.
+    if not target and objectName:find("RIVAL", 1, true) then
+      target = "SPRITE_HGSS_BLUE"
+    elseif not target and OAK_OBJECTS[objectName] then
+      target = "SPRITE_HGSS_OAK"
+    end
+    return target
+  end
+
   local function applyLeaderSprites()
     local game = liveGame
     local overworld = game and game.overworld
-    if not overworld or not overworld.npcs then return end
+    if not overworld then return end
     local mapId = tostring(overworld.map and overworld.map.id or "")
     local gymObjects = GYM_LEADER_OBJECTS[mapId]
     local eliteObjects = ELITE_OBJECTS[mapId]
-    local objectFixes = OBJECT_SPRITE_FIXES[mapId]
-    for _, npc in ipairs(overworld.npcs) do
+
+    -- Bill1/Bill2 are hidden until the map script reveals them. Patch the
+    -- map definitions before that happens; Commands.show_object creates a
+    -- fresh NPC directly from this list and otherwise restores the stock
+    -- SUPER_NERD sprite, making Bill appear visually wrong or unresponsive.
+    -- Only the sprite field (and Oak's walker flag) is changed, so all text,
+    -- indices, hidden flags and script state remain untouched.
+    local mapDef = overworld.map and overworld.map.def
+    for _, def in ipairs((mapDef and mapDef.objects) or {}) do
+      local target = objectSpriteTarget(mapId, def)
+      if target and game.data.sprites[target] then
+        def.sprite = target
+        if target == "SPRITE_HGSS_OAK" then def.walker = true end
+      end
+    end
+
+    for _, npc in ipairs(overworld.npcs or {}) do
       local def = npc.def
       local objectName = tostring(def and def.name or "")
       local target = (gymObjects and gymObjects[objectName])
         or (eliteObjects and eliteObjects[objectName])
-        or (objectFixes and objectFixes[objectName])
-      -- Some map loaders expose this counter attendant under a generated
-      -- name instead of the ROM object label. Catch both forms so the
-      -- original 16px Yellow receptionist cannot leak through in Viridian.
-      if mapId == "VIRIDIAN_POKECENTER"
-          and (objectName:find("RECEPTIONIST", 1, true)
-            or tostring(def and def.sprite or "") == "SPRITE_LINK_RECEPTIONIST") then
-        target = "SPRITE_LINK_RECEPTIONIST"
-      end
-      -- Yellow calls Gary/Blue simply RIVAL in every map object.  Those names
-      -- are specific enough that this does not collide with generic NPCs.
-      if not target and objectName:find("RIVAL", 1, true) then
-        target = "SPRITE_HGSS_BLUE"
-      elseif not target and OAK_OBJECTS[objectName] then
-        target = "SPRITE_HGSS_OAK"
-      end
-      if target and game.data.sprites[target] and def.sprite ~= target then
+        or objectSpriteTarget(mapId, def)
+      local spriteDef = target and game.data.sprites[target]
+      if spriteDef and (def.sprite ~= target
+          or not npc.sprite or npc.sprite.def ~= spriteDef) then
         def.sprite = target
         if target == "SPRITE_HGSS_OAK" then
           -- Oak's map objects are authored as stationary Yellow NPCs. The
