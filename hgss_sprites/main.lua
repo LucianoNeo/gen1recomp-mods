@@ -45,6 +45,30 @@ LINK_RECEPTIONIST LITTLE_BOY MOM NURSE ODDISH SAFARI_ZONE_WORKER SANDSHREW
 SILPH_PRESIDENT SILPH_WORKER_M WARDEN
 ]]
 
+-- Yellow's map table uses SPRITE_MONSTER for several named Pokémon.  The
+-- generic sheet is a Rhydon placeholder, so register the preserved HGSS
+-- overworld sheets under dedicated sprite IDs and redirect only those exact
+-- map objects below.  This leaves unrelated custom/engine uses of
+-- SPRITE_MONSTER untouched.
+local POKEMON_OBJECT_SHEETS = {
+  -- These are the 32px six-frame sheets used only by map objects that the
+  -- Yellow map table labels SPRITE_MONSTER.  The source cells are preserved
+  -- from the archived HGSS overworld set; the generated vertical sheets keep
+  -- the same frame order as Red so movement and voxel anchors stay aligned.
+  POLIWRATH = { shortId = "HGSS_POLIWRATH", file = "hgss_poliwrath", frames = 6 },
+  MEOWTH = { shortId = "HGSS_MEOWTH", file = "hgss_meowth", frames = 6 },
+  NIDORAN_F = { shortId = "HGSS_NIDORAN_F", file = "hgss_nidoran_f", frames = 6 },
+  NIDORAN_M = { shortId = "HGSS_NIDORAN_M", file = "hgss_nidoran_m", frames = 6 },
+  NIDORINO = { shortId = "HGSS_NIDORINO", file = "hgss_nidorino", frames = 6 },
+  MEWTWO = { shortId = "HGSS_MEWTWO", file = "hgss_mewtwo", frames = 6 },
+  KANGASKHAN = { shortId = "HGSS_KANGASKHAN", file = "hgss_kangaskhan", frames = 6 },
+  SLOWPOKE = { shortId = "HGSS_SLOWPOKE", file = "hgss_slowpoke", frames = 6 },
+  CUBONE = { shortId = "HGSS_CUBONE", file = "hgss_cubone", frames = 6 },
+  PSYDUCK = { shortId = "HGSS_PSYDUCK", file = "hgss_psyduck", frames = 6 },
+  MACHOKE = { shortId = "HGSS_MACHOKE", file = "hgss_machoke", frames = 6 },
+  MACHOP = { shortId = "HGSS_MACHOP", file = "hgss_machop", frames = 6 },
+}
+
 local function words(text)
   return text:gmatch("[%w_]+")
 end
@@ -143,6 +167,33 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssBaseVoxelWidth = voxelWidth,
     hgssBaseVoxelHeight = voxelHeight,
     hgssVoxelEntityYOffset = voxelEntityYOffset,
+  })
+end
+
+local function patchPokemonOverworld(mod, entry)
+  -- The archived four-by-four sheets are converted to six vertical 32px
+  -- frames during the build.  The renderer therefore uses the same native
+  -- layout as Red and never falls back to the generic Rhydon sheet.
+  local nativeImage = mod.assets:path("overrides/sprites/" .. entry.file .. ".png")
+  mod.content.sprites:patch("SPRITE_" .. entry.shortId, {
+    image = mod.assets:path("assets/voxel/frame_layout_6_32.png"),
+    hgssNativeImage = nativeImage,
+    frames = entry.frames,
+    walker = true,
+    trueColor = true,
+    hgssFrameWidth = 32,
+    hgssFrameHeight = 32,
+    hgssDrawWidth = 32,
+    hgssDrawHeight = 32,
+    hgssBaseDrawWidth = 32,
+    hgssBaseDrawHeight = 32,
+    hgssLinearFilter = false,
+    hgssPostPresent = true,
+    hgssVoxelWidth = 32,
+    hgssVoxelHeight = 32,
+    hgssBaseVoxelWidth = 32,
+    hgssBaseVoxelHeight = 32,
+    hgssVoxelEntityYOffset = -4,
   })
 end
 
@@ -251,6 +302,9 @@ return function(mod)
     patchOverworld(mod, shortId, 3, false)
   end
   patchOverworld(mod, "SNORLAX", 1, false)
+  for _, entry in pairs(POKEMON_OBJECT_SHEETS) do
+    patchPokemonOverworld(mod, entry)
+  end
 
   -- The selector changes only the field player charset.  Battle Art Voxel
   -- Fork remains the owner of battle trainer art, while the selected native
@@ -1322,11 +1376,45 @@ return function(mod)
       -- Clefairy.  SPRITE_MONSTER is the generic Rhydon-like placeholder;
       -- keep the story object and text intact while binding only its visual
       -- charset to the dedicated Clefairy sheet.
-      BILLSHOUSE_BILL_POKEMON = "SPRITE_CLEFAIRY",
       BILLSHOUSE_BILL1 = "SPRITE_HGSS_BILL",
       BILLSHOUSE_BILL2 = "SPRITE_HGSS_BILL",
+      BILLSHOUSE_BILL_POKEMON = "SPRITE_CLEFAIRY",
+    },
+    CELADON_CITY = {
+      CELADONCITY_POLIWRATH = "SPRITE_HGSS_POLIWRATH",
+    },
+    CELADON_MANSION_1F = {
+      CELADONMANSION1F_MEOWTH = "SPRITE_HGSS_MEOWTH",
+      CELADONMANSION1F_NIDORANF = "SPRITE_HGSS_NIDORAN_F",
+    },
+    CERULEAN_CAVE_B1F = {
+      CERULEANCAVEB1F_MEWTWO = "SPRITE_HGSS_MEWTWO",
+    },
+    COPYCATS_HOUSE_2F = {
+      -- This object is Copycat's Pikachu doll.  The generated name is
+      -- unfortunately MONSTER, so do not let it inherit the generic Rhydon
+      -- placeholder.
+      COPYCATSHOUSE2F_MONSTER = "SPRITE_PIKACHU",
+    },
+    FUCHSIA_CITY = {
+      FUCHSIACITY_KANGASKHAN = "SPRITE_HGSS_KANGASKHAN",
+      FUCHSIACITY_SLOWPOKE = "SPRITE_HGSS_SLOWPOKE",
+    },
+    LAVENDER_CUBONE_HOUSE = {
+      LAVENDERCUBONEHOUSE_CUBONE = "SPRITE_HGSS_CUBONE",
+    },
+    MR_FUJIS_HOUSE = {
+      MRFUJISHOUSE_PSYDUCK = "SPRITE_HGSS_PSYDUCK",
+      MRFUJISHOUSE_NIDORINO = "SPRITE_HGSS_NIDORINO",
+    },
+    PEWTER_NIDORAN_HOUSE = {
+      PEWTERNIDORANHOUSE_NIDORAN = "SPRITE_HGSS_NIDORAN_M",
+    },
+    SS_ANNE_B1F_ROOMS = {
+      SSANNEB1FROOMS_MACHOKE = "SPRITE_HGSS_MACHOKE",
     },
     VERMILION_CITY = {
+      VERMILIONCITY_MACHOP = "SPRITE_HGSS_MACHOP",
       VERMILIONCITY_BEAUTY = "SPRITE_BEAUTY",
     },
     FIGHTING_DOJO = {
