@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.3.3
+
+- Added the animated Gen 5 Pikachu atlas used by the Yellow introduction.
+- Hardened the HD intro renderer against a transient missing animation quad,
+  preventing the `Quad expected, got nil` crash.
+- Documented the correct g1recomp import/smoke-test identity so local tests
+  reuse the populated game cache instead of opening a blank sandbox.
+- Rebuilt and validated the portable ZIP through g1recomp's own importer.
+
 ## 0.3.2
 
 - Published the verified Bill/Clefairy and map-object sprite corrections.
