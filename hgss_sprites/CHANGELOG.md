@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.2
+
+- Published the verified Bill/Clefairy and map-object sprite corrections.
+- Added dedicated normal-palette HGSS overworld sheets for Articuno, Zapdos
+  and Moltres instead of reusing shiny artwork.
+- Rebuilt the portable runtime archive and verified import through g1recomp's
+  ZIP installer without stack overflow or manifest errors.
+
 ## Next hotfix
 
 - Replaced every map-local `SPRITE_MONSTER` placeholder with its intended
