@@ -38,6 +38,11 @@ ROCKER ROCKET SAILOR SCIENTIST SEEL SILPH_WORKER_F SUPER_NERD
 SURFING_PIKACHU SWIMMER WAITER YOUNGSTER ETHAN
 ]]
 
+-- HGSS Black Belt is a 32x32 overworld charset, not the 80x80 battle
+-- portrait.  Keep its map registration separate from the battle assets.
+-- The same file is intentionally a single standing frame because the Yellow
+-- Dojo objects use the native HIKER-style standing movement.
+
 local STANDING = [[
 BALDING_GUY BIKE_SHOP_CLERK BULBASAUR CAPTAIN CHANSEY CLEFAIRY CLERK
 FISHING_GURU GAMEBOY_KID GRAMPS GRANNY GUARD GYM_GUIDE JIGGLYPUFF
@@ -110,7 +115,12 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Jessie/James, Ash and Ethan use 256px-wide authored frames; match the
   -- source cell so the renderer samples each complete frame instead of
   -- shrinking it or cutting off the head and feet.
+  -- Agatha and Lorelei now use the same native 256x1536 six-frame sheets
+  -- as Red/Ash/Ethan.  Keeping them in the 256px branch is important: the
+  -- old 288/394px assumptions stretched their 256px cells and made the
+  -- leaders appear at inconsistent sizes in Voxel.
   local frameSize = (file == "jessie" or file == "james"
+      or file == "agatha" or file == "lorelei"
       or playerSheet or playerBikeSheet) and 256
     or (nativeWide and 394
     or (hdSheet and 288 or (highDensity and 128 or 32)))
@@ -297,7 +307,7 @@ return function(mod)
       key = "battle_front_gen",
       label = "BATTLE FRONT GEN",
       type = "choice",
-      default = "rom",
+      default = "gen5",
       choices = {
         { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
         { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
@@ -307,7 +317,7 @@ return function(mod)
       key = "battle_back_gen",
       label = "BATTLE BACK GEN",
       type = "choice",
-      default = "rom",
+      default = "gen5",
       choices = {
         { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
         { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
@@ -317,7 +327,7 @@ return function(mod)
       key = "battle_trainer_gen",
       label = "BATTLE TRAINER GEN",
       type = "choice",
-      default = "rom",
+      default = "gen3",
       choices = {
         { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
         { "GEN 3", "gen3" },
@@ -544,6 +554,35 @@ return function(mod)
     return battleFramesCache[key] or nil
   end
 
+  -- The battle engine keeps a separate `playerBackPic` reference for the
+  -- throw-in/party side.  Once the send-out card closes it can still draw
+  -- that stale reference instead of the animated battler sprite.  Keep the
+  -- common player battler synchronized with the selected back atlas so every
+  -- species (not only Pikachu) receives the same animation and placement.
+  local function syncBattlePokemonImage(battler, side)
+    if not battler then return end
+    local gen = battleOption(side == "back" and "battle_back_gen"
+      or "battle_front_gen") or "rom"
+    if gen == "rom" or battleOption("battle_scope") == "trainers" then return end
+    local mon = battler.mon
+    local species = mon and (mon.species or mon.id or mon.dataId)
+    local def = battleDefinition(gen, side, species)
+    local frames = def and not def.static and battleFrames(def) or nil
+    local image = frames and frames[1]
+      or (def and def.image and battleTexture(mod.assets:path(def.image),
+        def.width, def.height, def.columns))
+    if image then battler.sprite = image end
+    return image
+  end
+
+  local function syncBattlePlayerReference(battle)
+    if not battle or not battle.player then return end
+    if battleOption("battle_scope") == "trainers" then return end
+    if battle.showPlayerBack then return end
+    local image = syncBattlePokemonImage(battle.player, "back")
+    if image then battle.playerBackPic = nil end
+  end
+
   local function updateBattleFrame(battler, side, dt)
     if not battler or not battler.sprite then return end
     local gen = battleOption(side == "back" and "battle_back_gen"
@@ -636,6 +675,47 @@ return function(mod)
       end
     end
     return nil
+  end
+
+  -- The Pokédex entry page resolves its image through the generic
+  -- `pokemon.sprite` hook, but later-generation front assets are atlases.
+  -- Returning the atlas path there makes DexEntryMenu draw the first sheet
+  -- (which looks like a Gen 1/garbled sprite).  Resolve one logical front
+  -- frame here and install it on the entry page, using the same generation
+  -- selector as battle fronts.
+  local function selectedDexImage(species)
+    if battleOption("battle_scope") == "trainers" then return nil end
+    local gen = battleOption("battle_front_gen") or "rom"
+    if gen == "rom" then return nil end
+    local def = battleDefinition(gen, "front", species)
+    if def then
+      local frames = not def.static and battleFrames(def) or nil
+      local image = frames and frames[1]
+        or (def.image and battleTexture(mod.assets:path(def.image),
+            def.width, def.height, def.columns))
+      if image then return image end
+    end
+    -- Gen 1 front art has no Lua atlas definition and is already one 56x56
+    -- frame, so load that selected path directly.
+    local path = selectedBattlePokemonImage(species, "front")
+    return path and battleTexture(path) or nil
+  end
+
+  local okDexEntry, DexEntryMenu = pcall(require, "src.ui.DexEntryMenu")
+  if okDexEntry and DexEntryMenu and not DexEntryMenu.__hgssFrontGenerationHook then
+    local oldDexEntryNew = DexEntryMenu.new
+    DexEntryMenu.new = function(game, speciesOrOpts, onDone)
+      local entry = oldDexEntryNew(game, speciesOrOpts, onDone)
+      local species = type(speciesOrOpts) == "table"
+        and (speciesOrOpts.species or speciesOrOpts[1]) or speciesOrOpts
+      local image = selectedDexImage(species)
+      if image then
+        entry.sprite = image
+        entry.spriteTrueColor = true
+      end
+      return entry
+    end
+    DexEntryMenu.__hgssFrontGenerationHook = true
   end
 
   local battleOriginalSprites = setmetatable({}, { __mode = "k" })
@@ -737,6 +817,13 @@ return function(mod)
           if playerImage then self.playerBackPic = playerImage end
         end
         refreshBattleSprites(self)
+        -- Keep the side-specific reference used by drawPicsLayer in sync with
+        -- the same selected Pokémon atlas. This applies to every species.
+        if self.player and self.player.sprite then
+          local playerImage = syncBattlePokemonImage(self.player, "back")
+          if playerImage then self.player.sprite = playerImage end
+          syncBattlePlayerReference(self)
+        end
         updateBattleFrame(self.enemy, "front", dt)
         updateBattleFrame(self.player, "back", dt)
         return result
@@ -883,7 +970,7 @@ return function(mod)
     end
     return frames[state.frame]
   end
-  local function selectedBattleTrainerImage(name)
+  local function selectedBattleTrainerImage(name, partyIndex)
     local gen = battleOption("battle_trainer_gen") or "rom"
     if gen == "rom" then return nil end
     local rawName = tostring(name or "")
@@ -894,9 +981,15 @@ return function(mod)
     -- back to the original Gen I picture while Jessie/James still work via
     -- their special-case path.
     local className = rawName:gsub("^[Oo][Pp][Pp]_", "")
-    local slug = (rawName == "true" or rawName == "42"
-      or rawName:upper() == "OPP_ROCKET" or rawName:lower():find("jessie", 1, true))
-      and "jessie-james" or battleSlug(className)
+    -- Yellow reuses OPP_ROCKET for both ordinary Rocket grunts and the
+    -- Jessie/James encounters.  Only party records 42+ are the duo; mapping
+    -- every OPP_ROCKET here made normal grunts enter battle with the
+    -- Jessie/James portrait.  Keep the ordinary Rocket class on rocket.png.
+    local rocketParty = tonumber(partyIndex) or 0
+    local isJessieJames = (rawName == "true" or rawName == "42"
+      or rawName:lower():find("jessie", 1, true)
+      or (rawName:upper() == "OPP_ROCKET" and rocketParty >= 42))
+    local slug = isJessieJames and "jessie-james" or battleSlug(className)
     local rel = ("assets/battle/front-static/%s/%s.png"):format(
       gen, slug)
     local path = mod.assets:path(rel)
@@ -922,7 +1015,7 @@ return function(mod)
       local name = self and (self.oppClass or (trainer and
         (trainer.picJessieJames or trainer.id or trainer.name or trainer.class)))
       if image == (self and self.trainerPic) and name then
-        return selectedBattleTrainerImage(name)
+        return selectedBattleTrainerImage(name, self.partyIndex)
           or oldBattlePicImage(self, image)
       end
       return oldBattlePicImage(self, image)
@@ -943,7 +1036,7 @@ return function(mod)
           -- BattleState.picImage. It strips OPP_ and maps OPP_RIVAL1 to the
           -- bundled rival1.png; pre-slugging here used to turn it into
           -- opp-rival1 and made Blue retain the ROM portrait.
-          local enemy = selectedBattleTrainerImage(id)
+          local enemy = selectedBattleTrainerImage(id, battle.partyIndex)
           if enemy then battle.trainerPic = enemy end
         end
         return battle
@@ -1065,7 +1158,14 @@ return function(mod)
   -- though their names/classes are Blackbelt and Burglar.  Supply the
   -- missing native HGSS IDs so the object-local corrections below can point
   -- to real sprites instead of silently failing on absent registry entries.
-  patchOverworld(mod, "BLACKBELT", 6, true, "bruno")
+  -- The Dojo's Black Belts are not Bruno.  Keep Bruno's Elite Four charset
+  -- scoped to BRUNOS_ROOM and use the dedicated Black Belt sheet for the
+  -- Fighting Dojo object redirects below.
+  -- The official HGSS Black Belt overworld asset is a single 32x32 frame.
+  -- It must not be registered as a six-frame walker: doing so samples past
+  -- the one-frame image and can expose battle-art pixels or empty fragments
+  -- in the Fighting Dojo.
+  patchOverworld(mod, "BLACKBELT", 1, false, "blackbelt")
   patchOverworld(mod, "BURGLAR", 6, true, "rocket")
   for shortId in words(STANDING) do
     patchOverworld(mod, shortId, 3, false)
@@ -1127,6 +1227,7 @@ return function(mod)
   -- then widen only our proxy-backed cards.  Texture UVs remain untouched;
   -- the native 32/48px image still supplies every authored pixel.
   local voxelBillboardsPatched = false
+  local voxelBillboardsPatching = false
   -- Set by the voxel world's own draw callback for the current frame.  The
   -- callback runs before Renderer:endFrame presents the world, while the
   -- pipeline registry is allowed to clear its transient owner afterwards;
@@ -1134,15 +1235,22 @@ return function(mod)
   -- query when deciding whether a flat HD repaint would break depth order.
   local voxelWorldRendered = false
   local function patchVoxelBillboards()
-    if voxelBillboardsPatched or not (debug and debug.getupvalue) then return end
+    if voxelBillboardsPatched or voxelBillboardsPatching
+       or not (debug and debug.getupvalue) then return end
+    voxelBillboardsPatching = true
     local okP, Pipelines = pcall(require, "src.render.Pipelines")
     local voxel = okP and Pipelines.get and Pipelines.get("voxel")
-    if not (voxel and type(voxel.drawWorld) == "function") then return end
+    if not (voxel and type(voxel.drawWorld) == "function") then voxelBillboardsPatching = false; return end
     if not voxel._hgssWorldDrawWrapped then
       local oldVoxelDrawWorld = voxel.drawWorld
       voxel.drawWorld = function(...)
         voxelWorldRendered = true
-        return oldVoxelDrawWorld(...)
+        local result = oldVoxelDrawWorld(...)
+        -- VoxelScene's render closure is fully populated only after the first
+        -- world pass. Retry now so private drawEntity/billboardPull upvalues
+        -- are available on all engine builds.
+        if not voxelBillboardsPatched then patchVoxelBillboards() end
+        return result
       end
       voxel._hgssWorldDrawWrapped = true
     end
@@ -1175,7 +1283,7 @@ return function(mod)
       return nil
     end
     local billboards = find(voxel.drawWorld, 0)
-    if not billboards then return end
+    if not billboards then voxelBillboardsPatching = false; return end
     local originalMesh = billboards.mesh
     local sized = setmetatable({}, { __mode = "k" })
     local function nativeMesh(def, frame)
@@ -1224,11 +1332,42 @@ return function(mod)
     -- above its ground shadow.  Patch the cast's entity call instead: every
     -- replacement character is lowered, while the shadow remains anchored
     -- to the map.
+    -- VoxelScene is usually nested behind the pipeline callback rather than
+    -- exposed as a named upvalue on drawWorld.  Find the module table by its
+    -- stable public shape instead of assuming a particular closure layout.
     local scene
-    for i = 1, 32 do
-      local name, value = debug.getupvalue(voxel.drawWorld, i)
-      if not name then break end
-      if name == "VoxelScene" and type(value) == "table" then scene = value; break end
+    local sceneSeen = {}
+    local function findScene(value, depth)
+      if depth > 32 then return nil end
+      local kind = type(value)
+      if kind ~= "function" and kind ~= "table" then return nil end
+      if sceneSeen[value] then return nil end
+      sceneSeen[value] = true
+      if kind == "table" then
+        if type(value.render) == "function"
+           and type(value.drawEntity) == "function" then return value end
+        for _, child in pairs(value) do
+          local hit = findScene(child, depth + 1)
+          if hit then return hit end
+        end
+      else
+        for j = 1, 48 do
+          local _, child = debug.getupvalue(value, j)
+          if not child then break end
+          local hit = findScene(child, depth + 1)
+          if hit then return hit end
+        end
+      end
+      return nil
+    end
+    scene = findScene(voxel.drawWorld, 0)
+    if not scene then
+      local okS, VoxelScene = pcall(require, "VoxelScene")
+      if okS and type(VoxelScene) == "table"
+         and type(VoxelScene.render) == "function"
+         and type(VoxelScene.drawEntity) == "function" then
+        scene = VoxelScene
+      end
     end
     local render = scene and scene.render
     local drawCast
@@ -1239,31 +1378,125 @@ return function(mod)
         if name == "drawCast" and type(value) == "function" then drawCast = value; break end
       end
     end
+    local entityPatched = false
+    if render then
+      -- The drawCast closure can be introduced after the first scene render;
+      -- try the module's current function directly as a fallback.  This keeps
+      -- the adapter resilient across engine builds with different upvalue
+      -- layouts.
+      local direct = scene.drawEntity
+      if type(direct) == "function" then
+        local oldEntity = direct
+        local oldPull = nil
+        for j = 1, 48 do
+          local upName, upValue = debug.getupvalue(oldEntity, j)
+          if not upName then break end
+          if upName == "billboardPull" and type(upValue) == "function" then oldPull = upValue; break end
+        end
+        if oldPull then
+          local biasActive = false
+          local function biasedPull() return oldPull() + (biasActive and 4 or 0) end
+          for j = 1, 48 do
+            local upName = debug.getupvalue(oldEntity, j)
+            if not upName then break end
+            if upName == "billboardPull" then debug.setupvalue(oldEntity, j, biasedPull); break end
+          end
+          local function wrappedEntity(sprite, px, py, facing, phase, flip, gh, colors, lift)
+            local def = sprite and sprite.def
+            biasActive = def and def.hgssNativeImage and true or false
+            if biasActive and def.hgssVoxelEntityYOffset then gh = gh + (tonumber(def.hgssVoxelEntityYOffset) or 0) end
+            local ok, result = pcall(oldEntity, sprite, px, py, facing, phase, flip, gh, colors, lift)
+            biasActive = false
+            return ok and result or false
+          end
+          scene.drawEntity = wrappedEntity
+          entityPatched = true
+        end
+      end
+    end
     if drawCast then
       for i = 1, 16 do
         local name, value = debug.getupvalue(drawCast, i)
         if not name then break end
         if name == "drawEntity" and type(value) == "function" then
           local oldEntity = value
+          -- The leaned billboard already gets a camera-ward pull from
+          -- DRAMALESS_SHAPE.  Native HGSS cards are taller than the stock
+          -- 16px walkers, so an elevated voxel prop (lab cabinets, counters,
+          -- machines) can otherwise win the depth test across the upper half
+          -- of a character that is standing in front of it.  Add a small,
+          -- sprite-only bias through the scene function's pull helper.  This
+          -- changes depth only; the feet, ground height and shadow remain at
+          -- their authored positions, and real behind-wall occlusion still
+          -- wins because the bias is much smaller than a tile row.
+          local hgssDepthBiasActive = false
+          local hgssDepthBiasInstalled = false
+          if debug.getupvalue and debug.setupvalue then
+            for j = 1, 32 do
+              local upName, upValue = debug.getupvalue(oldEntity, j)
+              if not upName then break end
+          if upName == "billboardPull" and type(upValue) == "function" then
+                local basePull = upValue
+                debug.setupvalue(oldEntity, j, function()
+                  return basePull() + (hgssDepthBiasActive and 4 or 0)
+                end)
+                hgssDepthBiasInstalled = true
+                break
+              end
+            end
+          end
+          if not hgssDepthBiasInstalled then
+            local scenePull
+            for j = 1, 48 do
+              local upName, upValue = debug.getupvalue(oldEntity, j)
+              if not upName then break end
+              if upName == "VoxelScene" and type(upValue) == "table"
+                 and type(upValue.pull) == "function" then
+                scenePull = upValue.pull; break
+              end
+            end
+            if scenePull then
+              for j = 1, 48 do
+                local upName, upValue = debug.getupvalue(oldEntity, j)
+                if not upName then break end
+                if upName == "billboardPull" then
+                  debug.setupvalue(oldEntity, j, function()
+                    return scenePull(1.0) + (hgssDepthBiasActive and 4 or 0)
+                  end)
+                  hgssDepthBiasInstalled = true
+                  break
+                end
+              end
+            end
+          end
           local function anchoredEntity(sprite, px, py, facing, phase, flip,
                                         gh, colors, lift)
             local def = sprite and sprite.def
             if def and def.hgssVoxelEntityYOffset and def.hgssNativeImage then
               gh = gh + (tonumber(def.hgssVoxelEntityYOffset) or 0)
             end
-            return oldEntity(sprite, px, py, facing, phase, flip, gh, colors, lift)
+            hgssDepthBiasActive = def and def.hgssNativeImage and true or false
+            local result = oldEntity(sprite, px, py, facing, phase, flip, gh, colors, lift)
+            hgssDepthBiasActive = false
+            return result
           end
           debug.setupvalue(drawCast, i, anchoredEntity)
+          entityPatched = true
           break
         end
       end
     end
 
-    voxelBillboardsPatched = true
+    voxelBillboardsPatched = entityPatched
+    voxelBillboardsPatching = false
+  end
+  local function tryPatchVoxelBillboards()
+    if voxelBillboardsPatched then return end
+    patchVoxelBillboards()
   end
 
   SpriteRenderer.new = function(spriteDef, seed)
-    patchVoxelBillboards()
+    tryPatchVoxelBillboards()
     local self = oldNew(spriteDef, seed)
     if self and spriteDef and spriteDef.hgssNativeImage then
       self.hgssIsPlayer = seed == "player"
@@ -1300,12 +1533,22 @@ return function(mod)
           spriteDef.hgssNativeImage)
         if okData and data and data.getPixel then
           self.hgssFrameBottoms = {}
-          local count = math.min(6, math.floor(ih / fh))
+          -- ImageData can have dimensions that differ from the GPU image
+          -- after an asset is replaced while the renderer is rebuilding
+          -- (notably at a map seam).  Derive the sampling bounds from the
+          -- ImageData itself; using the stale image height can make
+          -- getPixel() throw and abort the whole game during a connection
+          -- transition.
+          local dataW, dataH = data:getDimensions()
+          local sampleW = math.min(fw, dataW)
+          local count = math.min(6, math.floor(dataH / fh))
           for frame = 0, count - 1 do
             local bottom = 0
             for yy = 0, fh - 1 do
               local rowVisible = false
-              for xx = 0, fw - 1 do
+              local dataY = frame * fh + yy
+              if dataY >= dataH then break end
+              for xx = 0, sampleW - 1 do
                 local _, _, _, alpha = data:getPixel(xx, frame * fh + yy)
                 if (alpha or 0) > 0.01 then
                   rowVisible = true
@@ -1325,6 +1568,7 @@ return function(mod)
 
   SpriteRenderer.draw = function(self, px, py, camX, camY, facing,
                                   walkPhase, stepFlip, topHalf)
+    tryPatchVoxelBillboards()
     if not self.isHgssSheet then
       return oldDraw(self, px, py, camX, camY, facing, walkPhase,
                      stepFlip, topHalf)
@@ -2532,16 +2776,19 @@ return function(mod)
 
   mod.events:on("game.ready", function(ev)
     liveGame = ev and ev.game
+    tryPatchVoxelBillboards()
     applyCrispDisplay(liveGame)
     applyPartyMenuOption(liveGame)
     applyPlayerSelection(liveGame)
     applyLeaderSprites()
   end)
   mod.events:on("map.entered", function()
+    tryPatchVoxelBillboards()
     applyPlayerSelection(liveGame)
     applyLeaderSprites()
   end)
   mod.events:on("map.reloaded", function()
+    tryPatchVoxelBillboards()
     applyPlayerSelection(liveGame)
     applyLeaderSprites()
   end)
