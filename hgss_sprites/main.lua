@@ -67,6 +67,12 @@ local POKEMON_OBJECT_SHEETS = {
   PSYDUCK = { shortId = "HGSS_PSYDUCK", file = "hgss_psyduck", frames = 6 },
   MACHOKE = { shortId = "HGSS_MACHOKE", file = "hgss_machoke", frames = 6 },
   MACHOP = { shortId = "HGSS_MACHOP", file = "hgss_machop", frames = 6 },
+  -- The three legendary encounters are authored as SPRITE_BIRD in Yellow,
+  -- which is a generic bird placeholder. Keep their species-specific HGSS
+  -- sheets separate so the overworld object and its battle species agree.
+  ARTICUNO = { shortId = "HGSS_ARTICUNO", file = "hgss_articuno", frames = 6 },
+  ZAPDOS = { shortId = "HGSS_ZAPDOS", file = "hgss_zapdos", frames = 6 },
+  MOLTRES = { shortId = "HGSS_MOLTRES", file = "hgss_moltres", frames = 6 },
 }
 
 local function words(text)
@@ -1416,6 +1422,15 @@ return function(mod)
     VERMILION_CITY = {
       VERMILIONCITY_MACHOP = "SPRITE_HGSS_MACHOP",
       VERMILIONCITY_BEAUTY = "SPRITE_BEAUTY",
+    },
+    POWER_PLANT = {
+      POWERPLANT_ZAPDOS = "SPRITE_HGSS_ZAPDOS",
+    },
+    SEAFOAM_ISLANDS_B4F = {
+      SEAFOAMISLANDSB4F_ARTICUNO = "SPRITE_HGSS_ARTICUNO",
+    },
+    VICTORY_ROAD_2F = {
+      VICTORYROAD2F_MOLTRES = "SPRITE_HGSS_MOLTRES",
     },
     FIGHTING_DOJO = {
       FIGHTINGDOJO_BLACKBELT1 = "SPRITE_BLACKBELT",
