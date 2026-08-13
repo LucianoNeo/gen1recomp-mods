@@ -24,6 +24,7 @@ return {
     { who = "The Pokemon Company / DeNA", for_ = "high-resolution Pokemon Masters character renders" },
     { who = "Bulbagarden Archives contributors", for_ = "official sprite preservation and provenance" },
     { who = "The Spriters Resource contributors", for_ = "the credited HGSS sprite sheets retained in the source-assets tree" },
+    { who = "Battle Art Voxel Fork / DramaticShapeVoxelMod contributors", for_ = "the adapted battle asset library, atlas/timing conventions and reimplemented battle-art architecture; no runtime dependency" },
     { who = "Pokemon Gen 1 Recompilation Project", for_ = "g1recomp and its public Mod API 2" },
   },
   compat = { engine = ">=0.1.75 <0.2.0", modApi = 2 },

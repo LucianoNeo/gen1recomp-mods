@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.4.0](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.0) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.4.1](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.1) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 
@@ -31,6 +31,28 @@ bundled Gen 1-5 collections. `PLAYER SELECT` also chooses the battle trainer
 intro: RED, ASH or ETHAN. Missing files fall back to g1recomp's original
 sprites.
 
+### Battle Art Voxel Fork credit and scope
+
+The battle asset library/content used by this mod was adapted from the public
+[Battle Art Voxel Fork / DramaticShapeVoxelMod](https://github.com/absol89/DramaticShapeVoxelMod)
+collections and conventions. Credit is due for the reused/adapted generation
+organization, lowercase species/trainer slugs, animated atlas cell layout and
+frame-timing metadata. Individual image sources are listed separately in the
+battle asset notes.
+
+The code audit found no runtime module import or manifest dependency on Battle
+Art. However, the local resolver/atlas decoder/frame-timing path was
+reimplemented from that project's battle-art architecture and is therefore
+credited as adapted code, not presented as an unrelated original design. The
+implementation lives in `hgss_sprites/main.lua`, uses g1recomp Mod API 2 and
+operates on the bundled assets; Battle Art's HUD, trainer renderer and Voxel
+runtime are not bundled. Battle Art is therefore not required by HGSS Visual
+Overhaul; it is only an optional companion for users who want its separate
+Voxel renderer. Missing files fall back to the original game assets. Image
+sources and their credits are listed in
+[`hgss_sprites/assets/battle/README.md`](hgss_sprites/assets/battle/README.md)
+and the generation-specific notes.
+
 ### Gym captures
 
 ![Pewter Gym with Brock](hgss_sprites/docs/media/readme-voxel-gym-brock.png)
@@ -43,7 +65,7 @@ The party screen keeps the custom full-color HGSS icon set:
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 ![Party menu with six Pokemon](hgss_sprites/docs/media/readme-party-icons.png)
 
-### Character updates in 0.4.0
+### Character updates in 0.4.1
 
 Voxel grounding was corrected for the HGSS overworld replacements. The mod
 menu offers `PLAYER SELECT` (`RED`, `ASH`, `ETHAN`), `PARTY MENU`
@@ -59,5 +81,5 @@ sprites use dedicated normal-palette HGSS sheets.
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
-Package: `0.4.0` - Lean runtime package - Compatible with g1recomp
+Package: `0.4.1` - Lean runtime package - Compatible with g1recomp
 `>=0.1.75 <0.2.0` (tested on `0.1.78`).

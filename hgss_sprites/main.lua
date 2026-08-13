@@ -39,9 +39,10 @@ SURFING_PIKACHU SWIMMER WAITER YOUNGSTER ETHAN
 ]]
 
 -- HGSS Black Belt is a 32x32 overworld charset, not the 80x80 battle
--- portrait.  Keep its map registration separate from the battle assets.
--- The same file is intentionally a single standing frame because the Yellow
--- Dojo objects use the native HIKER-style standing movement.
+-- portrait. Keep its map registration separate from the battle assets.
+-- The replacement sheet is normalized to six native cells (down, up, side
+-- and the three walk frames) so Fighting Dojo trainers can turn toward the
+-- player instead of remaining locked to one facing.
 
 local STANDING = [[
 BALDING_GUY BIKE_SHOP_CLERK BULBASAUR CAPTAIN CHANSEY CLEFAIRY CLERK
@@ -400,6 +401,11 @@ return function(mod)
     end
   end)
 
+  -- Attribution: the resolver/atlas-playback architecture below was
+  -- reimplemented from Battle Art Voxel Fork's battle-art path. This file
+  -- keeps the implementation local and does not import Battle Art runtime
+  -- modules; the adapted architecture and bundled asset conventions are
+  -- credited in the project README and battle asset notes.
   -- Self-contained generation collections. The selected generation is
   -- resolved per species and side; missing files deliberately fall back to
   -- the image supplied by the g1recomp engine.
@@ -1161,11 +1167,10 @@ return function(mod)
   -- The Dojo's Black Belts are not Bruno.  Keep Bruno's Elite Four charset
   -- scoped to BRUNOS_ROOM and use the dedicated Black Belt sheet for the
   -- Fighting Dojo object redirects below.
-  -- The official HGSS Black Belt overworld asset is a single 32x32 frame.
-  -- It must not be registered as a six-frame walker: doing so samples past
-  -- the one-frame image and can expose battle-art pixels or empty fragments
-  -- in the Fighting Dojo.
-  patchOverworld(mod, "BLACKBELT", 1, false, "blackbelt")
+  -- Fighting Dojo Black Belts need all three facings so they can turn toward
+  -- the player.  The normalized HGSS sheet keeps six 32px cells in the same
+  -- order as the other walkers: down, up, side, then their walk frames.
+  patchOverworld(mod, "BLACKBELT", 6, true, "blackbelt")
   patchOverworld(mod, "BURGLAR", 6, true, "rocket")
   for shortId in words(STANDING) do
     patchOverworld(mod, shortId, 3, false)
@@ -2682,6 +2687,17 @@ return function(mod)
     local mapId = tostring(overworld.map and overworld.map.id or "")
     local gymObjects = GYM_LEADER_OBJECTS[mapId]
     local eliteObjects = ELITE_OBJECTS[mapId]
+    -- The Dojo's object records encode the trainer sight line in `range`.
+    -- Keep an explicit fallback for modded/generated map data that loses that
+    -- field when the object is rebuilt: these are the original HGSS-style
+    -- positions, all facing inward toward the Dojo's center.
+    local dojoFacing = {
+      FIGHTINGDOJO_KARATE_MASTER = "down",
+      FIGHTINGDOJO_BLACKBELT1 = "right",
+      FIGHTINGDOJO_BLACKBELT2 = "right",
+      FIGHTINGDOJO_BLACKBELT3 = "left",
+      FIGHTINGDOJO_BLACKBELT4 = "left",
+    }
 
     -- Bill1/Bill2 are hidden until the map script reveals them. Patch the
     -- map definitions before that happens; Commands.show_object creates a
@@ -2718,6 +2734,10 @@ return function(mod)
         if target == "SPRITE_HGSS_OAK" and npc.sprite then
           npc.sprite.def.walker = true
         end
+      end
+      if mapId == "FIGHTING_DOJO" and dojoFacing[objectName]
+          and not npc.moving then
+        npc.facing = dojoFacing[objectName]
       end
     end
   end

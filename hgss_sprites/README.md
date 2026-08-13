@@ -1,10 +1,11 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.4.0-gold)
+![Version](https://img.shields.io/badge/version-0.4.1-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.78-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
-SoulSilver. Battle Art Voxel Fork is recommended for its Voxel renderer.
+SoulSilver. Battle Art Voxel Fork is optional and recommended only when its
+Voxel renderer is desired.
 
 ## Scope
 
@@ -15,7 +16,9 @@ This pack owns three visual areas:
 - full-color animated party icons.
 - self-contained battle Pokemon collections and player trainer intros.
 
-Version 0.4.0 includes the 0.3.3 animated Pikachu intro and guarded HD quad
+Version 0.4.1 includes the 0.4.0 package plus the corrected Fighting Dojo
+Black Belt directions and six-frame walk sheet. Version 0.4.0 includes the
+0.3.3 animated Pikachu intro and guarded HD quad
 presentation, plus the current voxel coexistence package test. Version 0.3.2
 includes the 0.3.1 features plus the verified map-object and normal-palette
 legendary-bird corrections. Version 0.3.1 includes the 0.3.0 features plus
@@ -34,6 +37,28 @@ configurable presentation options:
 Ash and Ethan use native 256x1536 sheets at a 28px logical footprint, matching
 Red's map proportions in both 2D and Voxel modes. Sprite size applies at draw
 time, so it updates existing maps without resampling the source sheets.
+
+## Battle Art Voxel Fork attribution
+
+The battle asset library/content used by this mod was adapted from the public
+[Battle Art Voxel Fork /
+DramaticShapeVoxelMod](https://github.com/absol89/DramaticShapeVoxelMod)
+collections and conventions. Credit is due for the reused/adapted generation
+directory layout, lowercase species/trainer filename slugs, animated atlas cell
+format and frame-timing tables. This credit concerns the asset library and its
+compatibility conventions; individual image sources are documented separately.
+
+A code audit found no runtime module import or manifest dependency on Battle
+Art. The local resolver, atlas decoder and frame-timing path were nevertheless
+reimplemented from Battle Art's battle-art architecture, so that adapted code
+is credited here rather than presented as unrelated original work. HGSS Visual
+Overhaul's implementation lives in `main.lua`, uses g1recomp Mod API 2 and
+bundles its own assets; Battle Art's HUD, trainer renderer and Voxel runtime are
+not included. Battle Art is not a manifest dependency and is only an optional
+companion for users who want its separate Voxel renderer. Missing files fall
+back to g1recomp.
+The original source and credit for each collection are documented in
+[`assets/battle/README.md`](assets/battle/README.md) and its generation notes.
 
 ## Current in-game captures
 
@@ -60,9 +85,9 @@ The party menu retains the full-color HGSS icon set:
 
 ## Installation
 
-1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for the Voxel renderer.
+1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for its Voxel renderer; it is not required for the mod's battle or overworld assets.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.4.0 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.0).
+3. Download the [`HGSS_SPRITES` 0.4.1 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.1).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 

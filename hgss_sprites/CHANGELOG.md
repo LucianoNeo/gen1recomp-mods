@@ -1,5 +1,31 @@
 # Changelog
 
+## 0.4.1
+
+- Corrigido o charset dos Black Belts do Fighting Dojo: a folha HGSS agora
+  contém as três direções usadas no mapa (baixo, cima e lateral), além dos
+  quadros de caminhada, para que eles possam virar para o centro e enfrentar
+  o jogador.
+
+## 0.4.0
+
+- Prepared a clean import archive containing only the runtime mod files.
+- Verified coexistence with DRAMALESS_SHAPE 1.6.4 voxel overworld rendering.
+- Replaced every map-local `SPRITE_MONSTER` placeholder with its intended
+  Pokemon charset: Bill's Clefairy, Copycat's Pikachu doll, Poliwrath,
+  Meowth, both Nidoran variants, Nidorino, Mewtwo, Kangaskhan, Slowpoke,
+  Cubone, Psyduck, Machoke and Machop.
+- Added native six-frame HGSS overworld sheets for those objects, preserving
+  32px authored cells and the existing Red movement/grounding layout.
+- Added explicit Battle Art Voxel Fork attribution for the adapted battle
+  asset library/content, generation folders, filename slugs, animated atlas
+  layout and timing conventions. The code audit found no runtime module import
+  or manifest dependency; the local resolver, atlas decoder and frame-timing
+  path were reimplemented from Battle Art's battle-art architecture and are
+  credited as adapted code. Battle Art's HUD, trainer renderer and Voxel runtime
+  are not bundled, and Battle Art remains optional only for its separate Voxel
+  renderer.
+
 ## 0.3.3
 
 - Added the animated Gen 5 Pikachu atlas used by the Yellow introduction.
@@ -16,20 +42,6 @@
   and Moltres instead of reusing shiny artwork.
 - Rebuilt the portable runtime archive and verified import through g1recomp's
   ZIP installer without stack overflow or manifest errors.
-
-## Next hotfix
-
-- Replaced every map-local `SPRITE_MONSTER` placeholder with its intended
-  Pokémon charset: Bill's Clefairy, Copycat's Pikachu doll, Poliwrath,
-  Meowth, both Nidoran variants, Nidorino, Mewtwo, Kangaskhan, Slowpoke,
-  Cubone, Psyduck, Machoke and Machop.
-- Added native six-frame HGSS overworld sheets for those objects, preserving
-  32px authored cells and the existing Red movement/grounding layout.
-
-## 0.4.0
-
-- Prepared a clean import archive containing only the runtime mod files.
-- Verified coexistence with DRAMALESS_SHAPE 1.6.4 voxel overworld rendering.
 
 ## 0.3.1
 
@@ -203,6 +215,47 @@
 - O objeto do Carvalho voltou a ser um walker para que o jogo use as seis
   células ao virar e andar.
 
+## 2.4.9
+
+- Corrected the identity mix-up: the former `oak_32x192` charset was Professor Elm, not Professor Oak.
+- Oak now uses the verified HGSS Oak overworld raster.
+
+## 2.4.8
+
+- Made the overworld builder retain generated dedicated sheets when optional source sheets are absent from the workspace.
+
+## 2.4.7
+
+- Marked live Oak map objects as walkers so the restored six-frame charset is used when they turn and move.
+
+## 2.4.6
+
+- Restored Professor Oak's six-frame HGSS overworld movement charset and corrected its direction order.
+
+## 2.4.5
+
+- Red's animated battle back now plays its five-frame entrance sequence only once and holds the final pose.
+
+## 2.4.4
+
+- Fixed the Yellow Oak tutorial back sprite using the vanilla demo palette, which broke the HGSS colors and silhouette.
+
+## 2.4.3
+
+- Fixed the Scientist frame slicing so no hair from the next animation row leaks below the character.
+
+## 2.4.2
+
+- Matched the corrected Scientist charset to the regular overworld NPC scale so it no longer renders twice as tall as the player.
+
+## 2.4.1
+
+- Replaced the generic elderly overworld Scientist with the supplied purple-haired HGSS Scientist charset, preserving its full two-tile animation.
+
+## 2.4.0
+
+- Added the five-frame animated HGSS Red battle-back strip supplied for the player.
+
 ## 2.3.9
 
 - Corrigido o Karate Master do Fighting Dojo: deixou de reutilizar o charset de Hiker e agora usa o sprite HGSS de Black Belt.
@@ -271,34 +324,3 @@
 - Added reusable DS-like border/cursor glyphs, HGSS-like HP palettes, Trainer Card chrome/badges, and a crisp-display option while preserving the native 8×8 text metrics.
 - Normalized party icons to the engine's supported four-shade UI path and fixed Mew's seam-crossing source frame.
 - Added a deterministic asset builder, verifier, and lean release packager.
-## 2.4.0
-
-- Added the five-frame animated HGSS Red battle-back strip supplied for the player.
-## 2.4.1
-
-- Replaced the generic elderly overworld Scientist with the supplied purple-haired HGSS Scientist charset, preserving its full two-tile animation.
-## 2.4.2
-
-- Matched the corrected Scientist charset to the regular overworld NPC scale so it no longer renders twice as tall as the player.
-## 2.4.3
-
-- Fixed the Scientist frame slicing so no hair from the next animation row leaks below the character.
-## 2.4.4
-
-- Fixed the Yellow Oak tutorial back sprite using the vanilla demo palette, which broke the HGSS colors and silhouette.
-## 2.4.5
-
-- Red's animated battle back now plays its five-frame entrance sequence only once and holds the final pose.
-## 2.4.6
-
-- Restored Professor Oak's six-frame HGSS overworld movement charset and corrected its direction order.
-## 2.4.7
-
-- Marked live Oak map objects as walkers so the restored six-frame charset is used when they turn and move.
-## 2.4.8
-
-- Made the overworld builder retain generated dedicated sheets when optional source sheets are absent from the workspace.
-## 2.4.9
-
-- Corrected the identity mix-up: the former `oak_32x192` charset was Professor Elm, not Professor Oak.
-- Oak now uses the verified HGSS Oak overworld raster.
