@@ -1,5 +1,14 @@
 # Changelog
 
+## Next hotfix
+
+- Replaced every map-local `SPRITE_MONSTER` placeholder with its intended
+  Pokémon charset: Bill's Clefairy, Copycat's Pikachu doll, Poliwrath,
+  Meowth, both Nidoran variants, Nidorino, Mewtwo, Kangaskhan, Slowpoke,
+  Cubone, Psyduck, Machoke and Machop.
+- Added native six-frame HGSS overworld sheets for those objects, preserving
+  32px authored cells and the existing Red movement/grounding layout.
+
 ## 0.4.0
 
 - Prepared a clean import archive containing only the runtime mod files.
