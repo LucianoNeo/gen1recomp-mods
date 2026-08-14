@@ -356,6 +356,12 @@ return function(mod)
       default = true,
     },
     {
+      key = "pc_box_icons",
+      label = "PC BOX ICONS",
+      type = "toggle",
+      default = true,
+    },
+    {
       key = "crisp_display",
       label = "CRISP DISPLAY",
       type = "toggle",
@@ -2014,6 +2020,115 @@ return function(mod)
     love.graphics.draw(image,
       love.graphics.newQuad(0, frame * 32, 32, 32, iw, ih), x, y)
     return true
+  end
+
+  -- Bill's PC lists use ListMenu rather than PartyMenu, so the party icon
+  -- adapter above is never called for stored Pokémon.  Add a deliberately
+  -- narrow draw bridge for the three Pokémon lists in the PC (withdraw,
+  -- deposit and release).  The icon source, animation frames and true-color
+  -- handling are the same as the party menu.  The option is checked at draw
+  -- time so OFF immediately restores the untouched ListMenu renderer.
+  local ListMenu = require("src.ui.ListMenu")
+  local oldListMenuDraw = ListMenu.draw
+  local oldListMenuNew = ListMenu.new
+  local Boxes = require("src.pokemon.Boxes")
+  local ListStrings = require("src.core.Strings")
+
+  -- A native 32px icon needs a 32px row.  Keep the stock seven-row layout
+  -- available for OFF, but let the custom PC list use four native rows while
+  -- icons are enabled.  The item index and scroll fields remain ListMenu's,
+  -- so transfer/release behavior is unchanged.
+  ListMenu.new = function(game, title, items, opts)
+    local menu = oldListMenuNew(game, title, items, opts)
+    local kind = opts and opts.kind
+    if kind == "pc_box_withdraw" or kind == "pc_box_deposit"
+        or kind == "pc_box_release" then
+      menu.hgssPcBoxList = true
+    end
+    return menu
+  end
+
+  local function pcBoxListMon(menu, row)
+    local game = menu and menu.game
+    local save = game and game.save
+    if not save then return nil end
+    local index = (menu.scroll or 0) + row
+    if menu.kind == "pc_box_deposit" then
+      return save.party and save.party[index]
+    end
+    if menu.kind == "pc_box_withdraw" or menu.kind == "pc_box_release" then
+      local box = Boxes.active(save)
+      return box and box[index]
+    end
+    return nil
+  end
+
+  local function drawPcBoxIcon(menu, mon, row)
+    if not mon or not partyIconEntries[mon.species] then return end
+    local path = partyIconEntries[mon.species].image
+    local image = loadPartyIcon(path)
+    if not image then return end
+    local iw, ih = image:getDimensions()
+    if iw < 32 or ih < 32 then return end
+    local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
+    local quad = love.graphics.newQuad(0, frame * 32, 32, 32, iw, ih)
+    -- The authored icon sheets carry transparent top padding.  Lift the
+    -- native cell by one quarter-row so the visible creature aligns with the
+    -- selector/name line rather than appearing to hang below it.
+    local y = 8 + (row - 1) * 32
+    local x = 0
+    PartyPaletteFX.markTrueColor(x, y, 32, 32)
+    love.graphics.setColor(1, 1, 1, 1)
+    -- No scaling: these are the same native 32x32 frames drawn by PartyMenu.
+    love.graphics.draw(image, quad, x, y)
+  end
+
+  ListMenu.draw = function(self, ...)
+    if not (self and self.hgssPcBoxList)
+        or mod.options:get("pc_box_icons") == false then
+      if self and self.hgssPcBoxList then self.rows = 7 end
+      oldListMenuDraw(self, ...)
+      return
+    end
+
+    self.rows = 4
+    local oldScroll = self.scroll
+    local maxScroll = math.max(0, #self.items - self.rows)
+    self.scroll = math.min(self.scroll or 0, maxScroll)
+
+    -- Reproduce the small, stable part of ListMenu.draw that the PC transfer
+    -- lists use, but leave enough room for native icon frames.  The footer,
+    -- dialogue and money variants are not used by these three BoxMenu lists;
+    -- all input, callbacks and cursor state still belong to ListMenu.
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("fill", 0, 0, 160, 144)
+    love.graphics.setColor(0, 0, 0, 1)
+    PartyFont.draw(ListStrings(self.title), 8, 4)
+    for row = 1, self.rows do
+      local i = self.scroll + row
+      local item = self.items[i]
+      if not item then break end
+      local y = 16 + (row - 1) * 32
+      local mon = pcBoxListMon(self, row)
+      drawPcBoxIcon(self, mon, row)
+      -- Match PartyMenu's native entry geometry: the label begins exactly at
+      -- the icon's right edge (x=32), with no extra 8px drift.
+      PartyFont.draw(item.label, 32, y + 8)
+      if item.right then
+        PartyFont.draw(item.right, 160 - 8 - PartyFont.width(item.right), y + 8)
+      end
+      if i == self.index then
+        -- Keep the selector on the same baseline as the entry text.
+        PartyFont.drawCode(PartyTheme.cursor, 0, y + 8)
+      end
+      if self.swapIndex == i and i ~= self.index then
+        PartyFont.drawCode(PartyTheme.cursorHollow, 0, y + 8)
+      end
+    end
+    love.graphics.setColor(1, 1, 1, 1)
+    -- Keep this assignment explicit for a menu that was resized while an
+    -- option change arrived between frames; ListMenu owns the actual value.
+    self.scroll = math.min(self.scroll or oldScroll or 0, maxScroll)
   end
 
   -- Compact 4x7 pixel glyphs for the party-name column.  The regular engine

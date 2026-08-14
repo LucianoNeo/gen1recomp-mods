@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.4
+
+- Added animated full-color HGSS icons to the PC withdraw, deposit and release
+  lists, with an option to disable the customization and restore the original
+  game layout.
+- Kept PC list icons aligned with their names and selection cursor at native
+  32px resolution.
+
 ## 0.4.3
 
 - Updated the Viridian Old Man overworld charset with the corrected authored

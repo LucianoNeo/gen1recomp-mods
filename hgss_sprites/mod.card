@@ -12,6 +12,7 @@ return {
       "an optional crisp-display policy for integer-scaled presentation",
       "PLAYER SELECT (RED, ASH or ETHAN) for the overworld charset and battle intro",
       "a PARTY MENU toggle for the HGSS party screen and icons",
+      "a PC BOX ICONS toggle for animated HGSS icons in PC storage lists",
     },
     known = {
       "Pokemon Yellow only implements Pikachu as a follower; the other party icons do not create new followers",

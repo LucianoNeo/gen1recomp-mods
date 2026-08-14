@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.4.3-gold)
+![Version](https://img.shields.io/badge/version-0.4.4-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.78-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -16,7 +16,8 @@ This pack owns three visual areas:
 - full-color animated party icons.
 - self-contained battle Pokemon collections and player trainer intros.
 
-Version 0.4.3 includes the 0.4.2 package plus the corrected Viridian Old Man
+Version 0.4.4 includes the 0.4.3 package plus animated native-resolution icons
+for PC withdraw, deposit and release lists. Version 0.4.3 includes the 0.4.2 package plus the corrected Viridian Old Man
 overworld charset and true-color battle backs. Version 0.4.2 includes the
 0.4.1 package plus normal, sparkle-free legendary
 bird party icons and the flat-menu duplicate guard. Version 0.4.1 includes the 0.4.0 package plus the corrected Fighting Dojo
@@ -33,6 +34,8 @@ configurable presentation options:
   and the player battle intro.
 - **PARTY MENU** — turn the HGSS party screen and full-color icons `ON` or
   leave the original party screen `OFF`.
+- **PC BOX ICONS** — turn the same animated, full-color HGSS icons on or off
+  in the PC's withdraw, deposit and release lists.
 - **SPRITE SIZE** — scale every HGSS overworld character (player, NPCs and
   leaders) from `0.5x` through `1.0x` in `0.1x` steps. Battle art and party
   icons are not affected.
@@ -90,7 +93,7 @@ The party menu retains the full-color HGSS icon set:
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for its Voxel renderer; it is not required for the mod's battle or overworld assets.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.4.3 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.3).
+3. Download the [`HGSS_SPRITES` 0.4.4 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.4).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 
