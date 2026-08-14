@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.3
+
+- Updated the Viridian Old Man overworld charset with the corrected authored
+  sheet and preserved its front, back and side movement cells.
+- Kept bundled battle back artwork in true color instead of passing it through
+  the four-shade Game Boy palette.
+
 ## 0.4.2
 
 - Corrected the normal party icons for Articuno, Zapdos and Moltres. Their

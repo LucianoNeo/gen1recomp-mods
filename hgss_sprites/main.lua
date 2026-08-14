@@ -100,10 +100,10 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Team Rocket keeps a 4x authored sheet. It is still presented in the same
   -- 32x32 logical box as Red; the extra texels preserve the generated art
   -- instead of baking it down to a 20x24 miniature before rendering.
-  -- Red's updated sheets use the same native 256x1536 six-cell layout as
-  -- Ash/Ethan. Keep Red's logical map footprint at 32px; only the source
-  -- sampling density changes so the complete HD frame is displayed.
-  local playerSheet = file == "red" or file == "ash" or file == "ethan"
+  -- Red's on-foot sheet intentionally stays on the proven 0.3.1 32x192
+  -- charset.  The newer 256x1536 sheet is reserved for RED_BIKE; Ash and
+  -- Ethan keep their 0.3.1 full-density walking sheets.
+  local playerSheet = file == "ash" or file == "ethan"
   local playerBikeSheet = file == "red_bike"
     or file == "ash_bike" or file == "ethan_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
@@ -138,18 +138,16 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Keep every overworld character at the same native display scale as Red.
   -- Jessie and James use their full-resolution sheets, but are not enlarged
   -- through code.
-  -- Ash and Ethan are supplied as 28px logical cells. Red's HD foot sheet
-  -- has a taller authored silhouette, so normalize only its vertical draw
-  -- height to the same 28px player height; the source pixels stay untouched.
+  -- Ash and Ethan use their 28px logical cells. Red's restored 0.3.1 sheet
+  -- and all bike sheets retain the original 32px logical height.
   local displaySize = (file == "ash" or file == "ethan"
       or file == "ash_bike" or file == "ethan_bike") and 28 or 32
-  local displayHeight = file == "red" and 28 or displaySize
+  local displayHeight = displaySize
   -- The authored sheets have different transparent padding below the shoes.
   -- Keep the logical cell unchanged, but move the complete bitmap by the
   -- small amount needed to put its visible footline on Red's ground line.
   -- This is an anchor correction, not a sprite resize.
   local hgssAnchorOffset = frameSize <= 32 and 2 or 1
-  if file == "red" then hgssAnchorOffset = 1 end
   -- The HGSS Red sheet has transparent rows below the shoe pixels.  Keep the
   -- source images untouched and lower each voxel entity relative to its
   -- ground shadow; 2D rendering and map coordinates remain unchanged.
@@ -188,6 +186,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     trueColor = true,
     hgssFrameWidth = frameSize,
     hgssFrameHeight = frameHeight,
+    hgssGamblerLayout = file == "gambler",
     hgssDrawWidth = displaySize,
     hgssDrawHeight = displayHeight,
     hgssBaseDrawWidth = displaySize,
@@ -252,6 +251,11 @@ return function(mod)
     return path:find("overrides/sprites/", 1, true) ~= nil
         or path:find("overrides/title/", 1, true) ~= nil
         or path:find("assets/icons/", 1, true) ~= nil
+        -- Battle portraits and Pokémon backs are authored full-colour
+        -- assets.  Keeping this path in the true-colour set prevents the
+        -- engine's four-shade GB palette from being applied when one of
+        -- these images is resolved through the normal sprite seam.
+        or path:find("assets/battle/", 1, true) ~= nil
   end
 
   local function loadHdImage(path)
@@ -918,7 +922,43 @@ return function(mod)
       local side = ctx.side == "back" and "back" or "front"
       local species = ctx.species
         or (ctx.data and ctx.data.pokemon and ctx.data.pokemon.species)
-      return selectedBattlePokemonImage(species, side) or out
+      local selected = selectedBattlePokemonImage(species, side)
+      if selected then
+        -- Sprites.path returns both the path and the true-colour flag.  The
+        -- old hook only replaced the path, so the renderer still quantized
+        -- every selected back through the GB palette (most visible on the
+        -- full-colour tutorial/player backs).  Mark only our battle asset.
+        ctx.trueColor = true
+        return selected
+      end
+      return out
+    end)
+
+    -- The Viridian catch tutorial is a demo battle: the engine marks it with
+    -- ctx.demo and normally resolves the original generated/oldmanb.png path.
+    -- Keep Oak's separate Yellow intro portrait untouched, but route the real
+    -- Old Man through the bundled full-colour static back portrait instead of
+    -- allowing the ROM back sprite to leak through.
+    mod.hooks:wrap("player.sprite", function(next, path, ctx)
+      local out = next(path, ctx)
+      -- Any player/trainer image resolved from this mod's battle asset tree
+      -- is already authored in full colour.  Preserve that metadata even
+      -- when another wrapper supplied the path before us.
+      if ctx and isHgssTrueColorPath(out) then
+        ctx.trueColor = true
+      end
+      if not (ctx and ctx.side == "back" and ctx.demo and not ctx.oakDemo) then
+        return out
+      end
+      local replacement = mod.assets:path("assets/battle/back-static/old-man.png")
+      local fs = love and love.filesystem
+      if fs and fs.getInfo and fs.getInfo(replacement) then
+        -- playerPath propagates ctx.trueColor to BattleState:getImage; set it
+        -- here so the Old Man's coloured back is never collapsed to GB shades.
+        ctx.trueColor = true
+        return replacement
+      end
+      return out
     end)
   end
 
@@ -1281,15 +1321,30 @@ return function(mod)
   -- the native 32/48px image still supplies every authored pixel.
   local voxelBillboardsPatched = false
   local voxelBillboardsPatching = false
+  -- Billboard geometry and the optional VoxelScene depth-bias hook have
+  -- different lifetimes.  The former is discoverable before the first world
+  -- pass; the latter is only discoverable after VoxelScene has rendered once.
+  -- Keep those states separate so a wrapped external drawEntity cannot force
+  -- the expensive closure walk on every SpriteRenderer.draw call.
+  local voxelEntityPatchAttempted = false
+  local voxelBillboardRetryAt = 0
   -- Set by the voxel world's own draw callback for the current frame.  The
   -- callback runs before Renderer:endFrame presents the world, while the
   -- pipeline registry is allowed to clear its transient owner afterwards;
   -- keeping this one-frame latch avoids relying on that timing-sensitive
   -- query when deciding whether a flat HD repaint would break depth order.
   local voxelWorldRendered = false
-  local function patchVoxelBillboards()
-    if voxelBillboardsPatched or voxelBillboardsPatching
+  local function patchVoxelBillboards(afterWorldPass)
+    if (voxelBillboardsPatched and (not afterWorldPass
+        or voxelEntityPatchAttempted)) or voxelBillboardsPatching
        or not (debug and debug.getupvalue) then return end
+    local clock = love and love.timer and love.timer.getTime
+    local now = clock and clock() or os.clock()
+    -- If the voxel pipeline has not created its private billboard table yet,
+    -- avoid turning the fallback lookup into a per-frame retry.  A short retry
+    -- window is enough for late-loading pipelines while keeping external
+    -- sprite mods out of the hot path.
+    if now < voxelBillboardRetryAt then return end
     voxelBillboardsPatching = true
     local okP, Pipelines = pcall(require, "src.render.Pipelines")
     local voxel = okP and Pipelines.get and Pipelines.get("voxel")
@@ -1302,7 +1357,7 @@ return function(mod)
         -- VoxelScene's render closure is fully populated only after the first
         -- world pass. Retry now so private drawEntity/billboardPull upvalues
         -- are available on all engine builds.
-        if not voxelBillboardsPatched then patchVoxelBillboards() end
+        if not voxelEntityPatchAttempted then patchVoxelBillboards(true) end
         return result
       end
       voxel._hgssWorldDrawWrapped = true
@@ -1336,49 +1391,64 @@ return function(mod)
       return nil
     end
     local billboards = find(voxel.drawWorld, 0)
-    if not billboards then voxelBillboardsPatching = false; return end
-    local originalMesh = billboards.mesh
-    local sized = setmetatable({}, { __mode = "k" })
-    local function nativeMesh(def, frame)
-      local mesh = originalMesh(def, frame)
-      if not (mesh and def and def.hgssNativeImage) then return mesh end
-      local size = overworldSpriteScale(def)
-      -- Quantize the final billboard dimensions.  Fractional mesh extents
-      -- make the rasterizer sample different pixel columns on each frame
-      -- (most visible at 0.6x/0.7x), which looks like a stretched or pinched
-      -- NPC even though the source PNG is correct.
-      local baseW = tonumber(def.hgssBaseVoxelWidth
-        or def.hgssVoxelWidth or def.hgssFrameWidth) or 32
-      local baseH = tonumber(def.hgssBaseVoxelHeight
-        or def.hgssVoxelHeight or def.hgssFrameHeight) or 32
-      local width, height
-      if def.hgssPreserveAspect then
-        local fw = tonumber(def.hgssFrameWidth) or 32
-        local fh = tonumber(def.hgssFrameHeight) or 32
-        local uniform = math.min(baseW / fw, baseH / fh) * size
-        width = math.max(1, math.floor(fw * uniform + 0.5))
-        height = math.max(1, math.floor(fh * uniform + 0.5))
-      else
-        width = math.max(1, math.floor(baseW * size + 0.5))
-        height = math.max(1, math.floor(baseH * size + 0.5))
-      end
-      local stamp = width .. "x" .. height
-      if sized[mesh] ~= stamp and mesh.getVertex and mesh.setVertex then
-        local left = 8 - width / 2
-        for vertex = 1, 4 do
-          local data = { mesh:getVertex(vertex) }
-          local right = data[1] > 8
-          local top = data[2] > 8
-          data[1] = right and (left + width) or left
-          data[2] = top and height or 0
-          mesh:setVertex(vertex, unpack(data))
-        end
-        sized[mesh] = stamp
-      end
-      return mesh
+    if not billboards then
+      voxelBillboardRetryAt = now + 0.25
+      voxelBillboardsPatching = false
+      return
     end
-    billboards.mesh = nativeMesh
-    billboards.shadowQuad = nativeMesh
+    if not billboards._hgssVariableGeometryWrapped then
+      local originalMesh = billboards.mesh
+      local sized = setmetatable({}, { __mode = "k" })
+      local function nativeMesh(def, frame)
+        local mesh = originalMesh(def, frame)
+        if not (mesh and def and def.hgssNativeImage) then return mesh end
+        local size = overworldSpriteScale(def)
+        -- Quantize the final billboard dimensions.  Fractional mesh extents
+        -- make the rasterizer sample different pixel columns on each frame
+        -- (most visible at 0.6x/0.7x), which looks like a stretched or pinched
+        -- NPC even though the source PNG is correct.
+        local baseW = tonumber(def.hgssBaseVoxelWidth
+          or def.hgssVoxelWidth or def.hgssFrameWidth) or 32
+        local baseH = tonumber(def.hgssBaseVoxelHeight
+          or def.hgssVoxelHeight or def.hgssFrameHeight) or 32
+        local width, height
+        if def.hgssPreserveAspect then
+          local fw = tonumber(def.hgssFrameWidth) or 32
+          local fh = tonumber(def.hgssFrameHeight) or 32
+          local uniform = math.min(baseW / fw, baseH / fh) * size
+          width = math.max(1, math.floor(fw * uniform + 0.5))
+          height = math.max(1, math.floor(fh * uniform + 0.5))
+        else
+          width = math.max(1, math.floor(baseW * size + 0.5))
+          height = math.max(1, math.floor(baseH * size + 0.5))
+        end
+        local stamp = width .. "x" .. height
+        if sized[mesh] ~= stamp and mesh.getVertex and mesh.setVertex then
+          local left = 8 - width / 2
+          for vertex = 1, 4 do
+            local data = { mesh:getVertex(vertex) }
+            local right = data[1] > 8
+            local top = data[2] > 8
+            data[1] = right and (left + width) or left
+            data[2] = top and height or 0
+            mesh:setVertex(vertex, unpack(data))
+          end
+          sized[mesh] = stamp
+        end
+        return mesh
+      end
+      billboards.mesh = nativeMesh
+      billboards.shadowQuad = nativeMesh
+      billboards._hgssVariableGeometryWrapped = true
+    end
+    -- From this point onward the expensive billboard lookup is complete.  The
+    -- optional entity-depth hook is attempted only from the post-world-pass
+    -- callback, after VoxelScene has populated its closures.
+    voxelBillboardsPatched = true
+    if not afterWorldPass then
+      voxelBillboardsPatching = false
+      return
+    end
 
     -- The voxel card and its shadow share a mesh.  Moving that mesh moves
     -- both together, so it cannot correct a character that appears to float
@@ -1488,7 +1558,7 @@ return function(mod)
             for j = 1, 32 do
               local upName, upValue = debug.getupvalue(oldEntity, j)
               if not upName then break end
-          if upName == "billboardPull" and type(upValue) == "function" then
+              if upName == "billboardPull" and type(upValue) == "function" then
                 local basePull = upValue
                 debug.setupvalue(oldEntity, j, function()
                   return basePull() + (hgssDepthBiasActive and 4 or 0)
@@ -1540,12 +1610,17 @@ return function(mod)
       end
     end
 
-    voxelBillboardsPatched = entityPatched
+    -- A missing depth hook is a tolerated compatibility outcome (for example
+    -- when another mod wraps VoxelScene.drawEntity).  Record that the single
+    -- post-world attempt is complete so no future sprite draw repeats the
+    -- closure graph scan.
+    voxelEntityPatchAttempted = true
+    voxelBillboardsPatched = true
     voxelBillboardsPatching = false
   end
   local function tryPatchVoxelBillboards()
     if voxelBillboardsPatched then return end
-    patchVoxelBillboards()
+    patchVoxelBillboards(false)
   end
 
   SpriteRenderer.new = function(spriteDef, seed)
@@ -1562,9 +1637,20 @@ return function(mod)
     end
     if self and self.image then
       local iw, ih = self.image:getDimensions()
-      local fw = tonumber(spriteDef and spriteDef.hgssFrameWidth) or 32
-      local fh = tonumber(spriteDef and spriteDef.hgssFrameHeight) or 32
-      if iw == fw and ih >= fh and ih % fh == 0 then
+      -- Only definitions authored by this mod carry hgssNativeImage.  Other
+      -- mods (notably Wilds of Kanto) also register animated 32px sheets;
+      -- treating those as HGSS assets changes their frame contract and adds
+      -- unnecessary post-processing to every external entity.
+      local isHgssAsset = spriteDef
+        and type(spriteDef.hgssNativeImage) == "string"
+        and spriteDef.hgssNativeImage ~= ""
+      local fw = isHgssAsset
+        and (tonumber(spriteDef.hgssFrameWidth) or 32)
+        or nil
+      local fh = isHgssAsset
+        and (tonumber(spriteDef.hgssFrameHeight) or 32)
+        or nil
+      if isHgssAsset and iw == fw and ih >= fh and ih % fh == 0 then
         self.hgssFrames = {}
         self.hgssFrameWidth = fw
         self.hgssFrameHeight = fh
@@ -1622,7 +1708,9 @@ return function(mod)
   SpriteRenderer.draw = function(self, px, py, camX, camY, facing,
                                   walkPhase, stepFlip, topHalf)
     tryPatchVoxelBillboards()
-    if not self.isHgssSheet then
+    if not self.isHgssSheet
+       or not (self.def and type(self.def.hgssNativeImage) == "string"
+               and self.def.hgssNativeImage ~= "") then
       return oldDraw(self, px, py, camX, camY, facing, walkPhase,
                      stepFlip, topHalf)
     end
@@ -1654,6 +1742,17 @@ return function(mod)
     local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
     local stand = { down = 0, up = 1, left = 2, right = 2 }
     local walk = { down = 3, up = 4, left = 5, right = 5 }
+    -- The Yellow Viridian old man is stored under SPRITE_GAMBLER, but
+    -- gambler.png is not laid out like Red's six-frame sheet. Its fourth
+    -- cell is a side-facing pose, not a down-walk frame; using the generic
+    -- map made him turn sideways whenever the script walked him south after
+    -- the catch tutorial. Keep his authored front/back/side cells intact and
+    -- hold the front frame while moving down (the source has no dedicated
+    -- south walking cell). The side walk remains the final authored cell.
+    if self.def.hgssGamblerLayout then
+      stand = { down = 0, up = 1, left = 2, right = 2 }
+      walk = { down = 0, up = 4, left = 5, right = 5 }
+    end
     local frame = (self.def.walker and walkPhase == 1)
       and walk[facing] or stand[facing]
     frame = frame or 0

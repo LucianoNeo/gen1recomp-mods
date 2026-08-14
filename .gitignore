@@ -14,6 +14,7 @@ tools/
 # Local captures, builds, attachments and working assets
 .local/
 build/
+.codex-remote-attachments/
 
 # System files
 .DS_Store
