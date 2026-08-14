@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.4.1](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.1) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.4.2](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.2) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 
@@ -65,7 +65,7 @@ The party screen keeps the custom full-color HGSS icon set:
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 ![Party menu with six Pokemon](hgss_sprites/docs/media/readme-party-icons.png)
 
-### Character updates in 0.4.1
+### Character and party updates in 0.4.2
 
 Voxel grounding was corrected for the HGSS overworld replacements. The mod
 menu offers `PLAYER SELECT` (`RED`, `ASH`, `ETHAN`), `PARTY MENU`
@@ -81,5 +81,5 @@ sprites use dedicated normal-palette HGSS sheets.
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
-Package: `0.4.1` - Lean runtime package - Compatible with g1recomp
+Package: `0.4.2` - Lean runtime package - Compatible with g1recomp
 `>=0.1.75 <0.2.0` (tested on `0.1.78`).

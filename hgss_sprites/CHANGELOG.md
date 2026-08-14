@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.4.2
+
+- Corrected the normal party icons for Articuno, Zapdos and Moltres. Their
+  two-frame HGSS sheets no longer contain the shiny sparkle overlay.
+- Added the flat-renderer Start Menu guard so classic 2D does not show two
+  menus at once; the Voxel-anchored layout remains available when Voxel is
+  active.
+- Reduced discarded per-frame HD draw bookkeeping while Voxel is active.
+
 ## 0.4.1
 
 - Corrigido o charset dos Black Belts do Fighting Dojo: a folha HGSS agora

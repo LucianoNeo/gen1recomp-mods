@@ -373,6 +373,54 @@ return function(mod)
     },
   })
 
+  -- The edge-anchored Start Menu is useful while DRAMALESS_SHAPE owns the
+  -- world pass, but in classic 2D some g1recomp builds composite the source
+  -- UI canvas as well as the anchored copy.  That leaves two visible menus
+  -- (one centered and one at the top-right) whenever UI LAYOUT is dynamic.
+  -- Keep the vanilla centered placement for the flat renderer and retain the
+  -- edge placement only while the Voxel world pipeline is actually active.
+  local function voxelWorldEnabled()
+    local okP, Pipelines = pcall(require, "src.render.Pipelines")
+    if not okP or not Pipelines
+       or type(Pipelines.worldPipeline) ~= "function" then
+      return false
+    end
+    local okWorld, worldPipeline = pcall(Pipelines.worldPipeline)
+    return okWorld and worldPipeline ~= nil
+  end
+
+  do
+    local okScreens, Screens = pcall(require, "src.ui.Screens")
+    local okStart, StartMenu = pcall(require, "src.ui.StartMenu")
+    if okScreens and Screens and okStart and StartMenu
+       and not Screens.__hgssStartMenuGuard then
+      local oldPush = Screens.push
+      Screens.push = function(game, id, ...)
+        if id == "StartMenu" and game and game.stack
+           and game.stack.top then
+          local top = game.stack:top()
+          if top and top.screenId == "StartMenu" then
+            return top
+          end
+        end
+        return oldPush(game, id, ...)
+      end
+      Screens.__hgssStartMenuGuard = true
+
+      if not StartMenu.__hgssFlatPlacementHook then
+        local oldNew = StartMenu.new
+        StartMenu.new = function(game, ...)
+          local menu = oldNew(game, ...)
+          if menu and not voxelWorldEnabled() then
+            menu.anchor = nil
+          end
+          return menu
+        end
+        StartMenu.__hgssFlatPlacementHook = true
+      end
+    end
+  end
+
   -- Keep a live copy of the battle selectors.  The Mod Manager updates this
   -- value before emitting `mod.options_changed`; scripted drivers and older
   -- g1recomp builds emit the event directly, so reading only the cached
@@ -1650,7 +1698,18 @@ return function(mod)
     local flip = facing == "right"
       or ((facing == "down" or facing == "up")
           and self.def.walker and walkPhase == 1 and stepFlip)
-    if self.def.hgssPostPresent then
+    -- The voxel pass already draws the native billboard with its own depth
+    -- ordering.  Do not allocate a transient post-present draw record for
+    -- every HGSS entity in that pass: HdRenderer.endFrame discards those
+    -- records after detecting voxelWorldRendered, so keeping them only adds
+    -- per-frame Lua table churn (especially visible at VOXEL HIGH/FULL).
+    local voxelActive = false
+    local okPipeline, PipelineState = pcall(require, "src.render.Pipelines")
+    if okPipeline and PipelineState and type(PipelineState.worldPipeline) == "function" then
+      local okWorld, worldPipeline = pcall(PipelineState.worldPipeline)
+      voxelActive = okWorld and worldPipeline ~= nil
+    end
+    if self.def.hgssPostPresent and not voxelActive and not voxelWorldRendered then
       overworldHdOrder = overworldHdOrder + 1
       overworldHdDraws[#overworldHdDraws + 1] = {
         image = image, quad = quad, x = x, y = y,
@@ -1827,6 +1886,13 @@ return function(mod)
     if battleArtPresent then
       return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
     end
+    -- Yellow/Gen 1 has no native true-color shiny party-icon path. Sending a
+    -- shiny record through the original renderer therefore selects the old
+    -- 2bpp placeholder (and, with compatibility mods, can even select the
+    -- neighbouring legendary-bird species). Keep the species-specific HGSS
+    -- icon sheet for every party record so the icon, frame animation and
+    -- slot alignment remain deterministic. Battle/map shiny art is handled by
+    -- their own renderers and is not changed here.
     local path = partyIconPath(game, mon)
     if not isHgssPartyIcon(path) then
       return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
