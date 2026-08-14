@@ -820,6 +820,10 @@ return function(mod)
     local originals = battleOriginalSprites[battle]
     if not originals then originals = {}; battleOriginalSprites[battle] = originals end
     local function applyOne(battler, side)
+      -- Oak's scripted Pikachu catch demo has no player battler until the
+      -- throw sequence creates one.  Do not index a nil battler while
+      -- applying generation artwork; the enemy/Oak side still gets patched.
+      if not battler then return end
       if battleOption("battle_scope") == "trainers" then return end
       local mon = battler and battler.mon
       local species = mon and (mon.species or mon.id or mon.dataId)
@@ -952,6 +956,14 @@ return function(mod)
       -- when another wrapper supplied the path before us.
       if ctx and isHgssTrueColorPath(out) then
         ctx.trueColor = true
+      end
+      if ctx and ctx.side == "back" and ctx.demo and ctx.oakDemo then
+        local oak = mod.assets:path("assets/battle/back-static/oak.png")
+        local fs = love and love.filesystem
+        if fs and fs.getInfo and fs.getInfo(oak) then
+          ctx.trueColor = true
+          return oak
+        end
       end
       if not (ctx and ctx.side == "back" and ctx.demo and not ctx.oakDemo) then
         return out

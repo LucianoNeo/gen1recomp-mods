@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.4.5
+
+- Fixed the Pallet Town Oak Pikachu catch battle crashing when the scripted
+  demo has no player battler yet.
+- Routed Oak's catch-scene back sprite to the full-color HGSS Oak artwork.
+- Reused the approved Jessie/James battle sprite for generation 4 and 5.
+
 ## 0.4.4
 
 - Added animated full-color HGSS icons to the PC withdraw, deposit and release

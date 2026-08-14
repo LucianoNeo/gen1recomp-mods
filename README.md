@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.4.4](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.4) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.4.5](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.4.5) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 
@@ -65,6 +65,12 @@ The party screen keeps the custom full-color HGSS icon set:
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 ![Party menu with six Pokemon](hgss_sprites/docs/media/readme-party-icons.png)
 
+### Oak catch fix and battle assets in 0.4.5
+
+Version 0.4.5 fixes the scripted Oak/Pikachu catch battle and uses Oak's
+full-color HGSS back sprite. Jessie and James now reuse the approved artwork
+for generation 4 and generation 5 battle selections.
+
 ### PC box icons and character updates in 0.4.4
 
 Version 0.4.4 adds animated full-color HGSS icons to PC withdraw, deposit and
@@ -87,5 +93,5 @@ sprites use dedicated normal-palette HGSS sheets.
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
-Package: `0.4.4` - Lean runtime package - Compatible with g1recomp
+Package: `0.4.5` - Lean runtime package - Compatible with g1recomp
 `>=0.1.75 <0.2.0` (tested on `0.1.78`).
