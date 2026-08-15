@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.5.0](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.0) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.5.1](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.1) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 
@@ -65,9 +65,11 @@ The party screen keeps the custom full-color HGSS icon set:
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 ![Party menu with six Pokemon](hgss_sprites/docs/media/readme-party-icons.png)
 
-### Voxel compatibility and current runtime support in 0.5.0
+### Voxel compatibility and current runtime support in 0.5.1
 
-Version 0.5.0 updates battle asset loading for the current g1recomp sandbox and
+Version 0.5.1 fixes level-100 party status placement, the post-capture Summary
+screen atlas rendering, and compact party-list `I`/`T` glyph weight. Version
+0.5.0 updates battle asset loading for the current g1recomp sandbox and
 integrates HGSS billboard scaling and ground alignment with Battle Art Voxel
 Fork 1.9.0 and PotatoVoxel 1.6.0. Both an overworld and a 3D battle smoke test
 passed on g1recomp 0.1.88.
@@ -100,6 +102,6 @@ sprites use dedicated normal-palette HGSS sheets.
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
-Package: `0.5.0` - Lean runtime package - Compatible with g1recomp
+Package: `0.5.1` - Lean runtime package - Compatible with g1recomp
 `>=0.1.75 <0.2.0` (tested on `0.1.88`, Battle Art Voxel Fork 1.9.0 and
 PotatoVoxel 1.6.0).

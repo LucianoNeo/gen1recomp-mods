@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.1
+
+- Fixed level-100 party status placement so `PAR` and `FNT` no longer overlap
+  the level text.
+- Fixed the post-capture Summary screen to show one selected animated front
+  frame instead of rendering the complete sprite atlas repeatedly.
+- Refined the compact party-list `I` and `T` glyphs so their stems use the
+  same weight as the other letters.
+
 ## 0.5.0
 
 - Updated battle asset loading for the current g1recomp mod sandbox; battle

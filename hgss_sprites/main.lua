@@ -794,6 +794,28 @@ return function(mod)
     DexEntryMenu.__hgssFrontGenerationHook = true
   end
 
+  -- The catch flow opens the regular Gen 1 SummaryMenu after the nickname
+  -- prompt.  Unlike DexEntryMenu, that screen asks Sprites.path with
+  -- kind="summary"; later-generation front assets are animated atlases, so
+  -- handing that path directly to SummaryMenu draws every frame at once
+  -- behind the status text.  Reuse the same selected/cropped frame resolver
+  -- used by the Pokédex and keep the stock summary layout untouched.
+  local okSummary, SummaryMenu = pcall(require, "src.ui.SummaryMenu")
+  if okSummary and SummaryMenu and not SummaryMenu.__hgssFrontGenerationHook then
+    local oldSummaryNew = SummaryMenu.new
+    SummaryMenu.new = function(game, mon, ...)
+      local summary = oldSummaryNew(game, mon, ...)
+      local species = mon and (mon.species or mon.id or mon.dataId)
+      local image = selectedDexImage(species)
+      if image then
+        summary.sprite = image
+        summary.spriteTrueColor = true
+      end
+      return summary
+    end
+    SummaryMenu.__hgssFrontGenerationHook = true
+  end
+
   local battleOriginalSprites = setmetatable({}, { __mode = "k" })
   local selectedBattlePlayerImage
   local applyBattleGeneration
@@ -1127,6 +1149,48 @@ return function(mod)
   end
 
   local okBattleState, BattleState = pcall(require, "src.battle.BattleState")
+  -- BattleState can restore a battler's original image during scripted
+  -- effects (notably the capture/"Gotcha" tail and ghost reveal).  The
+  -- original image is the full animated atlas returned by the public
+  -- pokemon.sprite seam, while the normal battle path has already replaced
+  -- it with one logical frame.  If that restore happens after update(), the
+  -- atlas is drawn verbatim behind the catch summary text (dozens of copies
+  -- of the same Pokémon).  Normalize at the final draw boundary as a
+  -- defensive last pass; animation state still advances in updateBattleFrame
+  -- and only an image whose dimensions exceed its selected frame is changed.
+  if okBattleState and BattleState
+     and type(BattleState.drawPicsLayer) == "function"
+     and not BattleState.__hgssBattleAtlasDrawGuard then
+    local oldDrawPicsLayer = BattleState.drawPicsLayer
+    local function normalizeAtlas(battle, battler, side)
+      if not battle or not battler or not battler.sprite then return end
+      if battleOption("battle_scope") == "trainers" then return end
+      local gen = battleOption(side == "back" and "battle_back_gen"
+        or "battle_front_gen") or "rom"
+      if gen == "rom" then return end
+      local mon = battler.mon
+      local species = mon and (mon.species or mon.id or mon.dataId)
+      local def = battleDefinition(gen, side, species)
+      if not def or def.static then return end
+      local frames = battleFrames(def)
+      local first = frames and frames[1]
+      if not first then return end
+      local okSize, w, h = pcall(function()
+        return battler.sprite:getWidth(), battler.sprite:getHeight()
+      end)
+      local fw, fh = first:getWidth(), first:getHeight()
+      if okSize and (w > fw or h > fh) then
+        battler.sprite = first
+      end
+    end
+    BattleState.drawPicsLayer = function(self, ...)
+      normalizeAtlas(self, self.enemy, "front")
+      normalizeAtlas(self, self.player, "back")
+      return oldDrawPicsLayer(self, ...)
+    end
+    BattleState.__hgssBattleAtlasDrawGuard = true
+  end
+
   if okBattleState and BattleState and type(BattleState.picImage) == "function" then
     local oldBattlePicImage = BattleState.picImage
     BattleState.picImage = function(self, image)
@@ -2290,7 +2354,10 @@ return function(mod)
     F={"1111","1000","1000","1110","1000","1000","1000"},
     G={"0111","1000","1000","1011","1001","1001","0111"},
     H={"1001","1001","1001","1111","1001","1001","1001"},
-    I={"1111","0110","0110","0110","0110","0110","1111"},
+    -- Keep I/T on a one-pixel stem like the other mini-font glyphs.  The
+    -- previous two-pixel stems made these letters look bold in long party
+    -- names (ARTICUNO, MOLTRES, DITTO), unlike the original menu font.
+    I={"1111","0010","0010","0010","0010","0010","1111"},
     J={"0011","0001","0001","0001","0001","1001","0110"},
     K={"1001","1010","1100","1100","1010","1001","1001"},
     L={"1000","1000","1000","1000","1000","1000","1111"},
@@ -2301,7 +2368,7 @@ return function(mod)
     Q={"0110","1001","1001","1001","1011","1001","0111"},
     R={"1110","1001","1001","1110","1010","1001","1001"},
     S={"0111","1000","1000","0110","0001","0001","1110"},
-    T={"1111","0110","0110","0110","0110","0110","0110"},
+    T={"1111","0010","0010","0010","0010","0010","0010"},
     U={"1001","1001","1001","1001","1001","1001","0110"},
     V={"1001","1001","1001","1001","1001","0110","0110"},
     W={"1001","1001","1001","1111","1111","1111","1001"},
@@ -2367,10 +2434,22 @@ return function(mod)
       PartyHudTiles.drawHPBar(self.game.data, textX / 8, (y + 16) / 8,
                               shown, nil, false, 3)
       PartyPaletteFX.markTrueColor(textX, y + 16, 48, 8)
-      if mon.hp <= 0 then
-        PartyFont.draw("FNT", textX + 24, y + 8)
-      elseif mon.status then
-        PartyFont.draw(mon.status, textX + 24, y + 8)
+      local condition = mon.hp <= 0 and "FNT" or mon.status
+      if condition then
+        -- A three-digit level occupies four 8px glyph cells (L100).  The
+        -- old fixed x+24 condition position therefore overwrote the last
+        -- level digit and produced strings such as "L103R" in the party
+        -- menu.  Keep the compact same-line layout when the condition fits,
+        -- and move it to the spare row below the HP bar otherwise.  Each
+        -- entry is 32px tall, so the y+24 line remains inside its own cell
+        -- and never touches the next party member.
+        local levelWidth = PartyFont.width("L" .. tostring(mon.level))
+        local conditionWidth = PartyFont.width(condition)
+        if levelWidth + conditionWidth <= 48 then
+          PartyFont.draw(condition, textX + levelWidth, y + 8)
+        else
+          PartyFont.draw(condition, textX, y + 24)
+        end
       end
     end
     if index == self.index then
