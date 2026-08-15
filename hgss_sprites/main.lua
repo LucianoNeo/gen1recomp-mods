@@ -79,6 +79,16 @@ local POKEMON_OBJECT_SHEETS = {
   PSYDUCK = { shortId = "HGSS_PSYDUCK", file = "hgss_psyduck", frames = 6 },
   MACHOKE = { shortId = "HGSS_MACHOKE", file = "hgss_machoke", frames = 6 },
   MACHOP = { shortId = "HGSS_MACHOP", file = "hgss_machop", frames = 6 },
+  -- The SS Anne 1F rooms contain a Wigglytuff object whose ROM record points
+  -- at SPRITE_JIGGLYPUFF.  Keep a dedicated directional sheet so the object
+  -- shows the evolved species without changing the Pewter Center Jigglypuff.
+  WIGGLYTUFF = {
+    shortId = "HGSS_WIGGLYTUFF", file = "wigglytuff", frames = 6,
+    -- Use the same voxel grounding as the other Pokémon.  A positive
+    -- per-object offset pushed the sheet into the SS Anne floor, hiding the
+    -- body of the rear frame and leaving only its ears visible.
+    voxelEntityYOffset = -4,
+  },
   -- The three legendary encounters are authored as SPRITE_BIRD in Yellow,
   -- which is a generic bird placeholder. Keep their species-specific HGSS
   -- sheets separate so the overworld object and its battle species agree.
@@ -154,6 +164,11 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- small amount needed to put its visible footline on Red's ground line.
   -- This is an anchor correction, not a sprite resize.
   local hgssAnchorOffset = frameSize <= 32 and 2 or 1
+  -- Snorlax is authored as a map obstruction rather than a normal NPC.  Its
+  -- HGSS overworld sprite is intentionally shown at twice the regular
+  -- character footprint; keep this override local to the Snorlax definition
+  -- so it does not affect the global SPRITE SIZE option or other Pokémon.
+  local hgssScaleOverride = file == "snorlax" and 2 or nil
   -- The HGSS Red sheet has transparent rows below the shoe pixels.  Keep the
   -- source images untouched and lower each voxel entity relative to its
   -- ground shadow; 2D rendering and map coordinates remain unchanged.
@@ -162,6 +177,12 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- shoes, so apply the small grounding correction to every replacement
   -- character (not just the player).
   local voxelEntityYOffset = -4
+  -- Snorlax occupies the Route 12 gate tile; lower its enlarged billboard
+  -- slightly so the feet sit on the gate threshold and the body blocks both
+  -- entrances instead of hovering above them.
+  if file == "snorlax" then
+    voxelEntityYOffset = -16
+  end
   -- These two sheets leave four transparent rows below the feet rather than
   -- Red's two.  Ground them independently without resampling or editing the
   -- authored pixels.
@@ -198,6 +219,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssBaseDrawWidth = displaySize,
     hgssBaseDrawHeight = displayHeight,
     hgssAnchorOffset = hgssAnchorOffset,
+    hgssScaleOverride = hgssScaleOverride,
     -- A few authored leader sheets are 288x256 per frame rather than square.
     -- Fit those frames with one uniform source-to-destination scale instead
     -- of stretching them into the 32x32 logical box. Red intentionally keeps
@@ -243,7 +265,7 @@ local function patchPokemonOverworld(mod, entry)
     hgssVoxelHeight = 32,
     hgssBaseVoxelWidth = 32,
     hgssBaseVoxelHeight = 32,
-    hgssVoxelEntityYOffset = -4,
+    hgssVoxelEntityYOffset = entry.voxelEntityYOffset or -4,
   })
 end
 
@@ -1320,6 +1342,8 @@ return function(mod)
   end
 
   local function overworldSpriteScale(def)
+    local fixed = def and tonumber(def.hgssScaleOverride)
+    if fixed then return fixed end
     -- Always query the live option store.  A cached event value can be an
     -- initial profile value (often 0.5x) even after the menu was changed.
     local value = tonumber(mod.options:get("sprite_size")) or 1
@@ -3187,6 +3211,9 @@ return function(mod)
     },
     SS_ANNE_B1F_ROOMS = {
       SSANNEB1FROOMS_MACHOKE = "SPRITE_HGSS_MACHOKE",
+    },
+    SS_ANNE_1F_ROOMS = {
+      SSANNE1FROOMS_WIGGLYTUFF = "SPRITE_HGSS_WIGGLYTUFF",
     },
     VERMILION_CITY = {
       VERMILIONCITY_MACHOP = "SPRITE_HGSS_MACHOP",

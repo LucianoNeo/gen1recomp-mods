@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.4
+
+- Corrected the SS Anne Wigglytuff map object with a full directional HGSS
+  overworld sheet and proper voxel grounding.
+- Grounded both Route 12 and Route 16 Snorlax map obstructions at 2x scale so
+  they cover their entrances without floating or sinking into the floor.
+- Verified the updated overworld objects with Battle Art Voxel Fork 1.9.0.
+
 ## 0.5.3
 
 - Fixed the evolution movie to use the selected bundled front-generation
