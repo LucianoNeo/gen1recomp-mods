@@ -822,6 +822,36 @@ return function(mod)
     SummaryMenu.__hgssFrontGenerationHook = true
   end
 
+  -- EvolutionState loads its two forms directly with love.graphics instead
+  -- of going through the battle renderer.  That bypass left the evolution
+  -- movie on the original Yellow sprites even when BATTLE FRONT GEN selected
+  -- a bundled generation.  Reuse the same cropped, first-frame resolver as
+  -- the Pokédex and Summary screens so every form is a single native sprite,
+  -- never an entire animated atlas pasted over the movie.
+  local okEvolution, EvolutionState = pcall(require, "src.ui.EvolutionState")
+  if okEvolution and EvolutionState
+     and not EvolutionState.__hgssFrontGenerationHook then
+    local oldEvolutionNew = EvolutionState.new
+    EvolutionState.new = function(game, mon, newSpecies, ...)
+      local state = oldEvolutionNew(game, mon, newSpecies, ...)
+      if battleOption("battle_scope") ~= "trainers"
+         and battleOption("battle_front_gen") ~= "rom" then
+        local oldImage = selectedDexImage(mon and mon.species)
+        local newImage = selectedDexImage(newSpecies)
+        if oldImage then
+          state.oldSprite = oldImage
+          state.oldSpriteTrueColor = true
+        end
+        if newImage then
+          state.newSprite = newImage
+          state.newSpriteTrueColor = true
+        end
+      end
+      return state
+    end
+    EvolutionState.__hgssFrontGenerationHook = true
+  end
+
   local battleOriginalSprites = setmetatable({}, { __mode = "k" })
   local selectedBattlePlayerImage
   local applyBattleGeneration
@@ -2141,6 +2171,30 @@ return function(mod)
   local function isHgssPartyIcon(path)
     return type(path) == "string"
        and path:sub(1, #partyIconRoot) == partyIconRoot
+  end
+
+  -- The native HGSS layout below is a two-column by three-row grid.  The
+  -- engine only enables its multidirectional grid helper for battle switch
+  -- menus, so the regular field Party screen treated DOWN as the next list
+  -- item (moving from the left column to the right).  Opt the helper in for
+  -- our native party layout while preserving the engine behavior when the
+  -- custom party screen is disabled or vanilla icons are being drawn.
+  if type(PartyMenu.gridNavigation) == "function"
+     and not PartyMenu.__hgssGridNavigationHook then
+    local oldPartyGridNavigation = PartyMenu.gridNavigation
+    PartyMenu.gridNavigation = function(self)
+      if mod.options:get("party_menu") ~= false then
+        local party = self.party or (self.game and self.game.save
+          and self.game.save.party) or {}
+        for _, mon in ipairs(party) do
+          if isHgssPartyIcon(partyIconPath(self.game, mon)) then
+            return true
+          end
+        end
+      end
+      return oldPartyGridNavigation(self)
+    end
+    PartyMenu.__hgssGridNavigationHook = true
   end
 
   local function applyPartyMenuOption(game)

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.3
+
+- Fixed the evolution movie to use the selected bundled front-generation
+  artwork for both forms instead of always loading the original Yellow
+  sprites.
+- Cropped animated battle atlases to one native frame during evolution while
+  preserving full-color rendering.
+- Fixed the HGSS party cursor to navigate the two-column layout with left,
+  right, up and down instead of treating it as a single vertical list.
+
 ## 0.5.2
 
 - Corrected Cerulean's Electrode and the Fuchsia/Power Plant Voltorb map
