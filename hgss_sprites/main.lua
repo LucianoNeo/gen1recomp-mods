@@ -67,6 +67,12 @@ local POKEMON_OBJECT_SHEETS = {
   NIDORAN_M = { shortId = "HGSS_NIDORAN_M", file = "hgss_nidoran_m", frames = 6 },
   NIDORINO = { shortId = "HGSS_NIDORINO", file = "hgss_nidorino", frames = 6 },
   MEWTWO = { shortId = "HGSS_MEWTWO", file = "hgss_mewtwo", frames = 6 },
+  -- Cerulean's Electrode and the Power Plant/Fuchsia Voltorb objects are
+  -- encoded as SPRITE_POKE_BALL in Yellow, not SPRITE_MONSTER.  Keep these
+  -- dedicated static sheets separate so the generic Poké Ball sprite remains
+  -- untouched for real item objects.
+  VOLTORB = { shortId = "HGSS_VOLTORB", file = "hgss_voltorb", frames = 6 },
+  ELECTRODE = { shortId = "HGSS_ELECTRODE", file = "hgss_electrode", frames = 6 },
   KANGASKHAN = { shortId = "HGSS_KANGASKHAN", file = "hgss_kangaskhan", frames = 6 },
   SLOWPOKE = { shortId = "HGSS_SLOWPOKE", file = "hgss_slowpoke", frames = 6 },
   CUBONE = { shortId = "HGSS_CUBONE", file = "hgss_cubone", frames = 6 },
@@ -3099,6 +3105,11 @@ return function(mod)
     CERULEAN_CAVE_B1F = {
       CERULEANCAVEB1F_MEWTWO = "SPRITE_HGSS_MEWTWO",
     },
+    CERULEAN_CITY = {
+      -- This is the Electrode owned by the Cerulean girl.  The ROM map
+      -- labels it SPRITE_POKE_BALL, so matching by object name is required.
+      CERULEANCITY_ELECTRODE = "SPRITE_HGSS_ELECTRODE",
+    },
     COPYCATS_HOUSE_2F = {
       -- This object is Copycat's Pikachu doll.  The generated name is
       -- unfortunately MONSTER, so do not let it inherit the generic Rhydon
@@ -3106,6 +3117,7 @@ return function(mod)
       COPYCATSHOUSE2F_MONSTER = "SPRITE_PIKACHU",
     },
     FUCHSIA_CITY = {
+      FUCHSIACITY_VOLTORB = "SPRITE_HGSS_VOLTORB",
       FUCHSIACITY_KANGASKHAN = "SPRITE_HGSS_KANGASKHAN",
       FUCHSIACITY_SLOWPOKE = "SPRITE_HGSS_SLOWPOKE",
     },
@@ -3144,6 +3156,16 @@ return function(mod)
     },
     POKEMON_MANSION_B1F = {
       POKEMONMANSIONB1F_BURGLAR = "SPRITE_BURGLAR",
+    },
+    POWER_PLANT = {
+      POWERPLANT_VOLTORB1 = "SPRITE_HGSS_VOLTORB",
+      POWERPLANT_VOLTORB2 = "SPRITE_HGSS_VOLTORB",
+      POWERPLANT_VOLTORB3 = "SPRITE_HGSS_VOLTORB",
+      POWERPLANT_VOLTORB4 = "SPRITE_HGSS_VOLTORB",
+      POWERPLANT_VOLTORB5 = "SPRITE_HGSS_VOLTORB",
+      POWERPLANT_VOLTORB6 = "SPRITE_HGSS_VOLTORB",
+      POWERPLANT_ELECTRODE1 = "SPRITE_HGSS_ELECTRODE",
+      POWERPLANT_ELECTRODE2 = "SPRITE_HGSS_ELECTRODE",
     },
     -- Viridian's Pokémon Center has three ordinary visitors whose Yellow
     -- object records are not always resolved through the class table by the

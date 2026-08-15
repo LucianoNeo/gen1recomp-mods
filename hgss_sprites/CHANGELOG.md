@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.2
+
+- Corrected Cerulean's Electrode and the Fuchsia/Power Plant Voltorb map
+  objects, which were still using the generic Poké Ball artwork.
+- Added dedicated full-color HGSS Electrode and Voltorb overworld sheets for
+  those map objects without changing ordinary Poké Ball item sprites.
+
 ## 0.5.1
 
 - Fixed level-100 party status placement so `PAR` and `FNT` no longer overlap
