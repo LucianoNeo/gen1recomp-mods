@@ -245,6 +245,28 @@ return function(mod)
   -- This mod owns its intro, overworld and optional battle artwork. Battle
   -- assets are self-contained; missing files fall back to the g1recomp ROM.
 
+  -- Set by game.ready; declared here so rendering helpers can also consult
+  -- the live save options when the manager has not refreshed mod.options yet.
+  local liveGame
+
+  -- Since gen1recomp 0.1.88 mods no longer receive love.filesystem.  Keep
+  -- existence checks inside the mod sandbox and use the documented reader.
+  -- The result is cached because these checks run from battle sprite hooks.
+  local assetExistsCache = {}
+  local function assetExists(relative)
+    if not relative then return false end
+    if assetExistsCache[relative] ~= nil then
+      return assetExistsCache[relative]
+    end
+    local exists = false
+    if type(mod.read) == "function" then
+      local ok, data = pcall(function() return mod:read(relative) end)
+      exists = ok and data ~= nil
+    end
+    assetExistsCache[relative] = exists
+    return exists
+  end
+
   local function isHgssTrueColorPath(path)
     if type(path) ~= "string" then return false end
     path = path:gsub("\\", "/")
@@ -371,7 +393,7 @@ return function(mod)
       key = "sprite_size",
       label = "SPRITE SIZE",
       type = "choice",
-      default = "1.0",
+      default = "0.8",
       choices = {
         { "0.5x", "0.5" },
         { "0.6x", "0.6" },
@@ -506,17 +528,14 @@ return function(mod)
     local rel = ("assets/battle/%s/%s/%s.png"):format(
       folder, gen, battleSlug(species))
     if side == "back" and (gen == "gen3" or gen == "gen5") then
-      local animated = mod.assets:path(rel)
-      local fs = love and love.filesystem
-      if not (fs and fs.getInfo and fs.getInfo(animated)) then
+      if not assetExists(rel) then
         folder = "back-static"
         rel = ("assets/battle/%s/%s/%s.png"):format(
           folder, gen, battleSlug(species))
       end
     end
     local path = mod.assets:path(rel)
-    local fs = love and love.filesystem
-    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    if not assetExists(rel) then return nil end
     -- pokemon.sprite returns the asset path/definition, not a drawable. This
     -- keeps the hook compatible with the stock battle renderer.
     return path
@@ -534,12 +553,10 @@ return function(mod)
     if not def then return nil end
     local image = def.image
     local path = image and mod.assets:path(image)
-    local fs = love and love.filesystem
-    if side == "back" and path and fs and fs.getInfo
-       and not fs.getInfo(path) then
+    if side == "back" and image and not assetExists(image) then
       local fallback = image:gsub("back%-animated", "back-static")
       local fallbackPath = mod.assets:path(fallback)
-      if fs.getInfo(fallbackPath) then
+      if assetExists(fallback) then
         -- Static Gen 5 backs are already cropped PNGs. Do not reuse the
         -- animated atlas cell dimensions or the renderer would cut them.
         return { image = fallback, static = true, frames = 1 }
@@ -689,9 +706,7 @@ return function(mod)
           end
         end
         if not source then
-          local path = mod.assets and mod.assets:path(relSource)
-          local ok, text = path and pcall(love.filesystem.read, path)
-          if ok and type(text) == "string" then source = text end
+          -- mod:read above is the only supported way to access mod files.
         end
         local loader = loadstring or load
         local chunk = source and loader(source, "@battle/" .. file)
@@ -726,12 +741,9 @@ return function(mod)
         local height = tonumber(line:match("height%s*=%s*(%d+)"))
         local columns = tonumber(line:match("columns%s*=%s*(%d+)"))
         if image and width and height then
-          local candidate = mod.assets:path(image)
-          local fs = love and love.filesystem
-          if fs and fs.getInfo and not fs.getInfo(candidate)
-             and side == "back" then
+          if not assetExists(image) and side == "back" then
             local fallback = image:gsub("back%-animated", "back-static")
-            if fs.getInfo(mod.assets:path(fallback)) then image = fallback end
+            if assetExists(fallback) then image = fallback end
           end
           return normalizeBattleDefinition({ image = image, width = width,
             height = height, columns = columns }, side)
@@ -959,8 +971,7 @@ return function(mod)
       end
       if ctx and ctx.side == "back" and ctx.demo and ctx.oakDemo then
         local oak = mod.assets:path("assets/battle/back-static/oak.png")
-        local fs = love and love.filesystem
-        if fs and fs.getInfo and fs.getInfo(oak) then
+        if assetExists("assets/battle/back-static/oak.png") then
           ctx.trueColor = true
           return oak
         end
@@ -969,8 +980,7 @@ return function(mod)
         return out
       end
       local replacement = mod.assets:path("assets/battle/back-static/old-man.png")
-      local fs = love and love.filesystem
-      if fs and fs.getInfo and fs.getInfo(replacement) then
+      if assetExists("assets/battle/back-static/old-man.png") then
         -- playerPath propagates ctx.trueColor to BattleState:getImage; set it
         -- here so the Old Man's coloured back is never collapsed to GB shades.
         ctx.trueColor = true
@@ -1011,8 +1021,7 @@ return function(mod)
     local filename = PLAYER_BATTLE_STRIPS[key]
     if not filename then return nil end
     local path = mod.assets:path("assets/battle/back-animated/" .. filename)
-    local fs = love and love.filesystem
-    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    if not assetExists("assets/battle/back-animated/" .. filename) then return nil end
     if playerTrainerFramesCache[path] ~= nil then
       return playerTrainerFramesCache[path] or nil
     end
@@ -1039,8 +1048,7 @@ return function(mod)
   local function selectedBattlePlayerStatic(key)
     local filename = PLAYER_BATTLE_STATIC[key] or PLAYER_BATTLE_STATIC.red
     local path = mod.assets:path("assets/battle/back-static/" .. filename)
-    local fs = love and love.filesystem
-    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    if not assetExists("assets/battle/back-static/" .. filename) then return nil end
     if trainerImageCache[path] == nil then
       local ok, image = pcall(function()
         local out = love.graphics.newImage(love.image.newImageData(path))
@@ -1105,8 +1113,7 @@ return function(mod)
     local rel = ("assets/battle/front-static/%s/%s.png"):format(
       gen, slug)
     local path = mod.assets:path(rel)
-    local fs = love and love.filesystem
-    if not (fs and fs.getInfo and fs.getInfo(path)) then return nil end
+    if not assetExists(rel) then return nil end
     if trainerImageCache[path] == nil then
       local ok, image = pcall(function()
         local data = love.image.newImageData(path)
@@ -1213,7 +1220,14 @@ return function(mod)
   end
 
   local function overworldSpriteScale(def)
+    -- Always query the live option store.  A cached event value can be an
+    -- initial profile value (often 0.5x) even after the menu was changed.
     local value = tonumber(mod.options:get("sprite_size")) or 1
+    local save = liveGame and liveGame.save
+    local saved = save and save.options and save.options.modOptions
+      and save.options.modOptions[mod.id]
+      and save.options.modOptions[mod.id].sprite_size
+    if saved ~= nil then value = tonumber(saved) or value end
     value = math.max(0.5, math.min(1.0, value))
     -- Mounted and on-foot charsets share the same logical scale.  The bike
     -- PNGs already contain the complete vehicle silhouette, so do not apply
@@ -1355,7 +1369,7 @@ return function(mod)
   local function patchVoxelBillboards(afterWorldPass)
     if (voxelBillboardsPatched and (not afterWorldPass
         or voxelEntityPatchAttempted)) or voxelBillboardsPatching
-       or not (debug and debug.getupvalue) then return end
+       then return end
     local clock = love and love.timer and love.timer.getTime
     local now = clock and clock() or os.clock()
     -- If the voxel pipeline has not created its private billboard table yet,
@@ -1366,8 +1380,31 @@ return function(mod)
     voxelBillboardsPatching = true
     local okP, Pipelines = pcall(require, "src.render.Pipelines")
     local voxel = okP and Pipelines.get and Pipelines.get("voxel")
-    if not (voxel and type(voxel.drawWorld) == "function") then voxelBillboardsPatching = false; return end
-    if not voxel._hgssWorldDrawWrapped then
+    -- The supported voxel renderers expose their private SpriteBillboards
+    -- table through the documented mod.find/export channel.  Gen1Recomp
+    -- intentionally removes
+    -- the debug library from mod sandboxes, so the old upvalue walk cannot
+    -- reach this table on current builds.  Use the export first and retain the
+    -- upvalue path only for older voxel renderers that do not publish it.
+    local billboards
+    local voxelLib
+    local voxelProviderIds = { "potato_voxel", "BATTLE_ART_VOXEL_FORK",
+      "DRAMALESS_SHAPE", "DRAMATIC_SHAPE" }
+    for _, providerId in ipairs(voxelProviderIds) do
+      if not billboards and type(mod.find) == "function" then
+        local okFind, provider = pcall(mod.find, providerId)
+        local lib = okFind and provider and provider.exports
+          and provider.exports.lib
+        if lib and type(lib.require) == "function" then
+          voxelLib = lib
+          local okBillboards, exported = pcall(lib.require, "SpriteBillboards")
+          if okBillboards and type(exported) == "table" then billboards = exported end
+        end
+      end
+    end
+    if not voxel and not billboards then voxelBillboardsPatching = false; return end
+    if voxel and type(voxel.drawWorld) == "function"
+       and not voxel._hgssWorldDrawWrapped then
       local oldVoxelDrawWorld = voxel.drawWorld
       voxel.drawWorld = function(...)
         voxelWorldRendered = true
@@ -1408,7 +1445,9 @@ return function(mod)
       end
       return nil
     end
-    local billboards = find(voxel.drawWorld, 0)
+    if not billboards and voxel and debug and debug.getupvalue then
+      billboards = find(voxel.drawWorld, 0)
+    end
     if not billboards then
       voxelBillboardRetryAt = now + 0.25
       voxelBillboardsPatching = false
@@ -1417,14 +1456,100 @@ return function(mod)
     if not billboards._hgssVariableGeometryWrapped then
       local originalMesh = billboards.mesh
       local sized = setmetatable({}, { __mode = "k" })
+      local baseVertices = setmetatable({}, { __mode = "k" })
+      local shadowMeshes = setmetatable({}, { __mode = "k" })
+
+      local function rememberBase(mesh)
+        local saved = baseVertices[mesh]
+        if saved or not (mesh and mesh.getVertex) then return saved end
+        saved = {}
+        for vertex = 1, 4 do
+          local x, y, z, u, v, color = mesh:getVertex(vertex)
+          saved[vertex] = { x, y, z, u, v, color }
+        end
+        baseVertices[mesh] = saved
+        return saved
+      end
+
+      local function copyGeometry(mesh, source, width, height, yOffset,
+                                  clone)
+        if not source then return mesh end
+        local vertices = {}
+        local left = 8 - width / 2
+        for vertex = 1, 4 do
+          local base = source[vertex]
+          local right = base[1] > 8
+          local top = base[2] > 8
+          local x = right and (left + width) or left
+          local y = (top and height or 0) + (yOffset or 0)
+          vertices[vertex] = { x, y, base[3], base[4], base[5], base[6] }
+        end
+        if clone and voxelLib and type(voxelLib.require) == "function" then
+          local okVoxel, Voxel3D = pcall(voxelLib.require, "Voxel3D")
+          if okVoxel and Voxel3D and type(Voxel3D.newMesh) == "function"
+             and type(Voxel3D.pushQuad) == "function" then
+            local indices = {}
+            Voxel3D.pushQuad(indices, 0)
+            local okMesh, copy = pcall(Voxel3D.newMesh, vertices, indices)
+            if okMesh and copy then return copy end
+          end
+        elseif mesh and mesh.setVertex then
+          for vertex = 1, 4 do
+            mesh:setVertex(vertex, unpack(vertices[vertex]))
+          end
+        end
+        return mesh
+      end
+
       local function nativeMesh(def, frame)
         local mesh = originalMesh(def, frame)
         if not (mesh and def and def.hgssNativeImage) then return mesh end
+        local source = rememberBase(mesh)
         local size = overworldSpriteScale(def)
         -- Quantize the final billboard dimensions.  Fractional mesh extents
         -- make the rasterizer sample different pixel columns on each frame
         -- (most visible at 0.6x/0.7x), which looks like a stretched or pinched
         -- NPC even though the source PNG is correct.
+        local baseW = tonumber(def.hgssBaseVoxelWidth
+          or def.hgssVoxelWidth or def.hgssFrameWidth) or 32
+        local baseH = tonumber(def.hgssBaseVoxelHeight
+          or def.hgssVoxelHeight or def.hgssFrameHeight) or 32
+        -- Potato/Dramatic voxel billboards are authored in a 16px world
+        -- cell even when the replacement card is 32px wide.  Apply the
+        -- logical sprite-size control in that world space; without this
+        -- conversion every value >= 0.5 collapses to the engine's minimum
+        -- card and 1.0x looks identical to 0.5x.
+        local voxelScale = 1
+        local width, height
+        if def.hgssPreserveAspect then
+          local fw = tonumber(def.hgssFrameWidth) or 32
+          local fh = tonumber(def.hgssFrameHeight) or 32
+          local uniform = math.min(baseW / fw, baseH / fh) * size * voxelScale
+          width = math.max(1, math.floor(fw * uniform + 0.5))
+          height = math.max(1, math.floor(fh * uniform + 0.5))
+        else
+          width = math.max(1, math.floor(baseW * size * voxelScale + 0.5))
+          height = math.max(1, math.floor(baseH * size * voxelScale + 0.5))
+        end
+        local stamp = table.concat({ width, height,
+          tostring(def.hgssVoxelEntityYOffset or 0) }, "x")
+        if sized[mesh] ~= stamp then
+          copyGeometry(mesh, source, width, height,
+            tonumber(def.hgssVoxelEntityYOffset) or 0, false)
+          sized[mesh] = stamp
+        end
+        return mesh
+      end
+
+      -- The voxel renderer uses a separate shadowQuad call. Keep its
+      -- footprint at the ground plane while the visible card receives the
+      -- per-sheet grounding offset; this reproduces the old drawEntity hook
+      -- without relying on the debug library.
+      local function nativeShadow(def, frame)
+        local mesh = originalMesh(def, frame)
+        if not (mesh and def and def.hgssNativeImage) then return mesh end
+        local source = rememberBase(mesh)
+        local size = overworldSpriteScale(def)
         local baseW = tonumber(def.hgssBaseVoxelWidth
           or def.hgssVoxelWidth or def.hgssFrameWidth) or 32
         local baseH = tonumber(def.hgssBaseVoxelHeight
@@ -1441,29 +1566,33 @@ return function(mod)
           height = math.max(1, math.floor(baseH * size + 0.5))
         end
         local stamp = width .. "x" .. height
-        if sized[mesh] ~= stamp and mesh.getVertex and mesh.setVertex then
-          local left = 8 - width / 2
-          for vertex = 1, 4 do
-            local data = { mesh:getVertex(vertex) }
-            local right = data[1] > 8
-            local top = data[2] > 8
-            data[1] = right and (left + width) or left
-            data[2] = top and height or 0
-            mesh:setVertex(vertex, unpack(data))
-          end
-          sized[mesh] = stamp
+        local cached = shadowMeshes[mesh]
+        if not cached or cached.stamp ~= stamp then
+          cached = { stamp = stamp,
+            mesh = copyGeometry(mesh, source, width, height, 0, true) }
+          shadowMeshes[mesh] = cached
         end
-        return mesh
+        return cached.mesh or mesh
       end
       billboards.mesh = nativeMesh
-      billboards.shadowQuad = nativeMesh
+      billboards.shadowQuad = nativeShadow
       billboards._hgssVariableGeometryWrapped = true
     end
     -- From this point onward the expensive billboard lookup is complete.  The
     -- optional entity-depth hook is attempted only from the post-world-pass
     -- callback, after VoxelScene has populated its closures.
     voxelBillboardsPatched = true
-    if not afterWorldPass then
+    if not afterWorldPass or not voxel then
+      voxelBillboardsPatching = false
+      return
+    end
+    -- Current Gen1Recomp sandboxes do not expose Lua's debug library to mods.
+    -- The public PotatoVoxel export above is sufficient for geometry scaling;
+    -- the optional depth/grounding surgery below is only available on older
+    -- desktop builds that still expose debug upvalues.
+    if not (debug and debug.getupvalue and debug.setupvalue) then
+      voxelEntityPatchAttempted = true
+      voxelBillboardsPatched = true
       voxelBillboardsPatching = false
       return
     end
@@ -1534,7 +1663,12 @@ return function(mod)
           if not upName then break end
           if upName == "billboardPull" and type(upValue) == "function" then oldPull = upValue; break end
         end
-        if oldPull then
+        -- On builds exposing drawCast, that closure is the live render path
+        -- and applies the grounding bias below.  Wrapping scene.drawEntity
+        -- as well would add the offset a second time, separating sprites from
+        -- their voxel shadows.  Use the direct scene fallback only when the
+        -- drawCast seam is unavailable.
+        if oldPull and not drawCast then
           local biasActive = false
           local function biasedPull() return oldPull() + (biasActive and 4 or 0) end
           for j = 1, 48 do
@@ -2442,7 +2576,6 @@ return function(mod)
   -- HUD ownership stays with the base game. Keep the
   -- old implementation below in an unreachable block for easy auditing,
   -- but do not register fonts, themes, HP palettes or HUD draw wrappers.
-  local liveGame
   if false then
   -- A private high-code page supplies six border pieces and three menu
   -- markers.  field.theme routes the global UI to them without colliding

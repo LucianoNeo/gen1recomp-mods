@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+
+- Updated battle asset loading for the current g1recomp mod sandbox; battle
+  artwork no longer relies on the removed `love.filesystem` API.
+- Added public voxel-provider integration for HGSS billboard scaling and
+  ground alignment with Battle Art Voxel Fork 1.9.0 and PotatoVoxel 1.6.0.
+- Verified the portable mod with both voxel renderers on g1recomp 0.1.88,
+  including an overworld capture and a 3D battle capture.
+
 ## 0.4.5
 
 - Fixed the Pallet Town Oak Pikachu catch battle crashing when the scripted
