@@ -352,7 +352,7 @@ return function(mod)
       key = "battle_scope",
       label = "BATTLE ART SCOPE",
       type = "choice",
-      default = "complete",
+      default = "trainers",
       choices = {
         { "TRAINERS ONLY", "trainers" },
         { "COMPLETE", "complete" },

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.5
+
+- Updated the full-color animated surfing Pikachu overworld sprite.
+- Kept `BATTLE ART SCOPE` at `TRAINERS ONLY` by default; Pokémon battle art
+  remains opt-in through the existing `COMPLETE` choice.
+
 ## 0.5.4
 
 - Corrected the SS Anne Wigglytuff map object with a full directional HGSS
