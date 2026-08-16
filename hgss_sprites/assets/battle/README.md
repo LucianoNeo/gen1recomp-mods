@@ -17,10 +17,26 @@ who want its separate Voxel renderer.
 
 ```text
 front-animated/<gen1|gen2|gen3|gen4|gen5>/<pokemon>.png
-back-static/<gen1|gen2|gen4>/<pokemon>.png
+back-static/<gen1|gen2|gen3|gen4|gen5>/<pokemon>.png
 back-animated/<gen3|gen5>/<pokemon>.png
+front-animated/<gen1|gen2|gen3|gen4|gen5>/shiny/<pokemon>.png
+back-static/<gen1|gen2|gen3|gen4|gen5>/shiny/<pokemon>.png
+back-animated/<gen3|gen5>/shiny/<pokemon>.png
 front-static/<gen1|gen2|gen3>/<trainer>.png
 ```
+
+Shiny front sprites are bundled for every generation supported by Battle Art
+(Gen 1 through Gen 5). Shiny back sprites use static collections for Gen 1,
+Gen 2 and Gen 4, and animated collections for Gen 3 and Gen 5; the static
+collection remains available as a fallback. The resolver selects the shiny
+collection when a Pokémon is explicitly marked shiny (or matches the Gen 2
+shiny-DV rule), while an unavailable species falls back to normal artwork or
+the ROM sprite.
+
+The corresponding `animated_battle_sprites_gen2_shiny.lua` through
+`animated_battle_sprites_gen5_shiny.lua` files contain the atlas dimensions,
+frame counts and timing metadata needed to animate those collections without
+loading Battle Art at runtime.
 
 The player battle trainer is selected by the HGSS mod's `PLAYER SELECT` option:
 `RED` uses `redplayer.png`, `ASH` uses `ashplayer.png`, and `ETHAN` uses the

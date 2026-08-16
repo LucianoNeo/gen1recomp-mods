@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.6
+
+- Added full-color shiny battle artwork for the supported Gen 1 through Gen 5
+  front collections, with animated or static shiny backs where available.
+- Made the custom Surfing Pikachu sprite the default for every overworld Surf
+  ride, so it no longer depends on having the event-only Surf move on Pikachu.
+- Kept the normal `TRAINERS ONLY` battle scope as the default.
+
 ## 0.5.5
 
 - Updated the full-color animated surfing Pikachu overworld sprite.

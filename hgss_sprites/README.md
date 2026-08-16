@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.5.5-gold)
+![Version](https://img.shields.io/badge/version-0.5.6-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.1.88-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -16,7 +16,15 @@ This pack owns three visual areas:
 - full-color animated party icons.
 - self-contained battle Pokemon collections and player trainer intros.
 
-Version 0.5.5 updates the animated surfing Pikachu sprite and keeps
+The bundled battle collections include shiny front sprites for every supported
+generation (Gen 1 through Gen 5), plus static/animated shiny backs wherever
+those generation assets are available. Shiny art is selected from the same
+generation controls as normal battle art and falls back safely when a species
+has no matching asset.
+
+Version 0.5.6 adds full-color shiny battle artwork for supported Gen 1-5
+collections and forces the custom Surfing Pikachu sprite for every overworld
+Surf ride. It keeps
 `BATTLE ART SCOPE` at `TRAINERS ONLY` by default; the bundled Pokémon battle
 collections remain opt-in through `COMPLETE`. Version 0.5.4 corrects the SS Anne Wigglytuff directional map sheet and
 grounds both Route 12 and Route 16 Snorlax obstructions at 2x scale. These
@@ -109,7 +117,7 @@ The party menu retains the full-color HGSS icon set:
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for its Voxel renderer; it is not required for the mod's battle or overworld assets.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.5.5 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.5).
+3. Download the [`HGSS_SPRITES` 0.5.6 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.6).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 

@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.5.5](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.5) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.5.6](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.6) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 
@@ -30,6 +30,11 @@ or `COMPLETE`, while the front/back/trainer generation selectors choose the
 bundled Gen 1-5 collections. `PLAYER SELECT` also chooses the battle trainer
 intro: RED, ASH or ETHAN. Missing files fall back to g1recomp's original
 sprites.
+
+The bundled battle collections also include shiny front sprites for every
+supported generation (Gen 1 through Gen 5), with static or animated shiny
+backs wherever that generation provides them. The resolver selects these
+assets from the same generation controls and falls back safely per species.
 
 ### Battle Art Voxel Fork credit and scope
 
@@ -65,9 +70,11 @@ The party screen keeps the custom full-color HGSS icon set:
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 ![Party menu with six Pokemon](hgss_sprites/docs/media/readme-party-icons.png)
 
-### Voxel compatibility and current runtime support in 0.5.5
+### Voxel compatibility and current runtime support in 0.5.6
 
-Version 0.5.5 updates the animated surfing Pikachu sprite and keeps
+Version 0.5.6 adds full-color shiny battle artwork for supported Gen 1-5
+collections and forces the custom Surfing Pikachu sprite for every overworld
+Surf ride. It keeps
 `BATTLE ART SCOPE` at `TRAINERS ONLY` by default; the bundled Pokémon battle
 collections remain opt-in through `COMPLETE`. Version 0.5.4 corrects the SS Anne Wigglytuff directional map sheet and
 grounds both Route 12 and Route 16 Snorlax obstructions at 2x scale. The
@@ -112,6 +119,6 @@ sprites use dedicated normal-palette HGSS sheets.
 2. Download the HGSS_SPRITES ZIP from the release above.
 3. Import it through the g1recomp mod manager and restart the game.
 
-Package: `0.5.5` - Lean runtime package - Compatible with g1recomp
+Package: `0.5.6` - Lean runtime package - Compatible with g1recomp
 `>=0.1.75 <0.2.0` (tested on `0.1.88`, Battle Art Voxel Fork 1.9.0 and
 PotatoVoxel 1.6.0).

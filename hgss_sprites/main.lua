@@ -79,6 +79,11 @@ local POKEMON_OBJECT_SHEETS = {
   PSYDUCK = { shortId = "HGSS_PSYDUCK", file = "hgss_psyduck", frames = 6 },
   MACHOKE = { shortId = "HGSS_MACHOKE", file = "hgss_machoke", frames = 6 },
   MACHOP = { shortId = "HGSS_MACHOP", file = "hgss_machop", frames = 6 },
+  -- Fuchsia City's fossil display is exposed by the Yellow map as the
+  -- generic SPRITE_MONSTER (a Rhydon placeholder).  Use the authored Kabuto
+  -- overworld sheet only for that object so other MONSTER uses remain
+  -- unchanged.  The source atlas is normalized to Red's six-frame layout.
+  KABUTO = { shortId = "HGSS_KABUTO", file = "hgss_kabuto", frames = 6 },
   -- The SS Anne 1F rooms contain a Wigglytuff object whose ROM record points
   -- at SPRITE_JIGGLYPUFF.  Keep a dedicated directional sheet so the object
   -- shows the evolved species without changing the Pewter Center Jigglypuff.
@@ -533,7 +538,50 @@ return function(mod)
     local key = tostring(value or ""):upper()
     return key:gsub("[^%w]+", "_"):gsub("_+$", "")
   end
-  local function selectedBattlePokemonImage(species, side)
+  local SHINY_ATTACK_DVS = {
+    [2] = true, [3] = true, [6] = true, [7] = true,
+    [10] = true, [11] = true, [14] = true, [15] = true,
+  }
+  local function shinyFlag(value)
+    if type(value) == "boolean" then return value end
+    if type(value) == "number" then return value ~= 0 end
+    if type(value) == "string" then
+      local normalized = value:lower()
+      return normalized == "true" or normalized == "yes"
+        or normalized == "on" or normalized == "shiny" or normalized == "1"
+    end
+    return false
+  end
+  local function battleIsShiny(value)
+    local mon = type(value) == "table"
+      and (value.mon or value.pokemon or value) or nil
+    if type(mon) ~= "table" then return false end
+    for _, key in ipairs({ "shiny", "isShiny", "is_shiny" }) do
+      if mon[key] ~= nil then return shinyFlag(mon[key]) end
+    end
+    if mon.variant ~= nil then
+      return tostring(mon.variant):lower() == "shiny"
+    end
+    local dvs = mon.dvs or mon.DVs
+    if type(dvs) ~= "table" then return false end
+    local attack = tonumber(dvs.attack or dvs.Attack)
+    local defense = tonumber(dvs.defense or dvs.Defense)
+    local speed = tonumber(dvs.speed or dvs.Speed)
+    local special = tonumber(dvs.special or dvs.Special)
+    if defense ~= 10 or speed ~= 10 or special ~= 10
+       or not SHINY_ATTACK_DVS[attack] then
+      return false
+    end
+    local hp = (attack % 2) * 8 + (defense % 2) * 4
+      + (speed % 2) * 2 + (special % 2)
+    return dvs.hp == nil or tonumber(dvs.hp or dvs.HP) == hp
+  end
+  local function battleAssetPath(folder, gen, species, shiny)
+    local suffix = shiny and "/shiny" or ""
+    return ("assets/battle/%s/%s%s/%s.png"):format(
+      folder, gen, suffix, battleSlug(species))
+  end
+  local function selectedBattlePokemonImage(species, side, shiny)
     -- TRAINERS ONLY must leave both wild and party Pokemon entirely to the
     -- engine.  This guard is needed here as well as in applyBattleGeneration:
     -- the public pokemon.sprite hook can run before BattleState exists and
@@ -553,13 +601,11 @@ return function(mod)
     -- generations use animated atlases. The event bridge below extracts the
     -- selected atlas frame; this path remains the safe stock-hook fallback.
     if side == "front" and gen == "gen1" then folder = "front-animated" end
-    local rel = ("assets/battle/%s/%s/%s.png"):format(
-      folder, gen, battleSlug(species))
+    local rel = battleAssetPath(folder, gen, species, shiny)
     if side == "back" and (gen == "gen3" or gen == "gen5") then
       if not assetExists(rel) then
         folder = "back-static"
-        rel = ("assets/battle/%s/%s/%s.png"):format(
-          folder, gen, battleSlug(species))
+        rel = battleAssetPath(folder, gen, species, shiny)
       end
     end
     local path = mod.assets:path(rel)
@@ -675,7 +721,8 @@ return function(mod)
     if gen == "rom" or battleOption("battle_scope") == "trainers" then return end
     local mon = battler.mon
     local species = mon and (mon.species or mon.id or mon.dataId)
-    local def = battleDefinition(gen, side, species)
+    local shiny = battleIsShiny(battler)
+    local def = battleDefinition(gen, side, species, shiny)
     local frames = def and not def.static and battleFrames(def) or nil
     local image = frames and frames[1]
       or (def and def.image and battleTexture(mod.assets:path(def.image),
@@ -699,7 +746,8 @@ return function(mod)
     if gen == "rom" or battleOption("battle_scope") == "trainers" then return end
     local mon = battler.mon
     local species = mon and (mon.species or mon.id or mon.dataId)
-    local def = battleDefinition(gen, side, species)
+    local shiny = battleIsShiny(battler)
+    local def = battleDefinition(gen, side, species, shiny)
     if def and def.static then return end
     local frames = def and battleFrames(def)
     if not frames then return end
@@ -719,12 +767,17 @@ return function(mod)
     battler.sprite = frames[state.frame]
   end
 
-  battleDefinition = function(gen, side, species)
+  battleDefinition = function(gen, side, species, shiny)
     local key = (side == "back" and "back" or "front") .. ":" .. gen
+      .. (shiny and ":shiny" or ":normal")
     if battleDataCache[key] == nil then
-      local file = side == "back" and gen == "gen3"
-        and "animated_battle_backs_gen3.lua"
-        or (gen ~= "gen1" and "animated_battle_sprites_" .. gen .. ".lua")
+      local file
+      if side == "back" and gen == "gen3" and not shiny then
+        file = "animated_battle_backs_gen3.lua"
+      elseif gen ~= "gen1" then
+        file = "animated_battle_sprites_" .. gen
+          .. (shiny and "_shiny" or "") .. ".lua"
+      end
       if file then
         local relSource = "assets/battle/" .. file
         local source
@@ -787,11 +840,12 @@ return function(mod)
   -- (which looks like a Gen 1/garbled sprite).  Resolve one logical front
   -- frame here and install it on the entry page, using the same generation
   -- selector as battle fronts.
-  local function selectedDexImage(species)
+  local function selectedDexImage(species, source)
     if battleOption("battle_scope") == "trainers" then return nil end
     local gen = battleOption("battle_front_gen") or "rom"
     if gen == "rom" then return nil end
-    local def = battleDefinition(gen, "front", species)
+    local shiny = battleIsShiny(source)
+    local def = battleDefinition(gen, "front", species, shiny)
     if def then
       local frames = not def.static and battleFrames(def) or nil
       local image = frames and frames[1]
@@ -801,7 +855,7 @@ return function(mod)
     end
     -- Gen 1 front art has no Lua atlas definition and is already one 56x56
     -- frame, so load that selected path directly.
-    local path = selectedBattlePokemonImage(species, "front")
+    local path = selectedBattlePokemonImage(species, "front", shiny)
     return path and battleTexture(path) or nil
   end
 
@@ -834,7 +888,7 @@ return function(mod)
     SummaryMenu.new = function(game, mon, ...)
       local summary = oldSummaryNew(game, mon, ...)
       local species = mon and (mon.species or mon.id or mon.dataId)
-      local image = selectedDexImage(species)
+      local image = selectedDexImage(species, mon)
       if image then
         summary.sprite = image
         summary.spriteTrueColor = true
@@ -858,8 +912,8 @@ return function(mod)
       local state = oldEvolutionNew(game, mon, newSpecies, ...)
       if battleOption("battle_scope") ~= "trainers"
          and battleOption("battle_front_gen") ~= "rom" then
-        local oldImage = selectedDexImage(mon and mon.species)
-        local newImage = selectedDexImage(newSpecies)
+        local oldImage = selectedDexImage(mon and mon.species, mon)
+        local newImage = selectedDexImage(newSpecies, mon)
         if oldImage then
           state.oldSprite = oldImage
           state.oldSpriteTrueColor = true
@@ -898,7 +952,8 @@ return function(mod)
     if gen == "rom" then return end
     local mon = battle.enemy and battle.enemy.mon
     local species = mon and (mon.species or mon.id or mon.dataId)
-    local def = battleDefinition(gen, "front", species)
+    local shiny = battleIsShiny(battle.enemy)
+    local def = battleDefinition(gen, "front", species, shiny)
     local path = def and mod.assets:path(def.image)
     if path and def then
       local frames = not def.static and battleFrames(def) or nil
@@ -921,8 +976,9 @@ return function(mod)
       local species = mon and (mon.species or mon.id or mon.dataId)
       local gen = battleOption(side == "back" and "battle_back_gen"
         or "battle_front_gen") or "rom"
-      local path = selectedBattlePokemonImage(species, side)
-      local def = gen ~= "rom" and battleDefinition(gen, side, species) or nil
+      local shiny = battleIsShiny(battler)
+      local path = selectedBattlePokemonImage(species, side, shiny)
+      local def = gen ~= "rom" and battleDefinition(gen, side, species, shiny) or nil
       if def and def.image then path = mod.assets:path(def.image) end
       local frames = def and not def.static and battleFrames(def) or nil
       local image = frames and frames[1]
@@ -1024,7 +1080,8 @@ return function(mod)
       local side = ctx.side == "back" and "back" or "front"
       local species = ctx.species
         or (ctx.data and ctx.data.pokemon and ctx.data.pokemon.species)
-      local selected = selectedBattlePokemonImage(species, side)
+      local selected = selectedBattlePokemonImage(species, side,
+        battleIsShiny(ctx.data and ctx.data.pokemon or ctx))
       if selected then
         -- Sprites.path returns both the path and the true-colour flag.  The
         -- old hook only replaced the path, so the renderer still quantized
@@ -1228,7 +1285,7 @@ return function(mod)
       if gen == "rom" then return end
       local mon = battler.mon
       local species = mon and (mon.species or mon.id or mon.dataId)
-      local def = battleDefinition(gen, side, species)
+      local def = battleDefinition(gen, side, species, battleIsShiny(battler))
       if not def or def.static then return end
       local frames = battleFrames(def)
       local first = frames and frames[1]
@@ -1430,6 +1487,14 @@ return function(mod)
   mod.content.field:patch("playerSprites", {
     walk = selectedPlayerSpriteId(),
     bike = selectedPlayerBikeSpriteId(),
+    -- Always use the authored Surfing Pikachu ride for Yellow.  The original
+    -- game only selects `surfPikachu` when the party's SURF user is Pikachu,
+    -- but Pikachu cannot learn SURF through the normal Yellow HM flow.  Keep
+    -- both water paths on the same registered sheet so the custom ride is
+    -- reachable without Stadium/event save data, while preserving the
+    -- engine's surfing movement and collision rules.
+    surf = "SPRITE_SURFING_PIKACHU",
+    surfPikachu = "SPRITE_SURFING_PIKACHU",
   })
 
   -- Gym maps in Yellow deliberately reuse generic GBC character IDs.  Keep
@@ -3198,6 +3263,7 @@ return function(mod)
       FUCHSIACITY_VOLTORB = "SPRITE_HGSS_VOLTORB",
       FUCHSIACITY_KANGASKHAN = "SPRITE_HGSS_KANGASKHAN",
       FUCHSIACITY_SLOWPOKE = "SPRITE_HGSS_SLOWPOKE",
+      FUCHSIACITY_FOSSIL = "SPRITE_HGSS_KABUTO",
     },
     LAVENDER_CUBONE_HOUSE = {
       LAVENDERCUBONEHOUSE_CUBONE = "SPRITE_HGSS_CUBONE",
