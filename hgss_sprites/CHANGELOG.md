@@ -7,9 +7,13 @@
 - Added cached option reads for `overworldSpriteScale` with clean invalidation on option changes.
 - Cached Party and PC Box icon Quad instances, removing per-frame quad allocations in menus.
 
+## 0.5.7
+
 - Corrected overworld sprite orientations across all character sheets to match the standard 6-frame layout (`red.png`), fixing inverted back-standing/back-walking frames and removing extraneous right-facing profile frames.
 - Updated `silph_worker_f` overworld sprite with authentic female trainer artwork.
 - Expanded engine compatibility range (`>=0.1.75 <10.0.0`) in `manifest.json` ensuring seamless support for g1recomp v0.2.1+ and future engine releases.
+
+## 0.5.6
 
 - Added full-color shiny battle artwork for the supported Gen 1 through Gen 5
   front collections, with animated or static shiny backs where available.
