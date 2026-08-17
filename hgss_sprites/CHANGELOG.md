@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.5.8
+## 0.5.9
+
+- Fixed real-time option responsiveness for `SPRITE SIZE`, prioritizing active Mod Manager slider values over stale save states so scale changes apply immediately without restarting the game.
 
 - Major overworld render loop performance optimizations: converted animation frame mapping tables to module constants and eliminated `pcall(require, "Pipelines")` from `SpriteRenderer.draw`, reducing heap allocation to zero bytes per entity frame.
 - Implemented global alpha-bound caching (`hgssFrameBottomsCache`) for sprite sheets, speeding up NPC instantiation and map transitions by over 45x.

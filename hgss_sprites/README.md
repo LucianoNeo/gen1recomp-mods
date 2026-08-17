@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.5.8-gold)
+![Version](https://img.shields.io/badge/version-0.5.9-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.2.1-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and

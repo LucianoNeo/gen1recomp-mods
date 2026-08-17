@@ -1401,23 +1401,18 @@ return function(mod)
     BattleState.__hgssBattleScaleHook = true
   end
 
-  local cachedSpriteScale = nil
-  local function getCachedSpriteScale()
-    if cachedSpriteScale ~= nil then return cachedSpriteScale end
-    local value = tonumber(mod.options:get("sprite_size")) or 1
-    local save = liveGame and liveGame.save
-    local saved = save and save.options and save.options.modOptions
-      and save.options.modOptions[mod.id]
-      and save.options.modOptions[mod.id].sprite_size
-    if saved ~= nil then value = tonumber(saved) or value end
-    cachedSpriteScale = math.max(0.5, math.min(1.0, value))
-    return cachedSpriteScale
-  end
-
   local function overworldSpriteScale(def)
     local fixed = def and tonumber(def.hgssScaleOverride)
     if fixed then return fixed end
-    return getCachedSpriteScale()
+    local value = tonumber(mod.options:get("sprite_size"))
+    if value == nil then
+      local save = liveGame and liveGame.save
+      local saved = save and save.options and save.options.modOptions
+        and save.options.modOptions[mod.id]
+        and save.options.modOptions[mod.id].sprite_size
+      value = tonumber(saved) or 1
+    end
+    return math.max(0.5, math.min(1.0, value))
   end
 
   local PLAYER_SPRITE_IDS = {
