@@ -1,7 +1,7 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.5.6-gold)
-![g1recomp](https://img.shields.io/badge/g1recomp-0.1.88-blue)
+![Version](https://img.shields.io/badge/version-0.5.7-gold)
+![g1recomp](https://img.shields.io/badge/g1recomp-0.2.1-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
 SoulSilver. Battle Art Voxel Fork is optional and recommended only when its
