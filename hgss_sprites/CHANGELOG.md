@@ -1,6 +1,11 @@
 # Changelog
 
-## 0.5.7
+## 0.5.8
+
+- Major overworld render loop performance optimizations: converted animation frame mapping tables to module constants and eliminated `pcall(require, "Pipelines")` from `SpriteRenderer.draw`, reducing heap allocation to zero bytes per entity frame.
+- Implemented global alpha-bound caching (`hgssFrameBottomsCache`) for sprite sheets, speeding up NPC instantiation and map transitions by over 45x.
+- Added cached option reads for `overworldSpriteScale` with clean invalidation on option changes.
+- Cached Party and PC Box icon Quad instances, removing per-frame quad allocations in menus.
 
 - Corrected overworld sprite orientations across all character sheets to match the standard 6-frame layout (`red.png`), fixing inverted back-standing/back-walking frames and removing extraneous right-facing profile frames.
 - Updated `silph_worker_f` overworld sprite with authentic female trainer artwork.

@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.5.7](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.7) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.5.8](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.5.8) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 

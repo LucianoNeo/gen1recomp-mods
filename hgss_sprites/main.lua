@@ -508,9 +508,12 @@ return function(mod)
     return value
   end
   mod.events:on("mod.options_changed", function(ev)
-    if ev and ev.mod == mod.id and BATTLE_OPTION_KEYS[ev.key] then
-      battleOptionValues[ev.key] = ev.value
-      battleTrace(("event %s=%s"):format(tostring(ev.key), tostring(ev.value)))
+    if ev and ev.mod == mod.id then
+      cachedSpriteScale = nil
+      if BATTLE_OPTION_KEYS[ev.key] then
+        battleOptionValues[ev.key] = ev.value
+        battleTrace(("event %s=%s"):format(tostring(ev.key), tostring(ev.value)))
+      end
     end
   end)
 
@@ -1398,22 +1401,23 @@ return function(mod)
     BattleState.__hgssBattleScaleHook = true
   end
 
-  local function overworldSpriteScale(def)
-    local fixed = def and tonumber(def.hgssScaleOverride)
-    if fixed then return fixed end
-    -- Always query the live option store.  A cached event value can be an
-    -- initial profile value (often 0.5x) even after the menu was changed.
+  local cachedSpriteScale = nil
+  local function getCachedSpriteScale()
+    if cachedSpriteScale ~= nil then return cachedSpriteScale end
     local value = tonumber(mod.options:get("sprite_size")) or 1
     local save = liveGame and liveGame.save
     local saved = save and save.options and save.options.modOptions
       and save.options.modOptions[mod.id]
       and save.options.modOptions[mod.id].sprite_size
     if saved ~= nil then value = tonumber(saved) or value end
-    value = math.max(0.5, math.min(1.0, value))
-    -- Mounted and on-foot charsets share the same logical scale.  The bike
-    -- PNGs already contain the complete vehicle silhouette, so do not apply
-    -- a hidden multiplier here; SPRITE SIZE is the only scale control.
-    return value
+    cachedSpriteScale = math.max(0.5, math.min(1.0, value))
+    return cachedSpriteScale
+  end
+
+  local function overworldSpriteScale(def)
+    local fixed = def and tonumber(def.hgssScaleOverride)
+    if fixed then return fixed end
+    return getCachedSpriteScale()
   end
 
   local PLAYER_SPRITE_IDS = {
@@ -1964,6 +1968,12 @@ return function(mod)
     patchVoxelBillboards(false)
   end
 
+  local HGSS_STAND_FRAMES = { down = 0, up = 1, left = 2, right = 2 }
+  local HGSS_WALK_FRAMES = { down = 3, up = 4, left = 5, right = 5 }
+  local HGSS_GAMBLER_WALK_FRAMES = { down = 0, up = 4, left = 5, right = 5 }
+  local hgssFrameBottomsCache = {}
+  local PipelinesModule = nil
+
   SpriteRenderer.new = function(spriteDef, seed)
     tryPatchVoxelBillboards()
     local self = oldNew(spriteDef, seed)
@@ -2009,37 +2019,39 @@ return function(mod)
       -- editing or resampling the source PNG.
       if spriteDef.hgssNativeImage and love.image
          and love.image.newImageData then
-        local okData, data = pcall(love.image.newImageData,
-          spriteDef.hgssNativeImage)
-        if okData and data and data.getPixel then
-          self.hgssFrameBottoms = {}
-          -- ImageData can have dimensions that differ from the GPU image
-          -- after an asset is replaced while the renderer is rebuilding
-          -- (notably at a map seam).  Derive the sampling bounds from the
-          -- ImageData itself; using the stale image height can make
-          -- getPixel() throw and abort the whole game during a connection
-          -- transition.
-          local dataW, dataH = data:getDimensions()
-          local sampleW = math.min(fw, dataW)
-          local count = math.min(6, math.floor(dataH / fh))
-          for frame = 0, count - 1 do
-            local bottom = 0
-            for yy = 0, fh - 1 do
-              local rowVisible = false
-              local dataY = frame * fh + yy
-              if dataY >= dataH then break end
-              for xx = 0, sampleW - 1 do
-                local _, _, _, alpha = data:getPixel(xx, frame * fh + yy)
-                if (alpha or 0) > 0.01 then
-                  rowVisible = true
-                  break
+        local cacheKey = spriteDef.hgssNativeImage .. ":" .. tostring(fw) .. ":" .. tostring(fh)
+        local cachedBottoms = hgssFrameBottomsCache[cacheKey]
+        if cachedBottoms then
+          self.hgssFrameBottoms = cachedBottoms
+        else
+          local okData, data = pcall(love.image.newImageData,
+            spriteDef.hgssNativeImage)
+          if okData and data and data.getPixel then
+            local bottoms = {}
+            local dataW, dataH = data:getDimensions()
+            local sampleW = math.min(fw, dataW)
+            local count = math.min(6, math.floor(dataH / fh))
+            for frame = 0, count - 1 do
+              local bottom = 0
+              for yy = 0, fh - 1 do
+                local rowVisible = false
+                local dataY = frame * fh + yy
+                if dataY >= dataH then break end
+                for xx = 0, sampleW - 1 do
+                  local _, _, _, alpha = data:getPixel(xx, frame * fh + yy)
+                  if (alpha or 0) > 0.01 then
+                    rowVisible = true
+                    break
+                  end
                 end
+                if rowVisible then bottom = yy + 1 end
               end
-              if rowVisible then bottom = yy + 1 end
+              bottoms[frame] = bottom
             end
-            self.hgssFrameBottoms[frame] = bottom
+            if data.release then data:release() end
+            hgssFrameBottomsCache[cacheKey] = bottoms
+            self.hgssFrameBottoms = bottoms
           end
-          if data.release then data:release() end
         end
       end
     end
@@ -2081,21 +2093,9 @@ return function(mod)
     end
     local scaleX, scaleY = drawW / fw, drawH / fh
     local x = math.floor(px - camX) - math.floor(drawW / 2) + 8
-    local stand = { down = 0, up = 1, left = 2, right = 2 }
-    local walk = { down = 3, up = 4, left = 5, right = 5 }
-    -- The Yellow Viridian old man is stored under SPRITE_GAMBLER, but
-    -- gambler.png is not laid out like Red's six-frame sheet. Its fourth
-    -- cell is a side-facing pose, not a down-walk frame; using the generic
-    -- map made him turn sideways whenever the script walked him south after
-    -- the catch tutorial. Keep his authored front/back/side cells intact and
-    -- hold the front frame while moving down (the source has no dedicated
-    -- south walking cell). The side walk remains the final authored cell.
-    if self.def.hgssGamblerLayout then
-      stand = { down = 0, up = 1, left = 2, right = 2 }
-      walk = { down = 0, up = 4, left = 5, right = 5 }
-    end
+    local walk = self.def.hgssGamblerLayout and HGSS_GAMBLER_WALK_FRAMES or HGSS_WALK_FRAMES
     local frame = (self.def.walker and walkPhase == 1)
-      and walk[facing] or stand[facing]
+      and walk[facing] or HGSS_STAND_FRAMES[facing]
     frame = frame or 0
     -- All overworld sheets use the same cell-foot anchor as the native Red
     -- charset. The authored HD frames can contain transparent rows below the
@@ -2144,9 +2144,12 @@ return function(mod)
     -- records after detecting voxelWorldRendered, so keeping them only adds
     -- per-frame Lua table churn (especially visible at VOXEL HIGH/FULL).
     local voxelActive = false
-    local okPipeline, PipelineState = pcall(require, "src.render.Pipelines")
-    if okPipeline and PipelineState and type(PipelineState.worldPipeline) == "function" then
-      local okWorld, worldPipeline = pcall(PipelineState.worldPipeline)
+    if PipelinesModule == nil then
+      local okPipeline, PipelineState = pcall(require, "src.render.Pipelines")
+      PipelinesModule = (okPipeline and PipelineState) or false
+    end
+    if PipelinesModule and type(PipelinesModule.worldPipeline) == "function" then
+      local okWorld, worldPipeline = pcall(PipelinesModule.worldPipeline)
       voxelActive = okWorld and worldPipeline ~= nil
     end
     if self.def.hgssPostPresent and not voxelActive and not voxelWorldRendered then
@@ -2199,6 +2202,7 @@ return function(mod)
   local hgssPartyDraw
   local hgssPartyDrawIcon
   local partyIconImages = {}
+  local partyIconQuads = {}
   local partyIconRoot = mod.assets:path("assets/icons/")
   local originalPartyIcons = setmetatable({}, { __mode = "k" })
 
@@ -2342,8 +2346,16 @@ return function(mod)
         image:setFilter("nearest", "nearest")
       end
       partyIconImages[resolved] = ok and image or false
+      if ok and image then
+        local iw, ih = image:getDimensions()
+        if iw >= 32 and ih >= 32 then
+          local q0 = love.graphics.newQuad(0, 0, 32, 32, iw, ih)
+          local q1 = ih >= 64 and love.graphics.newQuad(0, 32, 32, 32, iw, ih) or q0
+          partyIconQuads[resolved] = { [0] = q0, [1] = q1 }
+        end
+      end
     end
-    return partyIconImages[resolved] or nil
+    return partyIconImages[resolved] or nil, partyIconQuads[resolved]
   end
 
   hgssPartyDrawIcon = function(game, mon, x, y, selected, counter, forceAlt)
@@ -2361,8 +2373,8 @@ return function(mod)
     if not isHgssPartyIcon(path) then
       return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
     end
-    local image = loadPartyIcon(path)
-    if not image then return end
+    local image, quads = loadPartyIcon(path)
+    if not image or not quads then return end
     local alt = forceAlt and true or false
     if selected then
       local hp = mon.hp or 0
@@ -2371,13 +2383,12 @@ return function(mod)
       local speed = px >= 27 and 5 or px >= 10 and 16 or 32
       alt = math.floor((counter or 0) / speed) % 2 == 1
     end
-    local iw, ih = image:getDimensions()
     local frame = alt and 1 or 0
-    if iw < 32 or ih < (frame + 1) * 32 then return end
+    local quad = quads[frame] or quads[0]
+    if not quad then return end
     PartyPaletteFX.markTrueColor(x, y, 32, 32)
     love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.draw(image,
-      love.graphics.newQuad(0, frame * 32, 32, 32, iw, ih), x, y)
+    love.graphics.draw(image, quad, x, y)
     return true
   end
 
@@ -2425,12 +2436,11 @@ return function(mod)
   local function drawPcBoxIcon(menu, mon, row)
     if not mon or not partyIconEntries[mon.species] then return end
     local path = partyIconEntries[mon.species].image
-    local image = loadPartyIcon(path)
-    if not image then return end
-    local iw, ih = image:getDimensions()
-    if iw < 32 or ih < 32 then return end
+    local image, quads = loadPartyIcon(path)
+    if not image or not quads then return end
     local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
-    local quad = love.graphics.newQuad(0, frame * 32, 32, 32, iw, ih)
+    local quad = quads[frame] or quads[0]
+    if not quad then return end
     -- The authored icon sheets carry transparent top padding.  Lift the
     -- native cell by one quarter-row so the visible creature aligns with the
     -- selector/name line rather than appearing to hang below it.
