@@ -181,7 +181,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- charsets.  HGSS frames leave the same transparent rows beneath the
   -- shoes, so apply the small grounding correction to every replacement
   -- character (not just the player).
-  local voxelEntityYOffset = -4
+  local voxelEntityYOffset = -1
   -- Snorlax occupies the Route 12 gate tile; lower its enlarged billboard
   -- slightly so the feet sit on the gate threshold and the body blocks both
   -- entrances instead of hovering above them.

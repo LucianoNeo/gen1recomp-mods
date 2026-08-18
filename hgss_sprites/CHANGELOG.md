@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.2
+
+- Adjusted the default Voxel grounding offset from `-4` to `-1` for a closer
+  match between overworld character feet and the ground plane.
+- Raised the mod manifest priority to `150` so its visual overrides are applied
+  deterministically alongside other graphics mods.
+
 ## 0.6.1
 
 - Fixed Leaf and Brendan battle player selection so their dedicated battle
