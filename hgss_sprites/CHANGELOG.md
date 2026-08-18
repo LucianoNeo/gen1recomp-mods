@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.1
+
+- Fixed Leaf and Brendan battle player selection so their dedicated battle
+  portraits are used instead of falling back to Red.
+- Verified the corrected trainer artwork in battles with the Voxel renderer
+  enabled.
+
 ## 0.6.0
 
 - Added the updated Brendan overworld charset and bicycle charset.

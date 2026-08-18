@@ -1147,6 +1147,12 @@ return function(mod)
     red = "redplayer.png",
     ash = "ashplayer.png",
     ethan = "gen2player.png",
+    -- Leaf and Brendan currently ship as full-color static back portraits.
+    -- Keep them in this selector so PLAYER SELECT does not fall back to Red;
+    -- loadPlayerTrainerFrames() will miss the animated strip and the normal
+    -- static-image fallback below will resolve their dedicated artwork.
+    leaf = "leafplayer.png",
+    brendan = "brendanplayer.png",
   }
   local PLAYER_BATTLE_STATIC = {
     red = "player.png",
