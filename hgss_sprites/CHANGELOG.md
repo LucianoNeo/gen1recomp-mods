@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+
+- Added the updated Brendan overworld charset and bicycle charset.
+- Added the updated Leaf bicycle charset and synchronized the available player
+  bicycle assets for the supported player selections.
+- Preserved six-direction walking animation, transparent backgrounds and the
+  existing voxel grounding/scale behavior for the new sheets.
+
 ## 0.5.9
 
 - Fixed real-time option responsiveness for `SPRITE SIZE`, prioritizing active Mod Manager slider values over stale save states so scale changes apply immediately without restarting the game.

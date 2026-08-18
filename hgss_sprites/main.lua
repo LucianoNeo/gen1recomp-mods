@@ -402,6 +402,8 @@ return function(mod)
         { "RED", "red" },
         { "ASH", "ash" },
         { "ETHAN", "ethan" },
+        { "LEAF", "leaf" },
+        { "BRENDAN", "brendan" },
       },
     },
     {
@@ -1150,6 +1152,8 @@ return function(mod)
     red = "player.png",
     ash = "ashplayer.png",
     ethan = "gen2player.png",
+    leaf = "leafplayer.png",
+    brendan = "brendanplayer.png",
   }
 
   local function selectedPlayerBattleKey()
@@ -1419,12 +1423,16 @@ return function(mod)
     red = "SPRITE_RED",
     ash = "SPRITE_ASH",
     ethan = "SPRITE_ETHAN",
+    leaf = "SPRITE_LEAF",
+    brendan = "SPRITE_BRENDAN",
   }
 
   local PLAYER_BIKE_SPRITE_IDS = {
     red = "SPRITE_RED_BIKE",
     ash = "SPRITE_ASH_BIKE",
     ethan = "SPRITE_ETHAN_BIKE",
+    leaf = "SPRITE_LEAF_BIKE",
+    brendan = "SPRITE_BRENDAN_BIKE",
   }
 
   local function selectedPlayerSpriteId()
@@ -1460,6 +1468,18 @@ return function(mod)
   patchOverworld(mod, "RED_BIKE", 6, true, "red_bike")
   patchOverworld(mod, "ASH_BIKE", 6, true, "ash_bike")
   patchOverworld(mod, "ETHAN_BIKE", 6, true, "ethan_bike")
+  patchOverworld(mod, "LEAF", 6, true, "leaf")
+  patchOverworld(mod, "LEAF_BIKE", 6, true, "leaf_bike")
+  patchOverworld(mod, "LYRA", 6, true, "lyra")
+  patchOverworld(mod, "LYRA_BIKE", 6, true, "lyra_bike")
+  patchOverworld(mod, "KRIS", 6, true, "kris")
+  patchOverworld(mod, "KRIS_BIKE", 6, true, "kris_bike")
+  patchOverworld(mod, "MAY", 6, true, "may")
+  patchOverworld(mod, "MAY_BIKE", 6, true, "may_bike")
+  patchOverworld(mod, "BRENDAN", 6, true, "brendan")
+  patchOverworld(mod, "BRENDAN_BIKE", 6, true, "brendan_bike")
+  patchOverworld(mod, "DAWN", 6, true, "dawn")
+  patchOverworld(mod, "DAWN_BIKE", 6, true, "dawn_bike")
   -- A few Yellow map objects refer to fallback IDs (HIKER/SUPER_NERD) even
   -- though their names/classes are Blackbelt and Burglar.  Supply the
   -- missing native HGSS IDs so the object-local corrections below can point
