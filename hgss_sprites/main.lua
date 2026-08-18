@@ -3316,9 +3316,6 @@ return function(mod)
       VERMILIONCITY_MACHOP = "SPRITE_HGSS_MACHOP",
       VERMILIONCITY_BEAUTY = "SPRITE_BEAUTY",
     },
-    POWER_PLANT = {
-      POWERPLANT_ZAPDOS = "SPRITE_HGSS_ZAPDOS",
-    },
     SEAFOAM_ISLANDS_B4F = {
       SEAFOAMISLANDSB4F_ARTICUNO = "SPRITE_HGSS_ARTICUNO",
     },
@@ -3332,10 +3329,21 @@ return function(mod)
       FIGHTINGDOJO_BLACKBELT4 = "SPRITE_BLACKBELT",
       FIGHTINGDOJO_KARATE_MASTER = "SPRITE_BLACKBELT",
     },
+    -- Yellow's Viridian Gym map labels its Blackbelt trainers as HIKER
+    -- objects.  The class metadata still says OPP_BLACKBELT, but the
+    -- renderer normally resolves the object sprite first and therefore
+    -- leaves the HGSS Hiker charset in place.  Redirect only these three
+    -- exact gym objects; Hikers elsewhere must keep their own charset.
+    VIRIDIAN_GYM = {
+      VIRIDIANGYM_HIKER1 = "SPRITE_BLACKBELT",
+      VIRIDIANGYM_HIKER2 = "SPRITE_BLACKBELT",
+      VIRIDIANGYM_HIKER3 = "SPRITE_BLACKBELT",
+    },
     POKEMON_MANSION_B1F = {
       POKEMONMANSIONB1F_BURGLAR = "SPRITE_BURGLAR",
     },
     POWER_PLANT = {
+      POWERPLANT_ZAPDOS = "SPRITE_HGSS_ZAPDOS",
       POWERPLANT_VOLTORB1 = "SPRITE_HGSS_VOLTORB",
       POWERPLANT_VOLTORB2 = "SPRITE_HGSS_VOLTORB",
       POWERPLANT_VOLTORB3 = "SPRITE_HGSS_VOLTORB",

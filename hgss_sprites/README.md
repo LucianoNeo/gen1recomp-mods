@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.6.2-gold)
+![Version](https://img.shields.io/badge/version-0.6.3-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.2.1-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -22,7 +22,11 @@ those generation assets are available. Shiny art is selected from the same
 generation controls as normal battle art and falls back safely when a species
 has no matching asset.
 
-Version 0.5.6 adds full-color shiny battle artwork for supported Gen 1-5
+Version 0.6.3 fixes the Viridian Gym Blackbelt map objects and restores the
+dedicated Power Plant Zapdos redirect without changing ordinary Hiker or
+Voltorb objects. The Articuno, Moltres and Mewtwo map-object redirects were
+also verified against their six-frame full-color sheets. Version 0.5.6 adds
+full-color shiny battle artwork for supported Gen 1-5
 collections and forces the custom Surfing Pikachu sprite for every overworld
 Surf ride. It keeps
 `BATTLE ART SCOPE` at `TRAINERS ONLY` by default; the bundled Pokémon battle
@@ -117,7 +121,7 @@ The party menu retains the full-color HGSS icon set:
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for its Voxel renderer; it is not required for the mod's battle or overworld assets.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.6.2 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.6.2).
+3. Download the [`HGSS_SPRITES` 0.6.3 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.6.3).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 

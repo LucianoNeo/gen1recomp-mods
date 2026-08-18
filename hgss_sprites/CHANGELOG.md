@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.3
+
+- Fixed the three Viridian Gym Blackbelt map objects, which were incorrectly
+  inheriting the Hiker charset because Yellow names them `HIKER1` through
+  `HIKER3` despite their Blackbelt trainer class.
+- Fixed the Power Plant Zapdos map object to use the dedicated animated HGSS
+  Zapdos sheet. Its redirect was being lost when the Power Plant object-fix
+  table was redeclared for the Voltorb and Electrode objects.
+- Verified the dedicated Articuno, Moltres and Mewtwo map-object redirects and
+  preserved their full-color six-frame sheets.
+
 ## 0.6.2
 
 - Adjusted the default Voxel grounding offset from `-4` to `-1` for a closer
