@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.6.4
+
+- Fixed Leaf and Brendan overworld and bicycle sheets being sampled as 32x32
+  frames even though their authored assets are 256x1536. Full 256x256 frames
+  are now used without resampling, preserving proportions and walking poses in
+  the flat renderer.
+- Added the dedicated Fearow overworld sheet for the Celadon Fly House while
+  keeping ordinary bird objects unchanged.
+- Corrected the Victory Road Blackbelt map object and kept the modern selected
+  front/back artwork in the Hall of Fame, including the player trainer choice.
+
 ## 0.6.3
 
 - Fixed the three Viridian Gym Blackbelt map objects, which were incorrectly

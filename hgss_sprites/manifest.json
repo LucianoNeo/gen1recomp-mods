@@ -1,7 +1,7 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "0.6.3",
+  "version": "0.6.4",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
@@ -11,7 +11,7 @@
   "affects_link": true,
   "permissions": ["engine_internals"],
   "dependencies": [],
-  "optional_dependencies": ["CRYSTAL_251"],
+  "optional_dependencies": ["CRYSTAL_251", "SHINY_POKEMON"],
   "conflicts": [],
   "author": "LucianoNeo",
   "github": "LucianoNeo/gen1recomp-mods",

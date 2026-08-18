@@ -100,6 +100,10 @@ local POKEMON_OBJECT_SHEETS = {
   ARTICUNO = { shortId = "HGSS_ARTICUNO", file = "hgss_articuno", frames = 6 },
   ZAPDOS = { shortId = "HGSS_ZAPDOS", file = "hgss_zapdos", frames = 6 },
   MOLTRES = { shortId = "HGSS_MOLTRES", file = "hgss_moltres", frames = 6 },
+  -- The Fearow in Celadon's Fly house is also encoded as SPRITE_BIRD in
+  -- Yellow.  Keep this dedicated sheet scoped to that named object so
+  -- ordinary Pidgey/Spearow bird objects continue using their own sprites.
+  FEAROW = { shortId = "HGSS_FEAROW", file = "hgss_fearow", frames = 6 },
 }
 
 local function words(text)
@@ -122,11 +126,14 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- 32x32 logical box as Red; the extra texels preserve the generated art
   -- instead of baking it down to a 20x24 miniature before rendering.
   -- Red's on-foot sheet intentionally stays on the proven 0.3.1 32x192
-  -- charset.  The newer 256x1536 sheet is reserved for RED_BIKE; Ash and
-  -- Ethan keep their 0.3.1 full-density walking sheets.
+  -- charset.  The newer 256x1536 sheets are used by the HD player choices
+  -- (Leaf/Brendan) and bike variants; Ash and Ethan keep their 0.3.1
+  -- full-density walking sheets.
   local playerSheet = file == "ash" or file == "ethan"
+    or file == "leaf" or file == "brendan"
   local playerBikeSheet = file == "red_bike"
     or file == "ash_bike" or file == "ethan_bike"
+    or file == "leaf_bike" or file == "brendan_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
@@ -862,6 +869,141 @@ return function(mod)
     -- frame, so load that selected path directly.
     local path = selectedBattlePokemonImage(species, "front", shiny)
     return path and battleTexture(path) or nil
+  end
+
+  -- Hall of Fame resolves its party pictures with kind="hof" and then
+  -- loads the returned path directly.  Unlike the battle renderer it does
+  -- not know how to crop a Gen 2-5 animated atlas, so returning the atlas
+  -- path would draw the whole sheet (or make the screen fall back to the
+  -- original Yellow picture).  Resolve one native frame here and install
+  -- it on the HallOfFame instance.  This is intentionally independent of
+  -- BATTLE ART SCOPE: TRAINERS ONLY controls live battles, while the Hall of
+  -- Fame is a presentation screen and should still show the selected
+  -- generation's Pokemon art.
+  local function fitHallImage(image, side)
+    if not image then return nil end
+    -- Modern trainer portraits have more detail than the original 56px
+    -- Hall tile window.  Keep the native front asset whenever possible;
+    -- only oversized art (such as the 320px Red intro portrait) is reduced
+    -- to an 80px presentation cell.
+    -- The stock Hall renderer enlarges a 28x28 Gen 1 back tile to 56x56.
+    -- Modern frames are already true-color pixel art, so reducing them to
+    -- 28 first throws away most of their detail.  Keep the full 56px Hall
+    -- presentation cell and draw it at 1:1 in the hook below.
+    local limit = side == "back" and 56 or 80
+    local w, h = image:getDimensions()
+    local scale = math.min(1, limit / math.max(1, w),
+      limit / math.max(1, h))
+    if scale >= 0.999 then return image end
+    local sw = math.max(1, math.floor(w * scale + 0.5))
+    local sh = math.max(1, math.floor(h * scale + 0.5))
+    local canvas = love.graphics.newCanvas(sw, sh)
+    -- Hall of Fame art is pixel art.  Canvas filtering defaults to the
+    -- renderer's current filter on some builds, which turns the reduced
+    -- frame into a soft/blurred image.  Keep the native nearest-neighbour
+    -- pixels when the fixed Hall layout requires a smaller logical cell.
+    if canvas.setFilter then canvas:setFilter("nearest", "nearest") end
+    local previous = love.graphics.getCanvas()
+    love.graphics.setCanvas(canvas)
+    love.graphics.clear(0, 0, 0, 0)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(image, 0, 0, 0, scale, scale)
+    love.graphics.setCanvas(previous)
+    love.graphics.setColor(1, 1, 1, 1)
+    return canvas
+  end
+
+  local function selectedHallPlayerImage()
+    local key = tostring(mod.options:get("player_select") or "red"):lower()
+    -- Hall of Fame expects a front battle portrait, never an overworld
+    -- charset sheet.  Keep a dedicated portrait for every PLAYER SELECT
+    -- option so the Hall screen cannot silently reuse Red's art.
+    local portraits = {
+      red = "assets/graphics/intro_hd/red.png",
+      ash = "assets/graphics/hall_front/ash.png",
+      ethan = "assets/graphics/hall_front/ethan.png",
+      leaf = "assets/graphics/hall_front/leaf.png",
+      brendan = "assets/graphics/hall_front/brendan.png",
+    }
+    local rel = portraits[key] or portraits.red
+    if not assetExists(rel) then return nil end
+    local ok, image = pcall(function()
+      local path = mod.assets:path(rel)
+      local image = love.graphics.newImage(love.image.newImageData(path))
+      if image.setFilter then image:setFilter("nearest", "nearest") end
+      return image
+    end)
+    return ok and fitHallImage(image, "front") or nil
+  end
+
+  local function selectedHallImage(species, side, source)
+    local gen = battleOption(side == "back" and "battle_back_gen"
+      or "battle_front_gen") or "rom"
+    if gen == "rom" or not species then return nil end
+    local def = battleDefinition(gen, side, species, battleIsShiny(source))
+    if def then
+      local frames = not def.static and battleFrames(def) or nil
+      local image = frames and frames[1]
+        or (def.image and battleTexture(mod.assets:path(def.image),
+            def.width, def.height, def.columns))
+      if image then
+        -- Keep the native battle art untouched; only the Hall of Fame's
+        -- small logical cell is normalized for its 80/56px presentation.
+        return fitHallImage(image, side)
+      end
+    end
+    return nil
+  end
+
+  local okHall, HallOfFame = pcall(require, "src.ui.HallOfFame")
+  if okHall and HallOfFame and not HallOfFame.__hgssGenerationHook then
+    local oldHallNew = HallOfFame.new
+    HallOfFame.new = function(game, onDone, ...)
+      local hall = oldHallNew(game, onDone, ...)
+      local playerImage = selectedHallPlayerImage()
+      if playerImage then
+        hall.playerPic = playerImage
+        hall.playerTrueColor = true
+      end
+      local oldSpriteFor = hall.spriteFor
+      hall.spriteFor = function(self, species)
+        local image = selectedHallImage(species, "front")
+        if image then
+          self.sprites[species] = image
+          self.spriteTrueColor[species] = true
+          return image
+        end
+        return oldSpriteFor(self, species)
+      end
+      local oldBackPicFor = hall.backPicFor
+      hall.backPicFor = function(self)
+        local mon = self.game.save.party[self.index]
+        if mon then
+          local image = selectedHallImage(mon.species, "back", mon)
+          if image then return image, true end
+        end
+        return oldBackPicFor(self)
+      end
+      -- HallOfFame.lua's stock drawBackPic assumes a Gen 1 28x28 source and
+      -- crops/scales it by two.  That operation visibly pixelates the
+      -- modern animated battle frames.  Our resolver returns a complete
+      -- frame fitted to the physical 56x56 Hall cell, so draw it directly
+      -- at 1:1 instead of cropping the top-left quarter.
+      hall.drawBackPic = function(self)
+        local image, trueColor = self:backPicFor()
+        if not image then return end
+        local x = self.scrollX or 160
+        local y = 88
+        love.graphics.setColor(1, 1, 1, 1)
+        love.graphics.draw(image, x, y)
+        if trueColor then
+          require("src.render.PaletteFX").markTrueColor(
+            x, y, image:getWidth(), image:getHeight())
+        end
+      end
+      return hall
+    end
+    HallOfFame.__hgssGenerationHook = true
   end
 
   local okDexEntry, DexEntryMenu = pcall(require, "src.ui.DexEntryMenu")
@@ -3319,7 +3461,14 @@ return function(mod)
     SEAFOAM_ISLANDS_B4F = {
       SEAFOAMISLANDSB4F_ARTICUNO = "SPRITE_HGSS_ARTICUNO",
     },
+    ROUTE_16_FLY_HOUSE = {
+      ROUTE16FLYHOUSE_FEAROW = "SPRITE_HGSS_FEAROW",
+    },
     VICTORY_ROAD_2F = {
+      -- The ROM names this trainer HIKER, but its trainer class is
+      -- OPP_BLACKBELT.  Bind only this Victory Road object to the HGSS
+      -- Black Belt charset; ordinary Hikers elsewhere keep HIKER.
+      VICTORYROAD2F_HIKER = "SPRITE_BLACKBELT",
       VICTORYROAD2F_MOLTRES = "SPRITE_HGSS_MOLTRES",
     },
     FIGHTING_DOJO = {

@@ -9,7 +9,7 @@ overworld charsets, and preserves the full-color party icons.
 
 [Mod documentation, current screenshots and installation guide](hgss_sprites/README.md)
 
-[Download HGSS_SPRITES 0.6.3](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.6.3) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
+[Download HGSS_SPRITES 0.6.4](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.6.4) - [All releases](https://github.com/LucianoNeo/gen1recomp-mods/releases)
 
 ### Outdoor Voxel 3D
 
@@ -35,6 +35,9 @@ The bundled battle collections also include shiny front sprites for every
 supported generation (Gen 1 through Gen 5), with static or animated shiny
 backs wherever that generation provides them. The resolver selects these
 assets from the same generation controls and falls back safely per species.
+To generate shiny encounters in-game, install the optional
+[Shiny Pokemon mod v1.0.1](https://github.com/masterwebx/gen1recomp-shiny-pokemon/releases/tag/v1.0.1);
+HGSS Visual Overhaul supplies the artwork and consumes the shiny state.
 
 ### Battle Art Voxel Fork credit and scope
 

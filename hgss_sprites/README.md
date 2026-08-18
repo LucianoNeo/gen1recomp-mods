@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.6.3-gold)
+![Version](https://img.shields.io/badge/version-0.6.4-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.2.1-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -20,9 +20,16 @@ The bundled battle collections include shiny front sprites for every supported
 generation (Gen 1 through Gen 5), plus static/animated shiny backs wherever
 those generation assets are available. Shiny art is selected from the same
 generation controls as normal battle art and falls back safely when a species
-has no matching asset.
+has no matching asset. The optional
+[Shiny Pokemon mod](https://github.com/masterwebx/gen1recomp-shiny-pokemon/releases/tag/v1.0.1)
+is responsible for marking wild and party Pokémon as shiny; install it when
+you want shiny encounters to be generated in-game.
 
-Version 0.6.3 fixes the Viridian Gym Blackbelt map objects and restores the
+Version 0.6.4 fixes Leaf and Brendan's HD overworld frame layout so their
+256x1536 sheets keep complete frames and correct proportions in 2D and on
+bicycles. It also adds the dedicated Celadon Fly House Fearow sheet, corrects
+the Victory Road Blackbelt object, and keeps modern front/back art intact in
+the Hall of Fame. Version 0.6.3 fixes the Viridian Gym Blackbelt map objects and restores the
 dedicated Power Plant Zapdos redirect without changing ordinary Hiker or
 Voltorb objects. The Articuno, Moltres and Mewtwo map-object redirects were
 also verified against their six-frame full-color sheets. Version 0.5.6 adds
@@ -121,7 +128,7 @@ The party menu retains the full-color HGSS icon set:
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for its Voxel renderer; it is not required for the mod's battle or overworld assets.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.6.3 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.6.3).
+3. Download the [`HGSS_SPRITES` 0.6.4 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.6.4).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 
