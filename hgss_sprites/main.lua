@@ -144,12 +144,13 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Jessie/James, Ash and Ethan use 256px-wide authored frames; match the
   -- source cell so the renderer samples each complete frame instead of
   -- shrinking it or cutting off the head and feet.
-  -- Agatha and Lorelei now use the same native 256x1536 six-frame sheets
-  -- as Red/Ash/Ethan.  Keeping them in the 256px branch is important: the
-  -- old 288/394px assumptions stretched their 256px cells and made the
-  -- leaders appear at inconsistent sizes in Voxel.
+  -- Agatha, Lorelei and Officer Jenny use the same native 256x1536 six-frame
+  -- sheets as Red/Ash/Ethan. Keeping them in the 256px branch is important:
+  -- the old 288/394px assumptions made their 256px cells fail sheet
+  -- detection in 2D and appear at inconsistent sizes in Voxel.
   local frameSize = (file == "jessie" or file == "james"
       or file == "agatha" or file == "lorelei"
+      or file == "officer_jenny"
       or playerSheet or playerBikeSheet) and 256
     or (nativeWide and 394
     or (hdSheet and 288 or (highDensity and 128 or 32)))
@@ -288,6 +289,38 @@ return function(mod)
   -- Set by game.ready; declared here so rendering helpers can also consult
   -- the live save options when the manager has not refreshed mod.options yet.
   local liveGame
+
+  -- Yellow's POKECENTER tileset contains one seated figure painted directly
+  -- into the couch art (block $08), so it cannot be replaced through the
+  -- normal NPC sprite registry.  Use a mod-local copy of the 128x48 atlas
+  -- with only that figure's pixels restored to the couch/floor tiles.  One
+  -- POKECENTER tileset is shared by all eleven Pokémon Centers and the
+  -- Celadon Hotel, so this single patch covers every occurrence.  Keep the
+  -- patch scoped to POKECENTER: MART shares the original atlas image but
+  -- must retain its own tile art.
+  if mod.content and mod.content.tilesets
+      and type(mod.content.tilesets.patch) == "function" then
+    pcall(function()
+      mod.content.tilesets:patch("POKECENTER", {
+        image = mod.assets:path("assets/tilesets/pokecenter_clean.png"),
+        imageWidth = 128,
+        imageHeight = 48,
+        tilesPerRow = 16,
+        -- Block $08 is the only map block whose tile IDs describe the
+        -- authored seated figure.  Use the same couch/floor under-art in
+        -- the block data so voxel backends cannot instantiate a second 3D
+        -- figure from the old ID pattern after the atlas is cleaned.
+        blocks = {
+          [9] = {
+            52, 39, 1, 11,
+            52, 39, 26, 27,
+            38, 39, 54, 11,
+            42, 43, 26, 27,
+          },
+        },
+      })
+    end)
+  end
 
   -- Since gen1recomp 0.1.88 mods no longer receive love.filesystem.  Keep
   -- existence checks inside the mod sandbox and use the documented reader.
@@ -3181,6 +3214,32 @@ return function(mod)
     return sx, sy, ox, oy, pw, ph, dpiX, dpiY
   end
 
+  -- HD overworld cards are presented after the flat world's day/night pass.
+  -- Dramatic Shape exposes that pass through DayTint.forFrame(); reuse its
+  -- exact RGB multiplier so custom cards receive the same lighting as the
+  -- tile map and voxel-generated sprites.  Without this bridge, the cards
+  -- are always drawn at full brightness while the rest of the map darkens.
+  local function externalWorldLightingTint(renderer)
+    if type(mod.find) ~= "function" then return nil end
+    local providerIds = {
+      "DRAMALESS_SHAPE", "DRAMATIC_SHAPE", "BATTLE_ART_VOXEL_FORK",
+      "potato_voxel",
+    }
+    for _, providerId in ipairs(providerIds) do
+      local okFind, provider = pcall(mod.find, providerId)
+      local lib = okFind and provider and provider.exports
+        and provider.exports.lib
+      if lib and type(lib.require) == "function" then
+        local okTint, DayTint = pcall(lib.require, "DayTint")
+        if okTint and DayTint and type(DayTint.forFrame) == "function" then
+          local okFrame, r, g, b = pcall(DayTint.forFrame, renderer)
+          if okFrame and r and g and b then return r, g, b end
+        end
+      end
+    end
+    return nil
+  end
+
   local function drawHdOverworld(renderer)
     if not overworldHdDraws[1] then return end
     -- A voxel pipeline already produced the character as part of its world
@@ -3209,7 +3268,17 @@ return function(mod)
     local ox = math.floor((pw - wvw * sp) / 2) / dpiX
     local oy = math.floor((ph - wvh * sp) / 2) / dpiY
     love.graphics.setShader()
-    love.graphics.setColor(1, 1, 1, 1)
+    local getColor = love.graphics.getColor
+    local oldR, oldG, oldB, oldA
+    if type(getColor) == "function" then
+      oldR, oldG, oldB, oldA = getColor()
+    end
+    local tintR, tintG, tintB = externalWorldLightingTint(renderer)
+    if tintR then
+      love.graphics.setColor(tintR, tintG, tintB, 1)
+    else
+      love.graphics.setColor(1, 1, 1, 1)
+    end
     love.graphics.setScissor(0, 0, ww, wh)
     -- The native overworld renderer is y-sorted by the entity's ground point.
     -- Repainting in insertion order made the player (usually queued last)
@@ -3242,6 +3311,7 @@ return function(mod)
       end
     end
     love.graphics.setScissor()
+    love.graphics.setColor(oldR or 1, oldG or 1, oldB or 1, oldA or 1)
   end
 
   local function visibleHdState()
@@ -3541,10 +3611,100 @@ return function(mod)
     return target
   end
 
+  -- The seated visitor in the Pokémon Center lounge is painted into the
+  -- tileset, so it cannot be interacted with or lit as a normal NPC.  The
+  -- cleaned atlas removes that baked figure; add one real, stationary
+  -- LITTLE_BOY at the same lounge cell in every Center and in the Celadon
+  -- Hotel (the only other map that uses the same lounge block).  The
+  -- synthetic object is marked runtime so voxel/static caches never treat
+  -- it as map geometry, and its unique name/index make this idempotent.
+  local function ensurePokecenterLoungeBoy()
+    local game = liveGame
+    local overworld = game and game.overworld
+    local map = overworld and overworld.map
+    local mapId = tostring(map and map.id or "")
+    if mapId ~= "CELADON_HOTEL" and not mapId:match("_POKECENTER$") then
+      return
+    end
+    if not map.def or not map.def.objects then return end
+    if not game.data or not game.data.sprites
+        or not game.data.sprites.SPRITE_LITTLE_BOY then return end
+
+    local objectName = "HGSS_" .. mapId .. "_LOUNGE_BOY"
+    local def
+    for _, candidate in ipairs(map.def.objects) do
+      if candidate.name == objectName then
+        def = candidate
+        break
+      end
+    end
+    if not def then
+      local maxIndex = 0
+      for _, candidate in ipairs(map.def.objects) do
+        maxIndex = math.max(maxIndex, tonumber(candidate.index) or 0)
+      end
+      def = {
+        index = maxIndex + 1,
+        name = objectName,
+        sprite = "SPRITE_LITTLE_BOY",
+        movement = "STAY",
+        range = "RIGHT",
+        -- The baked lounge visitor occupies the west couch cell in the
+        -- POKECENTER block ($08).  Use the native object-grid origin so the
+        -- replacement sits exactly on that tile instead of drifting one
+        -- cell to the right.
+        x = 0,
+        y = 4,
+        runtime = true,
+      }
+      table.insert(map.def.objects, def)
+    end
+
+    local key = mapId .. "_obj_" .. tostring(def.index)
+    local npc
+    for _, candidate in ipairs(overworld.npcs or {}) do
+      if candidate.def == def
+          or tostring(candidate.def and candidate.def.name or "") == objectName then
+        npc = candidate
+        break
+      end
+    end
+    if not npc then
+      local NPC = require("src.world.NPC")
+      npc = NPC.new(game.data, mapId, def)
+      overworld.npcs = overworld.npcs or {}
+      table.insert(overworld.npcs, npc)
+      overworld.npcPool = overworld.npcPool or {}
+      overworld.npcPool[key] = npc
+      overworld.entities = overworld.entities or { overworld.player }
+      table.insert(overworld.entities, npc)
+    end
+
+    -- Use the native NPC grid origin: the replacement must cover the baked
+    -- lounge figure pixel-for-pixel, with no extra +8px drift.  Keep it
+    -- stationary and facing right toward the room.
+    npc.def = def
+    npc.def.sprite = "SPRITE_LITTLE_BOY"
+    npc.sprite = SpriteRenderer.new(game.data.sprites.SPRITE_LITTLE_BOY, npc.id)
+    -- Keep the rendered sprite on the west sofa, but do not occupy the
+    -- hidden bench-guy interaction cell at (0,4).  The original game event
+    -- is resolved by tryHiddenObject() when the player faces that cell; if
+    -- this visual replacement shared the logical cell, npcAtCell() would
+    -- intercept the interaction and the old dialogue would disappear.
+    npc.cellX, npc.cellY = -999, -999
+    -- Keep the native cell/ground anchor, with a small horizontal nudge so
+    -- the 32px HGSS boy is centered on the west sofa in the voxel view.
+    npc.px, npc.py = def.x * 16, def.y * 16 + 4
+    npc.facing = "right"
+    npc.moving, npc.frozen, npc.wanders = false, true, false
+    npc.progress, npc.stepFlip = 0, false
+  end
+
   local function applyLeaderSprites()
     local game = liveGame
     local overworld = game and game.overworld
     if not overworld then return end
+    ensurePokecenterLoungeBoy()
     local mapId = tostring(overworld.map and overworld.map.id or "")
     local gymObjects = GYM_LEADER_OBJECTS[mapId]
     local eliteObjects = ELITE_OBJECTS[mapId]

@@ -1,6 +1,6 @@
 # HGSS Visual Overhaul
 
-![Version](https://img.shields.io/badge/version-0.6.4-gold)
+![Version](https://img.shields.io/badge/version-1.0.0-gold)
 ![g1recomp](https://img.shields.io/badge/g1recomp-0.2.1-blue)
 
 A visual pack for Pokemon Yellow on g1recomp, inspired by HeartGold and
@@ -25,7 +25,11 @@ has no matching asset. The optional
 is responsible for marking wild and party Pokémon as shiny; install it when
 you want shiny encounters to be generated in-game.
 
-Version 0.6.4 fixes Leaf and Brendan's HD overworld frame layout so their
+Version 1.0.0 replaces the baked lounge visitor in every Pokémon Center and
+the Celadon Hotel with a stationary HGSS Little Boy sprite while preserving
+the original bench-guy interaction. The cleaned Pokémon Center tileset avoids
+duplicate 2D/Voxel figures, and custom overworld cards now follow the active
+day/night lighting tint. Version 0.6.4 fixes Leaf and Brendan's HD overworld frame layout so their
 256x1536 sheets keep complete frames and correct proportions in 2D and on
 bicycles. It also adds the dedicated Celadon Fly House Fearow sheet, corrects
 the Victory Road Blackbelt object, and keeps modern front/back art intact in
@@ -128,11 +132,11 @@ The party menu retains the full-color HGSS icon set:
 
 1. Optionally install [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) for its Voxel renderer; it is not required for the mod's battle or overworld assets.
 2. Optionally enable `CRYSTAL_251`; it is declared as a compatibility companion, not a requirement.
-3. Download the [`HGSS_SPRITES` 0.6.4 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v0.6.4).
+3. Download the [`HGSS_SPRITES` 1.0.0 asset](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v1.0.0).
 4. Import the ZIP in the g1recomp mod manager and enable **HGSS Visual Overhaul**.
 5. Restart g1recomp after installing or updating any companion mod.
 
-Compatibility: g1recomp `>=0.1.75 <0.2.0`, including tested runtime `0.1.88`,
+Compatibility: g1recomp `>=0.1.75 <10.0.0`, including tested runtime `0.1.88`,
 Pokemon Yellow and Mod API 2. Import, overworld Voxel and battle Voxel smoke
 tests passed with Battle Art Voxel Fork 1.9.0 and PotatoVoxel 1.6.0.
 

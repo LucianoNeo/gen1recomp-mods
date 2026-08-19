@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.0.0
+
+- Replaced the baked seated visitor in every Pokémon Center and the Celadon
+  Hotel with the full-color HGSS Little Boy overworld sprite, while retaining
+  the original sofa scene and Voxel presentation.
+- Preserved the original bench-guy interaction and dialogue by keeping the
+  visual replacement separate from the hidden event cell.
+- Added the cleaned Pokémon Center tileset/block patch so the old baked figure
+  cannot reappear as a duplicate 2D or Voxel object.
+- Applied the active world-lighting tint to custom overworld cards so trainers
+  and followers react consistently to day/night shading.
+- Kept the complete HGSS trainer, Pokémon, shiny, party and PC icon options
+  available with `TRAINERS ONLY` as the default battle scope.
+
 ## 0.6.4
 
 - Fixed Leaf and Brendan overworld and bicycle sheets being sampled as 32x32
