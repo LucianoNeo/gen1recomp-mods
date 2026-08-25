@@ -126,14 +126,15 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- 32x32 logical box as Red; the extra texels preserve the generated art
   -- instead of baking it down to a 20x24 miniature before rendering.
   -- Red's on-foot sheet intentionally stays on the proven 0.3.1 32x192
-  -- charset.  The newer 256x1536 sheets are used by the HD player choices
-  -- (Leaf/Brendan) and bike variants; Ash and Ethan keep their 0.3.1
-  -- full-density walking sheets.
+  -- charset.  Leaf's current replacement sheets are compact 32x192 assets;
+  -- keep them on the same native path as Red instead of treating them as
+  -- 256x1536 HD atlases.  The 256x1536 sheets remain enabled for the HD
+  -- player choices and bike variants that actually use that layout.
   local playerSheet = file == "ash" or file == "ethan"
-    or file == "leaf" or file == "brendan"
+    or file == "brendan"
   local playerBikeSheet = file == "red_bike"
     or file == "ash_bike" or file == "ethan_bike"
-    or file == "leaf_bike" or file == "brendan_bike"
+    or file == "brendan_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
@@ -533,6 +534,15 @@ return function(mod)
   -- g1recomp builds emit the event directly, so reading only the cached
   -- option object can incorrectly leave the selector at ROM.
   local battleOptionValues = {}
+  -- Keep PLAYER SELECT in the same live cache as the battle generation
+  -- options.  Older Mod API builds update the event payload before the
+  -- option store, so reading mod.options:get() during battle construction
+  -- can otherwise select Red even after Leaf was chosen in the menu.
+  local playerSelectionValue
+  do
+    local ok, value = pcall(mod.options.get, mod.options, "player_select")
+    if ok then playerSelectionValue = value end
+  end
   local function battleTrace(_) end
   local BATTLE_OPTION_KEYS = {
     battle_scope = true,
@@ -556,8 +566,20 @@ return function(mod)
         battleOptionValues[ev.key] = ev.value
         battleTrace(("event %s=%s"):format(tostring(ev.key), tostring(ev.value)))
       end
+      if ev.key == "player_select" and ev.value ~= nil then
+        playerSelectionValue = tostring(ev.value):lower()
+      end
     end
   end)
+
+  local function selectedPlayerOption()
+    local value = playerSelectionValue
+    if value == nil then
+      local ok, current = pcall(mod.options.get, mod.options, "player_select")
+      if ok then value = current end
+    end
+    return tostring(value or "red"):lower()
+  end
 
   -- Attribution: the resolver/atlas-playback architecture below was
   -- reimplemented from Battle Art Voxel Fork's battle-art path. This file
@@ -947,7 +969,7 @@ return function(mod)
   end
 
   local function selectedHallPlayerImage()
-    local key = tostring(mod.options:get("player_select") or "red"):lower()
+    local key = selectedPlayerOption()
     -- Hall of Fame expects a front battle portrait, never an overworld
     -- charset sheet.  Keep a dedicated portrait for every PLAYER SELECT
     -- option so the Hall screen cannot silently reuse Red's art.
@@ -1322,10 +1344,9 @@ return function(mod)
     red = "redplayer.png",
     ash = "ashplayer.png",
     ethan = "gen2player.png",
-    -- Leaf and Brendan currently ship as full-color static back portraits.
-    -- Keep them in this selector so PLAYER SELECT does not fall back to Red;
-    -- loadPlayerTrainerFrames() will miss the animated strip and the normal
-    -- static-image fallback below will resolve their dedicated artwork.
+    -- Leaf and Brendan use dedicated full-color animated back sheets when
+    -- present.  Static portraits remain the defensive fallback for older
+    -- installations that do not yet contain those atlases.
     leaf = "leafplayer.png",
     brendan = "brendanplayer.png",
   }
@@ -1338,7 +1359,7 @@ return function(mod)
   }
 
   local function selectedPlayerBattleKey()
-    local value = mod.options:get("player_select") or "red"
+    local value = selectedPlayerOption()
     return PLAYER_BATTLE_STRIPS[value] and value or "red"
   end
 
@@ -1617,12 +1638,12 @@ return function(mod)
   }
 
   local function selectedPlayerSpriteId()
-    return PLAYER_SPRITE_IDS[mod.options:get("player_select") or "red"]
+    return PLAYER_SPRITE_IDS[selectedPlayerOption()]
       or PLAYER_SPRITE_IDS.red
   end
 
   local function selectedPlayerBikeSpriteId()
-    return PLAYER_BIKE_SPRITE_IDS[mod.options:get("player_select") or "red"]
+    return PLAYER_BIKE_SPRITE_IDS[selectedPlayerOption()]
       or PLAYER_BIKE_SPRITE_IDS.red
   end
 

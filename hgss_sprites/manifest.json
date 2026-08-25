@@ -1,7 +1,7 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
@@ -15,5 +15,5 @@
   "conflicts": [],
   "author": "LucianoNeo",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "HGSS intro, overworld and self-contained battle trainer/Pokemon artwork. PLAYER SELECT controls the player trainer in both map and battle."
+  "description": "HGSS intro, overworld and self-contained battle trainer/Pokemon artwork. PLAYER SELECT controls the player trainer in both map and battle, including Leaf's animated battle back sprite."
 }

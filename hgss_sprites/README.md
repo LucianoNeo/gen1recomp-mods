@@ -1,4 +1,4 @@
-# HGSS_SPRITES 1.0.0
+# HGSS_SPRITES 1.0.1
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Yellow on
 g1recomp. The project overview, current screenshots and companion-mod links
@@ -14,6 +14,8 @@ are in the [repository README](../README.md).
 - Grounding and lighting behavior for both the 2D and Voxel renderers.
 - Battle front/back/trainer artwork for generations 1–5, with animated/native
   resolution assets and transparent backgrounds.
+- Leaf's animated full-color battle back sprite is selected by `PLAYER SELECT >
+  LEAF`; the Leaf player sprite set is credited to `setogabes` (Discord).
 - `TRAINERS ONLY` as the default battle scope, with an optional `COMPLETE`
   scope for bundled Pokémon battle art.
 - Optional HGSS party menu, animated party icons and PC box icons, with

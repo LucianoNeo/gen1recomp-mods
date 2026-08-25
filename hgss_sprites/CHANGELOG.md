@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.0.1
+
+- Added Leaf's full-color animated battle back atlas and wired it directly to
+  `PLAYER SELECT > LEAF`, including live option changes without falling back to
+  Red's trainer art.
+- Updated the Leaf overworld and bicycle sheets with the compact native frame
+  layout used by the current player assets, preserving six-direction movement
+  and transparent backgrounds.
+- Credited the new Leaf player artwork to `setogabes` (Discord).
+
 ## 1.0.0
 
 - Replaced the baked seated visitor in every Pokémon Center and the Celadon
