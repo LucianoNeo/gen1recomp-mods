@@ -5,6 +5,7 @@
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
+  "games": ["gen1", "gen2"],
   "category": "GRAPHICS",
   "game_version": ">=0.1.75 <10.0.0",
   "priority": 150,
