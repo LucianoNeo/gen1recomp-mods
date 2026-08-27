@@ -1,4 +1,4 @@
-# HGSS_SPRITES 1.0.1
+# HGSS_SPRITES 1.0.2
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Yellow on
 g1recomp. The project overview, current screenshots and companion-mod links

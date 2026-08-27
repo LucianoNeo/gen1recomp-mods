@@ -132,8 +132,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- player choices and bike variants that actually use that layout.
   local playerSheet = file == "ash" or file == "ethan"
     or file == "brendan"
-  local playerBikeSheet = file == "red_bike"
-    or file == "ash_bike" or file == "ethan_bike"
+  local playerBikeSheet = file == "ash_bike" or file == "ethan_bike"
     or file == "brendan_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
