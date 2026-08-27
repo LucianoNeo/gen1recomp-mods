@@ -43,9 +43,44 @@ sprite slots. Runtime art must come from HeartGold/SoulSilver equivalents;
 the original Gen 2 sheets are reference material and must not be copied into
 the mod.
 
+## Verified Gen 2 NPC redirect pass
+
+The missing trainer/person slots were audited against the official
+[Bulbagarden overworld-trainer archive](https://archives.bulbagarden.net/wiki/Category%3AOverworld_Trainer_sprites)
+and then compared in a local contact sheet before being registered.  The
+runtime now redirects the verified Crystal roles below to the corresponding
+HGSS-quality asset (the same mapping is used by Gold and Silver):
+
+`Beauty`, `Biker`, `Black Belt`, `Bill`, `Blaine`, `Blue`, `Brock`, `Bruno`,
+`Bug Catcher`, `Bugsy`, `Captain`, `Chuck`, `Clair`, `Clerk`, `Cooltrainer M`,
+`Daisy`, `Dragon Clan Elder`, `Elm`, `Erika`, `Falkner`, `Fishing Guru`,
+`Gameboy Kid`, `Gentleman`, `Gramps`, `Granny`, `Gym Guide`, `Janine`,
+`Jasmine`, `Karen`, `Kimono Girl`, `Koga`, `Kurt` (including the outside
+slot), `Lance`, `Lass`, `Link Receptionist`, `Misty`, `Morty`, `Nurse`, `Oak`,
+`Officer`, `Pokéfan M`, `Pryce`, `Red`, `Red's Mom`, `Rocker`, `Rocket` and
+`Rocket Girl`, `Sabrina`, `Sage`, `Sailor`, `Super Nerd`, `Lt. Surge`,
+`Swimmer F/M`, `Twin`, `Whitney`, `Will`, and both Youngster slots.
+
+The player, Mom, female Pokéfan, female Cooltrainer, Scientist, Fisher and
+Rival mappings remain the explicit user-curated overrides installed by the
+Gen 2 player slice.  No Pokémon or map-object slot is redirected: `BIRD`,
+`MONSTER`, the fossil/legendary/object IDs, and encounter sprites retain the
+Crystal registry.  `PHARMACIST` and the generic `RECEPTIONIST` are also left
+native because no unambiguous HGSS archive equivalent was found; substituting
+a nurse or clerk there would create the wrong character in several maps.
+
+The archive's 256×256 four-row sheets are converted to the six-cell walker
+contract without palette reduction: standing down/up/side followed by walking
+down/up/side.  Each selected 64×64 source cell is nearest-neighbour expanded
+into a 256×256 frame, preserving the authored HGSS pixels and transparency.
+No frame is populated by repeating a single facing.  The resulting files are
+listed in `overrides/sprites/` with a `_gen2` suffix where they coexist with a
+Yellow asset.  The visual audit contact sheet is kept local at
+`.local/gen2-missing-official-contact.jpg`.
+
 ## Still intentionally deferred
 
-- HGSS-equivalent NPC/map object redirects and Johto tilesets.
+- Johto tilesets and map geometry replacement.
 - Gen 2 battle trainer portraits and battle UI replacements.
 - Gen 2 party/PC icon presentation and Pokédex/Hall of Fame screens.
 - Full Gold/Silver/Crystal runtime capture validation beyond this intro slice.
@@ -60,6 +95,29 @@ The downloaded HGSS references remain local-only while mappings are reviewed:
 - `.local/bulbagarden-hgss/` — individually named HGSS overworld candidates.
 
 ## Validation
+
+### Standard overworld-sheet conversion
+
+Use `tools/convert_hgss_overworld_sheet.py` for every new HGSS character
+sheet. It recognizes the common 256×256 (4×4 cells) and 128×128 layouts and
+emits the mod's 32×192 six-frame contract. The source rows are down, left,
+right, up; column 0 is the standing pose and column 1 is the walking pose.
+The generated order is standing down/up/side followed by walking
+down/up/side. Nearest-neighbor resampling preserves hard pixel edges, and
+already converted 32×192 or 256×1536 sheets are copied unchanged.
+
+The player sources are a documented exception to the ordinary NPC atlas
+layout. Use Uranium `HGSS_069` for Ethan and `HGSS_070` for Lyra on foot, and
+select their six cells by visual direction (front, back, side, then the three
+walking phases). Do not transpose these sheets as if every row were a single
+direction. The bicycle sources are `HGSS_071` and `HGSS_072`; their special
+packing is likewise mapped explicitly by the local player rebuild helper.
+
+```powershell
+python tools/convert_hgss_overworld_sheet.py \
+  .local/uranium-hgss-source/hgss-characters/HGSS_058.png \
+  hgss_sprites/overrides/sprites/silver.png
+```
 
 Run the upstream checker from a Gen1Recomp checkout:
 

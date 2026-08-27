@@ -750,6 +750,10 @@ return function(mod)
   -- g1recomp builds emit the event directly, so reading only the cached
   -- option object can incorrectly leave the selector at ROM.
   local battleOptionValues = {}
+  -- Mod Manager events can arrive before the option store is refreshed. Keep
+  -- SPRITE SIZE in a live cache as well, so Gen-2/voxel redraws immediately
+  -- use the newly selected value instead of the previous menu value.
+  local spriteSizeValue
   -- Keep PLAYER SELECT in the same live cache as the battle generation
   -- options.  Older Mod API builds update the event payload before the
   -- option store, so reading mod.options:get() during battle construction
@@ -758,6 +762,8 @@ return function(mod)
   do
     local ok, value = pcall(mod.options.get, mod.options, "player_select")
     if ok then playerSelectionValue = value end
+    local okSize, size = pcall(mod.options.get, mod.options, "sprite_size")
+    if okSize then spriteSizeValue = size end
   end
   local function battleTrace(_) end
   local BATTLE_OPTION_KEYS = {
@@ -777,13 +783,18 @@ return function(mod)
   end
   mod.events:on("mod.options_changed", function(ev)
     if ev and ev.mod == mod.id then
-      cachedSpriteScale = nil
-      if BATTLE_OPTION_KEYS[ev.key] then
-        battleOptionValues[ev.key] = ev.value
-        battleTrace(("event %s=%s"):format(tostring(ev.key), tostring(ev.value)))
+      local key = ev.key or ev.option or ev.name
+      local value = ev.value
+      if value == nil then value = ev.newValue end
+      if key == "sprite_size" and value ~= nil then
+        spriteSizeValue = value
       end
-      if ev.key == "player_select" and ev.value ~= nil then
-        playerSelectionValue = tostring(ev.value):lower()
+      if BATTLE_OPTION_KEYS[key] then
+        battleOptionValues[key] = value
+        battleTrace(("event %s=%s"):format(tostring(key), tostring(value)))
+      end
+      if key == "player_select" and value ~= nil then
+        playerSelectionValue = tostring(value):lower()
       end
     end
   end)
@@ -1835,14 +1846,20 @@ return function(mod)
   local function overworldSpriteScale(def)
     local fixed = def and tonumber(def.hgssScaleOverride)
     if fixed then return fixed end
-    local value = tonumber(mod.options:get("sprite_size"))
-    if value == nil then
-      local save = liveGame and liveGame.save
-      local saved = save and save.options and save.options.modOptions
-        and save.options.modOptions[mod.id]
-        and save.options.modOptions[mod.id].sprite_size
-      value = tonumber(saved) or 1
-    end
+    local save = liveGame and liveGame.save
+    local saved = save and save.options and save.options.modOptions
+      and save.options.modOptions[mod.id]
+      and save.options.modOptions[mod.id].sprite_size
+    local liveOptions = liveGame and liveGame.mods and liveGame.mods.modOptions
+      and liveGame.mods.modOptions[mod.id]
+      and liveGame.mods.modOptions[mod.id].sprite_size
+    -- The manager writes the selected value to the save options before (or
+    -- alongside) emitting mod.options_changed. Reading it here makes the
+    -- Potato texture resize immediately even on builds whose option store is
+    -- refreshed one frame later.
+    local value = tonumber(liveOptions or saved or spriteSizeValue
+      or mod.options:get("sprite_size"))
+    if value == nil then value = 1 end
     return math.max(0.5, math.min(1.0, value))
   end
 
@@ -1900,7 +1917,7 @@ return function(mod)
     -- Gen-2 can use either the compact six-frame 32x192 charset or the
     -- untouched HD six-frame 256x1536 sheet used by the Gen-1 overhaul.
     -- Read dimensions only; the source texture itself is never resampled.
-    local frameWidth, frameHeight = 32, 32
+    local frameWidth, frameHeight, frameCount = 32, 32, 6
     local ok, data = pcall(function()
       return love.image.newImageData(mod.assets:path(relative))
     end)
@@ -1909,6 +1926,22 @@ return function(mod)
       if width >= 32 and height >= 6 * 32 and height % 6 == 0 then
         frameWidth = width
         frameHeight = math.floor(height / 6)
+      elseif width >= 32 and height >= 3 * 32 and height % 3 == 0 then
+        -- A few Gen 2 NPC sheets (Mom, for example) contain only the
+        -- three standing facings. Potato still uses the six-frame walker
+        -- contract, so advertise the real count and avoid sampling blank
+        -- rows as if they were animation frames.
+        frameWidth = width
+        frameHeight = math.floor(height / 3)
+        frameCount = 3
+      elseif width >= 1 and height >= 1 then
+        -- Static Gen-2 map objects (for example the starter Poké Balls in
+        -- Elm's Lab) are single-frame images.  Keep the complete source
+        -- canvas as one frame instead of advertising the six-frame walker
+        -- contract, which would make the renderer sample outside the image.
+        frameWidth = width
+        frameHeight = height
+        frameCount = 1
       end
       if data.release then data:release() end
     end
@@ -1921,6 +1954,7 @@ return function(mod)
     cached = {
       frameWidth = frameWidth,
       frameHeight = frameHeight,
+      frameCount = frameCount,
       anchorX = frameWidth / 2,
       anchorY = frameHeight,
       displayScale = displayScale,
@@ -1930,7 +1964,6 @@ return function(mod)
   end
 
   local function patchGen2Sprite(shortId, file, extra)
-    if not isGen2() then return end
     -- Gen-2 sheets use the canonical overrides/sprites directory. Accept an
     -- explicit slash-qualified asset path for readability while retaining
     -- the same source for players and NPCs.
@@ -1946,8 +1979,13 @@ return function(mod)
       displayMultiplier = tonumber(extra.hgssGen2ScaleMultiplier) or 1
     end
     local payload = {
+      -- Gen 2 flat rendering reads the authored HGSS sheet directly. Do not
+      -- advertise a voxel-layout proxy here: without a voxel provider that
+      -- proxy is also what the ordinary renderer sees and it collapses the
+      -- character into a few pixels.
       image = mod.assets:path(relative),
-      frames = 6,
+      hgssNativeImage = mod.assets:path(relative),
+      frames = geometry.frameCount or 6,
       frameWidth = geometry.frameWidth,
       frameHeight = geometry.frameHeight,
       anchorX = geometry.anchorX,
@@ -1983,17 +2021,16 @@ return function(mod)
   end
 
   local function patchGen2PlayerSprites()
-    if not isGen2() then return end
     local footFile, bikeFile = gen2PlayerFiles(selectedPlayerOption())
     -- The Gen-2 world uses the Chris ids for the active player in all three
     -- games.  Crystal also exposes Kris, which stays on the HGSS Lyra sheet
     -- for scripts/NPC code that explicitly requests the female slot.
-    -- Match the compact Gen-2 player footprint at 0.7x while preserving the
-    -- untouched HD source texture.  Bikes keep their own authored scale.
-    patchGen2Sprite("CHRIS", footFile, { hgssGen2ScaleMultiplier = 0.7 })
+    -- Keep the native Gen-2 footprint at 1.0x.  The shared SPRITE SIZE
+    -- option is applied at draw time, including through Potato Voxel.
+    patchGen2Sprite("CHRIS", footFile, { hgssGen2ScaleMultiplier = 1.0 })
     patchGen2Sprite("CHRIS_BIKE", bikeFile)
     patchGen2Sprite("KRIS", "overrides/sprites/lyra",
-      { hgssGen2ScaleMultiplier = 0.7 })
+      { hgssGen2ScaleMultiplier = 1.0 })
     patchGen2Sprite("KRIS_BIKE", "lyra_bike")
     -- Gen 2's surf state uses these ids.  The Pikachu ride remains an
     -- explicit opt-in asset; the engine still decides when the state is
@@ -2005,23 +2042,258 @@ return function(mod)
     -- draw time, so the map object, palette role and interaction scripts stay
     -- unchanged.
     patchGen2Sprite("FISHER", "overrides/sprites/fatman",
-      { hgssGen2ScaleMultiplier = 0.7 })
+      { hgssGen2ScaleMultiplier = 1.0 })
     -- The city woman in the Gen-2 maps is tagged SPRITE_TEACHER.  Use the
     -- supplied HGSS Silph worker female charset for that role; keep the
-    -- compact six-frame sheet intact and apply the same 0.7x draw-time
+    -- compact six-frame sheet intact and apply the shared draw-time
     -- footprint as the other Gen-2 overworld characters.
     patchGen2Sprite("TEACHER", "overrides/sprites/silph_worker_f",
-      { hgssGen2ScaleMultiplier = 0.7 })
+      { hgssGen2ScaleMultiplier = 1.0 })
     -- The player's mother is a native Gen-2 actor in PLAYERS_HOUSE_1F. Use
     -- the authored HGSS Mom charset while preserving the map's interaction
     -- script, time-of-day variants and movement behavior.
-    patchGen2Sprite("MOM", "overrides/sprites/mom",
-      { hgssGen2ScaleMultiplier = 0.7 })
+    patchGen2Sprite("MOM", "overrides/sprites/mom_johto",
+      { hgssGen2ScaleMultiplier = 1.0 })
     -- Crystal's second actor in the player's house is the native Pokéfan
     -- female slot.  Use the HGSS Pokéfan F charset, keeping the original
     -- object id, position and interaction script intact.
     patchGen2Sprite("POKEFAN_F", "overrides/sprites/pokefan_f",
-      { hgssGen2ScaleMultiplier = 0.7 })
+      { hgssGen2ScaleMultiplier = 1.0 })
+    -- Additional Crystal town NPC roles with verified HGSS equivalents.
+    -- Keep each role distinct: do not substitute Officer Jenny for the
+    -- male police officer, or Blue for Silver, when those assets are absent.
+    patchGen2Sprite("SCIENTIST", "scientist_gen2",
+      { hgssGen2ScaleMultiplier = 1.0 })
+    patchGen2Sprite("COOLTRAINER_F", "overrides/sprites/cooltrainer_f",
+      { hgssGen2ScaleMultiplier = 1.0 })
+    -- Crystal's rival is Silver; use the verified HGSS Silver charset.
+    patchGen2Sprite("RIVAL", "overrides/sprites/silver",
+      { hgssGen2ScaleMultiplier = 1.0 })
+  end
+
+  -- Crystal has a separate NPC registry from Yellow.  Redirect only the
+  -- trainer/person slots that were visually checked against the official
+  -- HGSS overworld archive and our local HGSS charset base.  Pokémon/object
+  -- slots (for example BIRD, MONSTER and the various map decorations) are
+  -- intentionally left untouched so a trainer asset can never leak into an
+  -- encounter, fossil or field object.
+  local function patchGen2NpcSprites()
+    local GEN2_NPC_SPRITES = {
+      BEAUTY = "beauty",
+      BIKER = "biker",
+      BLACK_BELT = "blackbelt",
+      BILL = "bill",
+      BLAINE = "blaine_gen2",
+      BLUE = "blue_gen2",
+      BROCK = "brock_gen2",
+      BRUNO = "bruno_gen2",
+      BUG_CATCHER = "bug_catcher_gen2",
+      BUGSY = "bugsy_gen2",
+      CAPTAIN = "captain",
+      CHUCK = "chuck_gen2",
+      CLAIR = "clair_gen2",
+      CLERK = "clerk",
+      COOLTRAINER_M = "cooltrainer_m",
+      DAISY = "daisy",
+      ELDER = "elder_gen2",
+      ELM = "elm_gen2",
+      ERIKA = "erika_gen2",
+      FALKNER = "falkner_gen2",
+      FISHING_GURU = "fishing_guru",
+      GAMEBOY_KID = "gameboy_kid",
+      GENTLEMAN = "gentleman",
+      GRAMPS = "gramps",
+      GRANNY = "granny",
+      GYM_GUIDE = "gym_guide",
+      JANINE = "janine_gen2",
+      JASMINE = "jasmine_gen2",
+      KAREN = "karen",
+      KIMONO_GIRL = "kimono_girl",
+      KOGA = "koga_gen2",
+      KURT = "kurt_gen2",
+      KURT_OUTSIDE = "kurt_gen2",
+      LANCE = "lance",
+      LASS = "lass_gen2",
+      LINK_RECEPTIONIST = "link_receptionist",
+      MISTY = "misty_gen2",
+      MORTY = "morty_gen2",
+      NURSE = "nurse",
+      OAK = "oak_gen2",
+      OFFICER = "officer",
+      POKEFAN_M = "pokefan_m",
+      PRYCE = "pryce_gen2",
+      RED = "red",
+      REDS_MOM = "mom_johto",
+      ROCKER = "rocker",
+      ROCKET = "rocket_gen2",
+      ROCKET_GIRL = "rocket_girl_gen2",
+      SABRINA = "sabrina_gen2",
+      SAGE = "sage",
+      SAILOR = "sailor",
+      SUPER_NERD = "super_nerd_gen2",
+      SURGE = "surge_gen2",
+      SWIMMER_GIRL = "swimmer_girl",
+      SWIMMER_GUY = "swimmer_guy",
+      TWIN = "twin",
+      WHITNEY = "whitney_gen2",
+      WILL = "will",
+      YOUNGSTER = "youngster",
+      STANDING_YOUNGSTER = "youngster",
+    }
+    for shortId, file in pairs(GEN2_NPC_SPRITES) do
+      patchGen2Sprite(shortId, file, { hgssGen2ScaleMultiplier = 1.0 })
+    end
+  end
+
+  -- The three starter objects in Elm's Lab keep their original object ids and
+  -- scripts, but use the Gen-4 object-ball artwork.  This is deliberately a
+  -- map/object-name scoped redirect: SPRITE_POKE_BALL remains untouched for
+  -- every other item ball in Crystal (and for the item-ball interaction code).
+  local function patchGen2ElmObjectBall()
+    local okWorld, World = pcall(require, "src.world.gen2.World")
+    if not okWorld or type(World) ~= "table"
+        or type(World.pooledNpc) ~= "function"
+        or World.__hgssElmObjectBall then
+      return
+    end
+
+    -- The authored object-ball sheet is a full 32px cell, while Crystal's
+    -- table uses a smaller 16px object footprint.  Keep the source untouched
+    -- and present it at 0.6x so it sits on the table at the same visual size
+    -- as the native balls; interaction coordinates remain the original ones.
+    patchGen2Sprite("ELM_POKE_BALL", "assets/gen2/elm-pokeball",
+      { hgssGen2ScaleMultiplier = 0.6 })
+
+    local originalPooledNpc = World.pooledNpc
+    World.pooledNpc = function(self, mapId, obj)
+      -- Gen-2 map objects do not retain the assembly name at runtime; the
+      -- loader exposes their stable object index instead.  Elm's three
+      -- starter balls are indices 3, 4 and 5 in ELMS_LAB.  Keep this
+      -- redirect map-scoped and index-scoped so every other item ball keeps
+      -- the canonical SPRITE_POKE_BALL (and its interaction behavior).
+      local useGen4Ball = mapId == "ELMS_LAB"
+        and type(obj) == "table"
+        and (obj.index == 3 or obj.index == 4 or obj.index == 5)
+      if not useGen4Ball then
+        return originalPooledNpc(self, mapId, obj)
+      end
+
+      -- pooledNpc passes the object table into NPC.def.  Swap only for the
+      -- duration of resolution, then restore the canonical sprite id so all
+      -- interaction/event code continues to see SPRITE_POKE_BALL.
+      local originalSprite = obj.sprite
+      obj.sprite = "SPRITE_ELM_POKE_BALL"
+      local ok, npc = pcall(originalPooledNpc, self, mapId, obj)
+      obj.sprite = originalSprite
+      if not ok then error(npc, 0) end
+      return npc
+    end
+    World.__hgssElmObjectBall = true
+  end
+
+  -- Elm's starter balls are the one Gen-2 scene where the game opens a
+  -- `pokepic` before the player owns a Pokémon.  Keep the normal Crystal
+  -- front sprites everywhere else, but use full-colour Generation VI-style
+  -- animated fronts for that chooser.  This is intentionally a world-level
+  -- display hook rather than a pokemon-registry patch: changing
+  -- `spriteFront` globally would also replace the Pokédex, summary and
+  -- battle assets.  Frames are authored at their source pixel size and
+  -- placed on transparent 64x64 canvases so the native Gen-2 Poképic window
+  -- can draw them without palette conversion or filtering.
+  local function patchGen2ElmStarterPokePics()
+    local okWorld, World = pcall(require, "src.world.gen2.World")
+    if not okWorld or type(World) ~= "table"
+        or type(World.showPokePic) ~= "function"
+        or World.__hgssGen6ElmStarterPokePics then
+      return
+    end
+
+    local starterPics = {
+      CHIKORITA = {
+        dir = "assets/gen2/starter-gen6/front-animated/chikorita",
+        count = 48, ticks = 2,
+      },
+      CYNDAQUIL = {
+        dir = "assets/gen2/starter-gen6/front-animated/cyndaquil",
+        count = 50, ticks = 2,
+      },
+      TOTODILE = {
+        dir = "assets/gen2/starter-gen6/front-animated/totodile",
+        count = 26, ticks = 2,
+      },
+    }
+    local cache = {}
+    local function loadFrame(anim, index)
+      local key = anim.dir .. "/" .. string.format("%02d.png", index)
+      local image = cache[key]
+      if image == false then return nil end
+      if image == nil then
+        if not assetExists(key) then
+          cache[key] = false
+          return nil
+        end
+        local ok, loaded = pcall(function()
+          local data = love.image.newImageData(mod.assets:path(key))
+          local out = love.graphics.newImage(data)
+          if out.setFilter then out:setFilter("nearest", "nearest") end
+          if data.release then data:release() end
+          return out
+        end)
+        image = ok and loaded or false
+        cache[key] = image
+      end
+      return image or nil
+    end
+    local function stopAnimation(self)
+      self.__hgssGen6StarterAnimation = nil
+    end
+    local original = World.showPokePic
+
+    World.showPokePic = function(self, speciesIndex)
+      original(self, speciesIndex)
+      stopAnimation(self)
+      -- Restrict the replacement to Elm's lab starter chooser.  A later
+      -- Poképic (Pokédex, summary, etc.) continues to use the game's own
+      -- sprite and palette exactly as before.
+      if not (self.map and self.map.id == "ELMS_LAB") then return end
+      local anim = starterPics[self.pokePicName]
+      if not anim then return end
+      local image = loadFrame(anim, 1)
+      if not image then return end
+      self.__hgssGen6StarterAnimation = {
+        data = anim, index = 1, ticks = 0,
+      }
+      self.pokePic = image
+      -- The Gen-2 renderer applies the map's four-colour CGB ramp whenever
+      -- this field is set.  These frames are true-colour, so leave the field
+      -- empty for this one custom display.
+      self.pokePicColors = nil
+    end
+
+    -- World:step has no delta-time parameter, but it runs once per logic
+    -- frame.  Advance only while Elm's starter Poképic is visible; this keeps
+    -- the animation out of the Pokédex, summaries and every other Poképic.
+    local originalStep = World.step
+    if type(originalStep) == "function" then
+      World.step = function(self, ...)
+        local result = originalStep(self, ...)
+        local state = self.__hgssGen6StarterAnimation
+        if not state or not self.pokePic
+            or not (self.map and self.map.id == "ELMS_LAB") then
+          return result
+        end
+        state.ticks = state.ticks + 1
+        if state.ticks >= state.data.ticks then
+          state.ticks = 0
+          state.index = state.index + 1
+          if state.index > state.data.count then state.index = 1 end
+          local nextImage = loadFrame(state.data, state.index)
+          if nextImage then self.pokePic = nextImage end
+        end
+        return result
+      end
+    end
+    World.__hgssGen6ElmStarterPokePics = true
   end
 
   -- Keep the option reversible while the mod manager is open. The live icon
@@ -2044,8 +2316,8 @@ return function(mod)
   -- The registration table below is Yellow's object namespace.  Do not
   -- publish those IDs into the Gen2 registry: Gold/Silver/Crystal have their
   -- own data.gen2Sprites names and the adapter cannot translate arbitrary
-  -- Yellow object IDs.  A later Gen2 phase will register Ethan/Kris and the
-  -- Gen2 NPC table explicitly.
+  -- Yellow object IDs.  The Gen2 player and NPC tables are registered in the
+  -- separate block below using only Crystal's native short IDs.
   if not isGen2() then
   for shortId in words(WALKERS) do
     patchOverworld(mod, shortId, 6, true)
@@ -2134,9 +2406,14 @@ return function(mod)
   end
 
   -- Gen 2 uses a separate sprite registry and does not instantiate Yellow's
-  -- map objects.  Install the player slice after the Gen 1 registration arm
-  -- so a Gold/Silver/Crystal load receives only valid Gen 2 ids.
+  -- map objects.  Register the Gen-2 definitions during mod load, while the
+  -- content registry is still mutable.  The active game is not known yet at
+  -- this point, so these harmless extra records are installed for both
+  -- supported generations; only the Gen-2 resolver consumes them.
   patchGen2PlayerSprites()
+  patchGen2NpcSprites()
+  patchGen2ElmObjectBall()
+  patchGen2ElmStarterPokePics()
 
   -- The stock renderer always builds 16x16 quads.  Our generated sheets are
   -- 32x192 (six 32x32 frames in native DS density), so install a small,
@@ -2575,6 +2852,9 @@ return function(mod)
     voxelBillboardsPatching = false
   end
   local function tryPatchVoxelBillboards()
+    -- Gen 2 currently uses the native flat renderer only. Potato's Gen-2
+    -- bridge does not export its billboard module, so attempting the Gen-1
+    -- adapter here cannot provide a reliable size control.
     if isGen2() then return end
     if voxelBillboardsPatched then return end
     patchVoxelBillboards(false)
@@ -2588,11 +2868,39 @@ return function(mod)
 
   SpriteRenderer.new = function(spriteDef, seed)
     if isGen2() then
+      -- Potato owns the Gen-2 world pass, so install the same variable-size
+      -- billboard adapter before the first actor is rendered. Previously the
+      -- Gen-2 early return skipped this hook entirely, leaving every card at
+      -- Potato's fixed minimum size and ignoring the menu option.
+      tryPatchVoxelBillboards()
       local self = oldNew(spriteDef, seed)
       -- Gen-2 player sheets may be authored at 256x1536 and reduced only at
       -- draw time.  The engine's default linear sampler makes that reduction
       -- look blurred; nearest preserves the source's pixel-art edges without
       -- changing its dimensions or colour data.
+      if self and spriteDef and spriteDef.hgssNativeImage then
+        local native = SpriteAssets.image(spriteDef.hgssNativeImage)
+        if native then
+          self.image = native
+          -- oldNew built its quads against the 16px proxy sheet. Rebuild
+          -- them against the native HGSS texture after swapping the image;
+          -- otherwise LOVE clamps the oversized Gen-2 quads and produces a
+          -- tiny/garbled sprite in the non-voxel renderer.
+          local iw, ih = native:getDimensions()
+          -- oldNew derives frame dimensions from the proxy image. Restore
+          -- the authored HGSS cell dimensions before rebuilding the quads;
+          -- otherwise a 16px proxy cell is used against the native sheet.
+          self.frameWidth = tonumber(spriteDef.frameWidth) or self.frameWidth
+          self.frameHeight = tonumber(spriteDef.frameHeight) or self.frameHeight
+          self.frameCount = tonumber(spriteDef.frames) or self.frameCount
+          self.frames = {}
+          for frame = 0, self.frameCount - 1 do
+            self.frames[frame] = love.graphics.newQuad(
+              0, frame * self.frameHeight, self.frameWidth,
+              self.frameHeight, iw, ih)
+          end
+        end
+      end
       if self and spriteDef and spriteDef.hgssGen2NearestFilter
          and self.image and self.image.setFilter then
         self.image:setFilter("nearest", "nearest")
@@ -2686,29 +2994,40 @@ return function(mod)
                                   walkPhase, stepFlip, topHalf)
     if isGen2() then
       -- Gen 2's native map is authored on a 16px world grid. HGSS source
-      -- sheets keep every authored pixel and are reduced only by this
-      -- draw-time transform.  The transform is anchored at the actor's
-      -- ground point, so scale changes do not make the character float.
+      -- sheets keep every authored pixel and are reduced only at draw time.
+      -- Draw directly at the logical foot anchor: scaling the full graphics
+      -- context around world coordinates caused camera-dependent drift and
+      -- could collapse the sprite into a few pixels in the flat renderer.
       local displayScale = self.def and tonumber(self.def.hgssGen2DisplayScale)
-      if displayScale and displayScale > 0 and displayScale ~= 1 then
+      if displayScale then
+        displayScale = displayScale * overworldSpriteScale(self.def)
+      end
+      if displayScale and displayScale > 0 then
         local G = love.graphics
-        -- Gen-2 Player/NPC:draw already applies the camera/world transform
-        -- before calling SpriteRenderer.  Scale around the renderer's own
-        -- bottom-center anchor in that local space; using the raw world
-        -- `px,py` as the pivot makes the frame drift (and can make the
-        -- character look oversized when the camera is offset).
-        local originX, originY = self:getScreenOrigin(
-          px, py, camX or 0, camY or 0)
-        local anchorX = originX + self.anchorX
-        local anchorY = originY + self.anchorY
-        G.push()
-        G.translate(anchorX, anchorY)
-        G.scale(displayScale, displayScale)
-        G.translate(-anchorX, -anchorY)
-        local result = oldDraw(self, px, py, camX or 0, camY or 0,
-                               facing, walkPhase, stepFlip, topHalf)
-        G.pop()
-        return result
+        local frame = (self.def.walker and walkPhase == 1)
+          and HGSS_WALK_FRAMES[facing] or HGSS_STAND_FRAMES[facing]
+        frame = frame or 0
+        if not self.frames[frame] then frame = 0 end
+        local flip = facing == "right"
+          or ((facing == "down" or facing == "up")
+              and walkPhase == 1 and stepFlip)
+        local drawW = self.frameWidth * displayScale
+        local drawH = self.frameHeight * displayScale
+        local groundX = math.floor(px - (camX or 0)) + 8
+        local groundY = math.floor(py - (camY or 0)) + 12
+        local x = groundX - drawW / 2
+        local y = groundY - drawH
+        if self.def.trueColor then
+          PaletteFX.markTrueColor(x, y, drawW, drawH)
+        end
+        if flip then
+          G.draw(self.image, self.frames[frame], x + drawW, y, 0,
+            -displayScale, displayScale)
+        else
+          G.draw(self.image, self.frames[frame], x, y, 0,
+            displayScale, displayScale)
+        end
+        return
       end
       return oldDraw(self, px, py, camX, camY, facing, walkPhase,
                      stepFlip, topHalf)
@@ -4253,15 +4572,18 @@ return function(mod)
       if not assetExists(relative) then return nil end
       local def = sprites[id] or {}
       def.id = def.id or id
-      def.image = mod.assets:path(relative)
       local geometry = gen2SpriteGeometry(file)
-      def.frames = 6
+      -- The live Gen-2 player table is rebuilt after boot. Keep it on the
+      -- same native sheet as the initial registry patch so flat rendering
+      -- never falls back to the voxel-layout proxy.
+      def.image = mod.assets:path(relative)
+      def.hgssNativeImage = mod.assets:path(relative)
+      def.frames = geometry.frameCount or 6
       def.frameWidth = geometry.frameWidth
       def.frameHeight = geometry.frameHeight
       def.anchorX = geometry.anchorX
       def.anchorY = geometry.anchorY
-      local displayMultiplier = (id == "SPRITE_CHRIS"
-        or id == "SPRITE_KRIS") and 0.7 or 1
+      local displayMultiplier = 1
       def.hgssGen2DisplayScale = geometry.displayScale * displayMultiplier
       def.hgssGen2NearestFilter = true
       def.walker = true
