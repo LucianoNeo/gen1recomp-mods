@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.2
+
+- Updated the Red bicycle overworld sprite to the new transparent six-frame
+  `32×192` atlas.
+- Corrected the renderer metadata so the compact Red Bike sheet is sampled as
+  six native `32×32` frames instead of being interpreted as a `256×1536` HD
+  sheet.
+
 ## 1.0.1
 
 - Added Leaf's full-color animated battle back atlas and wired it directly to
