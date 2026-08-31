@@ -131,9 +131,9 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- 256x1536 HD atlases.  The 256x1536 sheets remain enabled for the HD
   -- player choices and bike variants that actually use that layout.
   local playerSheet = file == "ash" or file == "ethan"
-    or file == "brendan"
+    or file == "lyra"
   local playerBikeSheet = file == "ash_bike" or file == "ethan_bike"
-    or file == "brendan_bike"
+    or file == "lyra_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
@@ -141,11 +141,11 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   local highDensity = file == "jessie" or file == "james" or hdSheet
   local nativeWide = file == "jessie" or file == "james"
     or file == "lorelei" or playerSheet or playerBikeSheet
-  -- Jessie/James, Ash and Ethan use 256px-wide authored frames; match the
+  -- Jessie/James, Ash, Ethan and Lyra use 256px-wide authored frames; match the
   -- source cell so the renderer samples each complete frame instead of
   -- shrinking it or cutting off the head and feet.
   -- Agatha, Lorelei and Officer Jenny use the same native 256x1536 six-frame
-  -- sheets as Red/Ash/Ethan. Keeping them in the 256px branch is important:
+  -- sheets as Red/Ash/Ethan/Lyra. Keeping them in the 256px branch is important:
   -- the old 288/394px assumptions made their 256px cells fail sheet
   -- detection in 2D and appear at inconsistent sizes in Voxel.
   local frameSize = (file == "jessie" or file == "james"
@@ -290,6 +290,30 @@ return function(mod)
   -- the live save options when the manager has not refreshed mod.options yet.
   local liveGame
 
+  -- g1recomp selects the concrete Gen 1 version before loading mods. Keep
+  -- that value available so Yellow-only map/tileset fixes do not leak into
+  -- Red or Blue, while the shared sprite/player hooks remain active for all
+  -- three games.
+  local GameVersion
+  do
+    local ok, value = pcall(require, "src.core.GameVersion")
+    if ok and type(value) == "table" then GameVersion = value end
+  end
+  local function activeGameVersion(game)
+    local version = game and game.save and game.save.version
+    if type(version) == "string" and version ~= "" then
+      return version:lower()
+    end
+    if GameVersion and type(GameVersion.get) == "function" then
+      local ok, value = pcall(GameVersion.get)
+      if ok and type(value) == "string" then return value:lower() end
+    end
+    return nil
+  end
+  local function isYellowGame(game)
+    return activeGameVersion(game) == "yellow"
+  end
+
   -- Yellow's POKECENTER tileset contains one seated figure painted directly
   -- into the couch art (block $08), so it cannot be replaced through the
   -- normal NPC sprite registry.  Use a mod-local copy of the 128x48 atlas
@@ -298,7 +322,7 @@ return function(mod)
   -- Celadon Hotel, so this single patch covers every occurrence.  Keep the
   -- patch scoped to POKECENTER: MART shares the original atlas image but
   -- must retain its own tile art.
-  if mod.content and mod.content.tilesets
+  if isYellowGame() and mod.content and mod.content.tilesets
       and type(mod.content.tilesets.patch) == "function" then
     pcall(function()
       mod.content.tilesets:patch("POKECENTER", {
@@ -442,8 +466,10 @@ return function(mod)
         { "RED", "red" },
         { "ASH", "ash" },
         { "ETHAN", "ethan" },
+        { "LYRA", "lyra" },
         { "LEAF", "leaf" },
         { "BRENDAN", "brendan" },
+        { "OFF", "off" },
       },
     },
     {
@@ -572,12 +598,47 @@ return function(mod)
   end)
 
   local function selectedPlayerOption()
-    local value = playerSelectionValue
+    -- The manager normally updates both `modOptions` and the event cache, but
+    -- older/local builds can persist the menu choice without dispatching the
+    -- event (or dispatch it before the option table is refreshed). Prefer the
+    -- live game value whenever it exists so OFF cannot leave a stale HGSS
+    -- charset attached to the player; fall back to the event cache for
+    -- headless drivers and older API versions that have no live game yet.
+    local value
+    local game = liveGame
+    local function readOptions(options)
+      local row = options and options[mod.id]
+      return type(row) == "table" and row.player_select or nil
+    end
+    if game then
+      local mods = game.mods and game.mods.modOptions
+      value = readOptions(mods)
+      if value == nil then
+        local save = game.save and game.save.options
+        value = readOptions(save and save.modOptions)
+      end
+    end
+    if value == nil then value = playerSelectionValue end
     if value == nil then
       local ok, current = pcall(mod.options.get, mod.options, "player_select")
       if ok then value = current end
     end
     return tostring(value or "red"):lower()
+  end
+
+  -- RBYMMO can intentionally wear its own local character (including while
+  -- its network connection is active). When our selector is OFF, preserve
+  -- that ownership instead of replacing the MMO renderer on every map
+  -- refresh. If it has no explicit/worn look, OFF still restores the game's
+  -- vanilla player as usual.
+  local function rbyMmoOwnsPlayer()
+    if type(mod.find) ~= "function" then return false end
+    local ok, handle = pcall(function() return mod:find("rby_mmo") end)
+    local exports = ok and handle and handle.exports
+    local wornLook = exports and exports.wornLook
+    if type(wornLook) ~= "function" then return false end
+    local okLook, value = pcall(wornLook)
+    return okLook and value ~= nil
   end
 
   -- Attribution: the resolver/atlas-playback architecture below was
@@ -969,6 +1030,7 @@ return function(mod)
 
   local function selectedHallPlayerImage()
     local key = selectedPlayerOption()
+    if key == "off" then return nil end
     -- Hall of Fame expects a front battle portrait, never an overworld
     -- charset sheet.  Keep a dedicated portrait for every PLAYER SELECT
     -- option so the Hall screen cannot silently reuse Red's art.
@@ -1337,12 +1399,13 @@ return function(mod)
   local playerTrainerStates = setmetatable({}, { __mode = "k" })
 
   -- PLAYER SELECT is the single owner of the player trainer shown in battle.
-  -- Keep the generation-to-character mapping internal and expose only
-  -- RED/ASH/ETHAN through PLAYER SELECT in this mod.
+  -- Keep the generation-to-character mapping internal; PLAYER SELECT owns
+  -- the player trainer shown in battle for every bundled protagonist.
   local PLAYER_BATTLE_STRIPS = {
     red = "redplayer.png",
     ash = "ashplayer.png",
     ethan = "gen2player.png",
+    lyra = "lyraplayer.png",
     -- Leaf and Brendan use dedicated full-color animated back sheets when
     -- present.  Static portraits remain the defensive fallback for older
     -- installations that do not yet contain those atlases.
@@ -1353,6 +1416,7 @@ return function(mod)
     red = "player.png",
     ash = "ashplayer.png",
     ethan = "gen2player.png",
+    lyra = "lyraplayer.png",
     leaf = "leafplayer.png",
     brendan = "brendanplayer.png",
   }
@@ -1416,6 +1480,10 @@ return function(mod)
     if not (battle and battle.showPlayerBack) then return nil end
     -- Oak/Old Man's scripted introduction must retain its dedicated portrait.
     if battle.demo then return nil end
+    -- OFF leaves the engine's native player back untouched.  Returning nil
+    -- here is important: the battle hooks treat a missing custom image as a
+    -- request to continue with the ROM artwork.
+    if selectedPlayerOption() == "off" then return nil end
     local key = selectedPlayerBattleKey()
     local frames = loadPlayerTrainerFrames(key)
     if not frames then return selectedBattlePlayerStatic(key) end
@@ -1624,6 +1692,7 @@ return function(mod)
     red = "SPRITE_RED",
     ash = "SPRITE_ASH",
     ethan = "SPRITE_ETHAN",
+    lyra = "SPRITE_LYRA",
     leaf = "SPRITE_LEAF",
     brendan = "SPRITE_BRENDAN",
   }
@@ -1632,19 +1701,10 @@ return function(mod)
     red = "SPRITE_RED_BIKE",
     ash = "SPRITE_ASH_BIKE",
     ethan = "SPRITE_ETHAN_BIKE",
+    lyra = "SPRITE_LYRA_BIKE",
     leaf = "SPRITE_LEAF_BIKE",
     brendan = "SPRITE_BRENDAN_BIKE",
   }
-
-  local function selectedPlayerSpriteId()
-    return PLAYER_SPRITE_IDS[selectedPlayerOption()]
-      or PLAYER_SPRITE_IDS.red
-  end
-
-  local function selectedPlayerBikeSpriteId()
-    return PLAYER_BIKE_SPRITE_IDS[selectedPlayerOption()]
-      or PLAYER_BIKE_SPRITE_IDS.red
-  end
 
   -- Keep the option reversible while the mod manager is open. The live icon
   -- table is adjusted only after every mod has finished loading, so OFF can
@@ -1661,6 +1721,211 @@ return function(mod)
       trueColor = true,
     }
     partyIconEntries[species] = entry
+  end
+
+  -- Snapshot the pristine player entries before this mod patches the field
+  -- registry and the RED sprite records.  This must run before the
+  -- patchOverworld calls below: those calls patch SPRITE_RED in place, so
+  -- taking the snapshot afterwards would preserve the HGSS definition and
+  -- make PLAYER SELECT > OFF render only a clipped quarter of the sprite.
+  local function cloneSpriteDef(value, seen)
+    if type(value) ~= "table" then return value end
+    seen = seen or {}
+    if seen[value] then return seen[value] end
+    local copy = {}
+    seen[value] = copy
+    for key, child in pairs(value) do
+      copy[key] = type(child) == "table"
+        and cloneSpriteDef(child, seen) or child
+    end
+    local metatable = getmetatable(value)
+    if metatable then setmetatable(copy, metatable) end
+    return copy
+  end
+
+  local originalPlayerSprites = {}
+  do
+    local ok, value = pcall(function()
+      return mod.content.field:get("playerSprites")
+    end)
+    if ok and type(value) == "table" then
+      originalPlayerSprites.walk = value.walk
+      originalPlayerSprites.bike = value.bike
+    end
+  end
+  originalPlayerSprites.walk = originalPlayerSprites.walk or "SPRITE_RED"
+  originalPlayerSprites.bike = originalPlayerSprites.bike or "SPRITE_RED_BIKE"
+
+  local originalPlayerSpriteDefs = {}
+  for slot, id in pairs({
+    walk = originalPlayerSprites.walk,
+    bike = originalPlayerSprites.bike,
+  }) do
+    local ok, value = pcall(function()
+      return mod.content.sprites:get(id)
+    end)
+    if ok and type(value) == "table" then
+      originalPlayerSpriteDefs[slot] = cloneSpriteDef(value)
+    end
+  end
+
+  -- Some local engine builds expose the sprite registry after another
+  -- content operation has already replaced `image` with our 16px proxy.  A
+  -- vanilla fallback must never retain that proxy: Wilds of Kanto creates a
+  -- lightweight SpriteRenderer definition from `def.image` and would then
+  -- display only the top-left quarter of the HGSS sheet.  Prefer the
+  -- untouched extracted PNG, and derive its conventional path when the
+  -- registry value is already proxy-backed.  Strip every HGSS-only field so
+  -- neither the core renderer nor companion mods can select the native HD
+  -- path while PLAYER SELECT is OFF.
+  local function sanitizeVanillaPlayerDef(slot, id, def)
+    if type(def) ~= "table" then return def end
+    local image = def.image
+    local vanillaAsset = ({
+      SPRITE_RED = "red",
+      SPRITE_RED_BIKE = "red_bike",
+    })[id]
+    if vanillaAsset then
+      -- Keep the fallback in this mod's private asset namespace.  Generated
+      -- paths are globally overrideable, so pointing at them would resolve
+      -- back to HGSS_SPRITES/overrides/sprites/<name>.png.
+      image = mod.assets:path("assets/vanilla/players/" .. vanillaAsset .. ".png")
+    elseif type(image) ~= "string"
+       or image:find("frame_layout_", 1, true)
+       or image:find("HGSS_SPRITES", 1, true) then
+      local stem = tostring(id):gsub("^SPRITE_", ""):lower()
+      -- The `../../assets` traversal intentionally bypasses
+      -- Assets.resolve's generated override lookup.  The resolver checks
+      -- `overrides/<rel>` first; this path cannot exist there, while LÖVE
+      -- still normalizes it back to the engine's generated asset.
+      image = "assets/generated/sprites/../../../assets/generated/sprites/"
+        .. stem .. ".png"
+    elseif image:find("^assets/generated/sprites/", 1) then
+      -- Even an apparently vanilla path is shadowed by this mod's
+      -- overrides/sprites/<name>.png through Assets.resolve.  Keep the
+      -- traversal prefix for every extracted player sheet.
+      image = mod.assets:path("assets/vanilla/players/"
+        .. image:sub(#"assets/generated/sprites/" + 1))
+    end
+    def.image = image
+    def.frames = tonumber(def.frames) or 6
+    def.walker = def.walker ~= false
+    def.trueColor = nil
+    for key in pairs(def) do
+      if type(key) == "string" and key:match("^hgss") then
+        def[key] = nil
+      end
+    end
+    return def
+  end
+  for slot, id in pairs(originalPlayerSprites) do
+    originalPlayerSpriteDefs[slot] = sanitizeVanillaPlayerDef(
+      slot, id, originalPlayerSpriteDefs[slot])
+  end
+
+  -- Do not rely on rewriting SPRITE_RED after the registry has merged.  That
+  -- shared id is also used by NPCs and companion mods, and an already-created
+  -- renderer can retain the HGSS geometry even after the table entry changes.
+  -- Give OFF its own vanilla records instead: future Player.new calls resolve
+  -- these ids directly and can never sample the 256px HGSS sheet as a 16px
+  -- native frame.  The copies are made before our RED patches below.
+  local originalPlayerFallbackIds = {
+    walk = "SPRITE_HGSS_ORIGINAL_PLAYER",
+    bike = "SPRITE_HGSS_ORIGINAL_PLAYER_BIKE",
+  }
+  for slot, id in pairs(originalPlayerFallbackIds) do
+    local def = originalPlayerSpriteDefs[slot]
+    if def and type(mod.content.sprites.register) == "function" then
+      def.id = id
+      pcall(function() mod.content.sprites:register(id, def) end)
+    end
+  end
+
+  -- Keep a reference to the modded registry entries as well.  OFF temporarily
+  -- restores the original records under the same IDs (usually SPRITE_RED and
+  -- SPRITE_RED_BIKE); switching back to a selected HGSS player must put our
+  -- definitions back before a new map/player instance is constructed.
+  local customPlayerSpriteDefs = {}
+  local function rememberCustomPlayerDefs(data)
+    local sprites = data and data.sprites
+    if type(sprites) ~= "table" then return end
+    for _, id in pairs(PLAYER_SPRITE_IDS) do
+      local def = sprites[id]
+      if type(def) == "table" and def.hgssNativeImage then
+        customPlayerSpriteDefs[id] = def
+      end
+    end
+    for _, id in pairs(PLAYER_BIKE_SPRITE_IDS) do
+      local def = sprites[id]
+      if type(def) == "table" and def.hgssNativeImage then
+        customPlayerSpriteDefs[id] = def
+      end
+    end
+  end
+
+  local function selectedPlayerSpriteId()
+    local selected = selectedPlayerOption()
+    if selected == "off" then return originalPlayerFallbackIds.walk end
+    return PLAYER_SPRITE_IDS[selected] or PLAYER_SPRITE_IDS.red
+  end
+
+  local function selectedPlayerBikeSpriteId()
+    local selected = selectedPlayerOption()
+    if selected == "off" then return originalPlayerFallbackIds.bike end
+    return PLAYER_BIKE_SPRITE_IDS[selected] or PLAYER_BIKE_SPRITE_IDS.red
+  end
+
+  -- Yellow's stock Pikachu is intentionally parked on the player for one
+  -- transition frame by Wilds of Kanto.  With PLAYER SELECT > OFF that
+  -- parking hides the restored vanilla Red (only the cap/edge pixels remain),
+  -- which looks like a broken sprite.  Once the vanilla player is active,
+  -- move only an overlapping stock follower to the first walkable cell behind
+  -- him; Wilds keeps ownership of the follower and resumes its normal trail.
+  local function separateOffYellowFollower(game)
+    if not isYellowGame(game) or selectedPlayerOption() ~= "off" then return end
+    local ow = game and (game.world or game.overworld)
+    local p = ow and ow.player
+    if not (ow and p) or p._pokepcAsPokemon then return end
+    local map = ow.map
+    local candidates = {
+      left = { 1, 0 }, right = { -1, 0 },
+      up = { 0, 1 }, down = { 0, -1 },
+    }
+    local delta = candidates[p.facing] or candidates.down
+    local choices = {
+      delta,
+      { -delta[1], -delta[2] },
+      { delta[2], -delta[1] },
+      { -delta[2], delta[1] },
+    }
+    local function usable(x, y)
+      if not map or type(map.inBounds) ~= "function" then return true end
+      if not map:inBounds(x, y) then return false end
+      if type(map.isWalkableCell) == "function" and not map:isWalkableCell(x, y) then
+        return false
+      end
+      return x ~= p.cellX or y ~= p.cellY
+    end
+    for _, npc in ipairs(ow.npcs or {}) do
+      if npc and npc.pikachuFollower and not npc.pokepcTrailer
+         and npc.cellX == p.cellX and npc.cellY == p.cellY then
+        local nx, ny
+        for _, d in ipairs(choices) do
+          local tx, ty = p.cellX + d[1], p.cellY + d[2]
+          if usable(tx, ty) then nx, ny = tx, ty; break end
+        end
+        if nx then
+          npc.cellX, npc.cellY = nx, ny
+          npc.px, npc.py = nx * 16, ny * 16
+          npc.targetX, npc.targetY = nil, nil
+          npc.goalX, npc.goalY = nil, nil
+          npc.moving, npc.progress = false, 0
+          if ow.pikachuTrail then
+            ow.pikachuTrail.x, ow.pikachuTrail.y = nx, ny
+          end
+        end
+      end
+    end
   end
 
   for shortId in words(WALKERS) do
@@ -1704,18 +1969,28 @@ return function(mod)
   -- The selector changes only the field player charset. Battle trainer art
   -- is resolved by this mod's self-contained collections;
   -- the selected native sheet is used for the overworld player and Oak intro.
-  mod.content.field:patch("playerSprites", {
-    walk = selectedPlayerSpriteId(),
-    bike = selectedPlayerBikeSpriteId(),
+  local playerSpritePatch = {}
+  if isYellowGame() then
     -- Always use the authored Surfing Pikachu ride for Yellow.  The original
     -- game only selects `surfPikachu` when the party's SURF user is Pikachu,
-    -- but Pikachu cannot learn SURF through the normal Yellow HM flow.  Keep
+    -- but Pikachu cannot learn SURF through the normal Yellow HM flow. Keep
     -- both water paths on the same registered sheet so the custom ride is
     -- reachable without Stadium/event save data, while preserving the
-    -- engine's surfing movement and collision rules.
-    surf = "SPRITE_SURFING_PIKACHU",
-    surfPikachu = "SPRITE_SURFING_PIKACHU",
-  })
+    -- engine's surfing movement and collision rules. Red and Blue retain
+    -- their native surf/player field records.
+    playerSpritePatch.surf = "SPRITE_SURFING_PIKACHU"
+    playerSpritePatch.surfPikachu = "SPRITE_SURFING_PIKACHU"
+  end
+  -- An OFF value must omit walk/bike entirely from the registry patch.  An
+  -- explicit fallback to RED here would replace the game's original player
+  -- before the runtime option handler had a chance to restore it.
+  if selectedPlayerOption() ~= "off" then
+    playerSpritePatch.walk = selectedPlayerSpriteId()
+    playerSpritePatch.bike = selectedPlayerBikeSpriteId()
+  end
+  if next(playerSpritePatch) ~= nil or selectedPlayerOption() ~= "off" then
+    mod.content.field:patch("playerSprites", playerSpritePatch)
+  end
 
   -- Gym maps in Yellow deliberately reuse generic GBC character IDs.  Keep
   -- those generic IDs intact for ordinary NPCs and expose dedicated HGSS
@@ -3609,13 +3884,16 @@ return function(mod)
   local function objectSpriteTarget(mapId, def)
     if not def then return nil end
     local objectName = tostring(def.name or "")
-    local target = OBJECT_SPRITE_FIXES[mapId]
+    -- These object-name corrections were authored from Yellow's map tables;
+    -- Red and Blue keep their ROM object records and only use the shared
+    -- registry/player replacements below.
+    local target = isYellowGame(liveGame) and OBJECT_SPRITE_FIXES[mapId]
       and OBJECT_SPRITE_FIXES[mapId][objectName]
 
     -- Some map loaders expose this counter attendant under a generated
     -- name instead of the ROM object label. Catch both forms so the
     -- original 16px Yellow receptionist cannot leak through in Viridian.
-    if mapId == "VIRIDIAN_POKECENTER"
+    if isYellowGame(liveGame) and mapId == "VIRIDIAN_POKECENTER"
         and (objectName:find("RECEPTIONIST", 1, true)
           or tostring(def.sprite or "") == "SPRITE_LINK_RECEPTIONIST") then
       target = "SPRITE_LINK_RECEPTIONIST"
@@ -3640,6 +3918,7 @@ return function(mod)
   -- it as map geometry, and its unique name/index make this idempotent.
   local function ensurePokecenterLoungeBoy()
     local game = liveGame
+    if not isYellowGame(game) then return end
     local overworld = game and game.overworld
     local map = overworld and overworld.map
     local mapId = tostring(map and map.id or "")
@@ -3726,6 +4005,10 @@ return function(mod)
     if not overworld then return end
     ensurePokecenterLoungeBoy()
     local mapId = tostring(overworld.map and overworld.map.id or "")
+    -- Gym/Elite Four object names are shared by the three Gen 1 maps, so
+    -- their dedicated HGSS leader sheets remain active on Red, Blue and
+    -- Yellow. Yellow-only Pokémon/object corrections are gated separately in
+    -- objectSpriteTarget below.
     local gymObjects = GYM_LEADER_OBJECTS[mapId]
     local eliteObjects = ELITE_OBJECTS[mapId]
     -- The Dojo's object records encode the trainer sight line in `range`.
@@ -3784,9 +4067,38 @@ return function(mod)
   end
 
   local function applyPlayerSelection(game)
+    -- Keep the option resolver tied to the instance being refreshed. This is
+    -- important during boot and map reloads, when the manager has already
+    -- copied a profile value into `game.save` but has not emitted an event.
+    if game then liveGame = game end
+    local disabled = selectedPlayerOption() == "off"
     local selectedId = selectedPlayerSpriteId()
     local data = game and game.data
     if not data then return end
+    local mmoOwns = disabled and rbyMmoOwnsPlayer()
+
+    -- OFF uses dedicated vanilla records rather than rewriting SPRITE_RED in
+    -- place.  The shared Red id remains available to NPCs/companion mods,
+    -- while every future Player.new resolves the unmodified 16x96 charset.
+    -- Keep the patched records remembered so toggling back to a selected HGSS
+    -- player is reversible even when the menu changes without a map reload.
+    rememberCustomPlayerDefs(data)
+    if data.sprites then
+      local function setSprite(id, def)
+        if id and def then
+          pcall(function() data.sprites[id] = def end)
+        end
+      end
+      if disabled then
+        setSprite(originalPlayerFallbackIds.walk, originalPlayerSpriteDefs.walk)
+        setSprite(originalPlayerFallbackIds.bike, originalPlayerSpriteDefs.bike)
+      else
+        setSprite(originalPlayerSprites.walk,
+          customPlayerSpriteDefs[originalPlayerSprites.walk])
+        setSprite(originalPlayerSprites.bike,
+          customPlayerSpriteDefs[originalPlayerSprites.bike])
+      end
+    end
 
     -- Keep future Player.new calls on the selected charset.  The protected
     -- assignment is intentionally narrow: old engine builds expose `field`
@@ -3800,11 +4112,17 @@ return function(mod)
       end)
     end
 
+    -- RBYMMO writes its chosen look directly to the live player. Keep the
+    -- vanilla fallback in the field registry for future player instances,
+    -- but do not overwrite the MMO-owned renderer while OFF is selected.
+    if mmoOwns then return end
+
     -- A menu change can happen while a save is already open. Refresh the
     -- live player and bicycle without touching surf sprites. New maps
     -- construct both from field.playerSprites.
     local player = game.overworld and game.overworld.player
     local spriteDef = data.sprites and data.sprites[selectedId]
+      or (disabled and originalPlayerSpriteDefs.walk)
     if not player then return end
     if spriteDef and (not player.sprite or player.sprite.def ~= spriteDef) then
       player.sprite = SpriteRenderer.new(spriteDef, "player")
@@ -3814,12 +4132,14 @@ return function(mod)
     end
     local bikeId = selectedPlayerBikeSpriteId()
     local bikeDef = data.sprites and data.sprites[bikeId]
+      or (disabled and originalPlayerSpriteDefs.bike)
     if bikeDef and (not player.bikeSprite or player.bikeSprite.def ~= bikeDef) then
       player.bikeSprite = SpriteRenderer.new(bikeDef, "player")
       if player.bikeSprite and player.bikeSprite.def then
         player.bikeSprite.def.walker = true
       end
     end
+    separateOffYellowFollower(game)
   end
 
   local function applyCrispDisplay(game)
