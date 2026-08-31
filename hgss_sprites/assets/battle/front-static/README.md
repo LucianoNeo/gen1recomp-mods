@@ -26,10 +26,11 @@ Filenames are lowercase. The same names apply in every battle-art folder.
 
 ## Static opponent trainer fronts
 
-Opponent trainer pictures are never animated. Put complete opponent sets in
-`gen1`, `gen2`, and `gen3`; the `TRAINER ART` option selects one of those
-folders even when `BATTLE ART` is set to `ANIMATED`. The filename is the
-engine trainer class in lowercase with underscores changed to hyphens:
+Opponent trainer pictures are never animated. The generation folders are
+retained for compatibility with older packages; the current release does not
+expose a trainer-art selector and Gen 2 keeps the engine's native opponent
+portrait. The filename is the engine trainer class in lowercase with
+underscores changed to hyphens:
 
 youngster.png       bug-catcher.png     lass.png
 sailor.png          jr-trainer-m.png    jr-trainer-f.png

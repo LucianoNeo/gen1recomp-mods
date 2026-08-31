@@ -602,46 +602,6 @@ return function(mod)
 
   mod.options:define({
     {
-      key = "battle_scope",
-      label = "BATTLE ART SCOPE",
-      type = "choice",
-      default = "trainers",
-      choices = {
-        { "TRAINERS ONLY", "trainers" },
-        { "COMPLETE", "complete" },
-      },
-    },
-    {
-      key = "battle_front_gen",
-      label = "BATTLE FRONT GEN",
-      type = "choice",
-      default = "gen5",
-      choices = {
-        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
-        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
-      },
-    },
-    {
-      key = "battle_back_gen",
-      label = "BATTLE BACK GEN",
-      type = "choice",
-      default = "gen5",
-      choices = {
-        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
-        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
-      },
-    },
-    {
-      key = "battle_trainer_gen",
-      label = "BATTLE TRAINER GEN",
-      type = "choice",
-      default = "gen3",
-      choices = {
-        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
-        { "GEN 3", "gen3" },
-      },
-    },
-    {
       key = "player_select",
       label = "PLAYER SELECT",
       type = "choice",
@@ -744,19 +704,25 @@ return function(mod)
     end
   end
 
-  -- Keep a live copy of the battle selectors.  The Mod Manager updates this
-  -- value before emitting `mod.options_changed`; scripted drivers and older
-  -- g1recomp builds emit the event directly, so reading only the cached
-  -- option object can incorrectly leave the selector at ROM.
-  local battleOptionValues = {}
+  -- Battle Art generation selectors are intentionally not exposed by this
+  -- mod anymore.  Keep their internal values pinned to the engine artwork so
+  -- no stale setting from an older installation can replace Gen 2 Pokémon or
+  -- opponent portraits.  The player's back portrait is resolved separately
+  -- from PLAYER SELECT below.
+  local battleOptionValues = {
+    battle_scope = "trainers",
+    battle_front_gen = "rom",
+    battle_back_gen = "rom",
+    battle_trainer_gen = "rom",
+  }
   -- Mod Manager events can arrive before the option store is refreshed. Keep
   -- SPRITE SIZE in a live cache as well, so Gen-2/voxel redraws immediately
   -- use the newly selected value instead of the previous menu value.
   local spriteSizeValue
-  -- Keep PLAYER SELECT in the same live cache as the battle generation
-  -- options.  Older Mod API builds update the event payload before the
-  -- option store, so reading mod.options:get() during battle construction
-  -- can otherwise select Red even after Leaf was chosen in the menu.
+  -- Keep PLAYER SELECT in a live cache. Older Mod API builds update the event
+  -- payload before the option store, so reading mod.options:get() during
+  -- battle construction can otherwise select Red even after another player
+  -- was chosen in the menu.
   local playerSelectionValue
   do
     local ok, value = pcall(mod.options.get, mod.options, "player_select")
@@ -765,18 +731,8 @@ return function(mod)
     if okSize then spriteSizeValue = size end
   end
   local function battleTrace(_) end
-  local BATTLE_OPTION_KEYS = {
-    battle_scope = true,
-    battle_front_gen = true,
-    battle_back_gen = true,
-    battle_trainer_gen = true,
-  }
-  for key in pairs(BATTLE_OPTION_KEYS) do
-    local ok, value = pcall(mod.options.get, mod.options, key)
-    if ok then battleOptionValues[key] = value end
-  end
   local function battleOption(key)
-    local value = battleOptionValues[key] or mod.options:get(key)
+    local value = battleOptionValues[key]
     battleTrace(("option %s=%s"):format(tostring(key), tostring(value)))
     return value
   end
@@ -787,10 +743,6 @@ return function(mod)
       if value == nil then value = ev.newValue end
       if key == "sprite_size" and value ~= nil then
         spriteSizeValue = value
-      end
-      if BATTLE_OPTION_KEYS[key] then
-        battleOptionValues[key] = value
-        battleTrace(("event %s=%s"):format(tostring(key), tostring(value)))
       end
       if key == "player_select" and value ~= nil then
         playerSelectionValue = tostring(value):lower()
@@ -811,10 +763,9 @@ return function(mod)
   -- reimplemented from Battle Art Voxel Fork's battle-art path. This file
   -- keeps the implementation local and does not import Battle Art runtime
   -- modules; the adapted architecture and bundled asset conventions are
-  -- credited in the project README and battle asset notes.
-  -- Self-contained generation collections. The selected generation is
-  -- resolved per species and side; missing files deliberately fall back to
-  -- the image supplied by the g1recomp engine.
+  -- credited in the project README and battle asset notes. Battle Pokémon
+  -- generation selection is disabled; the routines below remain as guarded
+  -- compatibility code for older saves and non-battle presentation hooks.
   local function battleSlug(value)
     if type(value) == "table" then
       value = value.id or value.name or value.species or value.dataId
@@ -875,6 +826,9 @@ return function(mod)
       folder, gen, suffix, battleSlug(species))
   end
   local function selectedBattlePokemonImage(species, side, shiny)
+    -- Gen 2 battles use the game's own Pokémon art.  Only the player trainer
+    -- back portrait is customized in that game.
+    if isGen2() then return nil end
     -- TRAINERS ONLY must leave both wild and party Pokemon entirely to the
     -- engine.  This guard is needed here as well as in applyBattleGeneration:
     -- the public pokemon.sprite hook can run before BattleState exists and
@@ -1002,6 +956,36 @@ return function(mod)
     return battleFramesCache[key] or nil
   end
 
+  -- Read one record without executing the generated Lua table.  Some Gen2
+  -- facades expose `load` but run mod chunks in a restricted environment that
+  -- discards their return value; balanced-brace matching keeps this fallback
+  -- independent of that loader detail and also handles the long durations
+  -- arrays in the generated definitions.
+  local function parseBattleDefinitionSource(gen, side, species, shiny)
+    if gen == "gen1" or gen == "rom" then return nil end
+    local file = "assets/battle/animated_battle_sprites_" .. gen
+      .. (shiny and "_shiny" or "") .. ".lua"
+    local source
+    if type(mod.read) == "function" then
+      local ok, text = pcall(function() return mod:read(file) end)
+      if ok and type(text) == "string" then source = text end
+    end
+    if not source then return nil end
+    local key = battleSpeciesKey(species)
+    local block = source:match("%f[%w_]" .. key .. "%s*=%s*(%b{})")
+    if not block then return nil end
+    local sideBlock = block:match("%f[%w_]" .. side .. "%s*=%s*(%b{})")
+    if not sideBlock then return nil end
+    local image = sideBlock:match('image%s*=%s*"([^"]+)"')
+    local width = tonumber(sideBlock:match("width%s*=%s*(%d+)"))
+    local height = tonumber(sideBlock:match("height%s*=%s*(%d+)"))
+    local columns = tonumber(sideBlock:match("columns%s*=%s*(%d+)"))
+    local frames = tonumber(sideBlock:match("frames%s*=%s*(%d+)"))
+    if not image or not width or not height then return nil end
+    return { image = image, width = width, height = height,
+      columns = columns, frames = frames }
+  end
+
   -- The battle engine keeps a separate `playerBackPic` reference for the
   -- throw-in/party side.  Once the send-out card closes it can still draw
   -- that stale reference instead of the animated battler sprite.  Keep the
@@ -1009,6 +993,7 @@ return function(mod)
   -- species (not only Pikachu) receives the same animation and placement.
   local function syncBattlePokemonImage(battler, side)
     if not battler then return end
+    if isGen2() then return nil end
     local gen = battleOption(side == "back" and "battle_back_gen"
       or "battle_front_gen") or "rom"
     if gen == "rom" or battleOption("battle_scope") == "trainers" then return end
@@ -1034,6 +1019,7 @@ return function(mod)
 
   local function updateBattleFrame(battler, side, dt)
     if not battler or not battler.sprite then return end
+    if isGen2() then return end
     local gen = battleOption(side == "back" and "battle_back_gen"
       or "battle_front_gen") or "rom"
     if gen == "rom" or battleOption("battle_scope") == "trainers" then return end
@@ -1124,6 +1110,8 @@ return function(mod)
         end
       end
     end
+    local parsed = parseBattleDefinitionSource(gen, side, species, shiny)
+    if parsed then return normalizeBattleDefinition(parsed, side) end
     return nil
   end
 
@@ -1361,8 +1349,14 @@ return function(mod)
 
   local battleOriginalSprites = setmetatable({}, { __mode = "k" })
   local selectedBattlePlayerImage
+  -- Gen 2's BattleState asks Sprites.playerPic for a path during its
+  -- constructor.  Keep a path resolver forward-declared here so the shared
+  -- player.sprite hook can serve both Gen 1 and Gen 2 without handing an
+  -- already-decoded Image object to the path-based API.
+  local selectedBattlePlayerPath
   local applyBattleGeneration
   local function applyBattleGenerationDeferred(battle)
+    if isGen2() then return end
     applyBattleGeneration(battle)
     if not battle then return end
     local enemy = battle.enemy and battle.enemy.mon
@@ -1371,6 +1365,7 @@ return function(mod)
   end
 
   local function refreshBattleSprites(battle)
+    if isGen2() then return end
     applyBattleGenerationDeferred(battle)
     if not battle then return end
     -- `applyBattleGeneration` is guarded, but this refresh path also runs
@@ -1394,6 +1389,7 @@ return function(mod)
     end
   end
   applyBattleGeneration = function(battle)
+    if isGen2() then return end
     if not battle then return end
     local originals = battleOriginalSprites[battle]
     if not originals then originals = {}; battleOriginalSprites[battle] = originals end
@@ -1509,13 +1505,24 @@ return function(mod)
   if oldPokemonSpriteHook then
     mod.hooks:wrap("pokemon.sprite", function(next, path, ctx)
       local out = next(path, ctx)
-      if not (ctx and ctx.kind == "battle") then return out end
+      -- Crystal resolves the static picture with kind="battle" and then
+      -- resolves the animated front sheet with kind="battle_anim".  Both
+      -- requests must select the same generation asset; handling only the
+      -- former leaves the first frame modern but the subsequent animation
+      -- silently falls back to the ROM sheet.
+      if not (ctx and (ctx.kind == "battle" or ctx.kind == "battle_anim")) then
+        return out
+      end
       if battleOption("battle_scope") == "trainers" then return out end
       local side = ctx.side == "back" and "back" or "front"
       local species = ctx.species
         or (ctx.data and ctx.data.pokemon and ctx.data.pokemon.species)
+      -- Gen 2 supplies the live battler on ctx.mon (and a direct ctx.shiny
+      -- flag); ctx.data is the whole game dataset, not the individual
+      -- Pokémon.  Passing data.pokemon here made every Crystal battle resolve
+      -- the normal sheet even when the mon was shiny.
       local selected = selectedBattlePokemonImage(species, side,
-        battleIsShiny(ctx.data and ctx.data.pokemon or ctx))
+        battleIsShiny(ctx.mon or ctx))
       if selected then
         -- Sprites.path returns both the path and the true-colour flag.  The
         -- old hook only replaced the path, so the renderer still quantized
@@ -1527,11 +1534,10 @@ return function(mod)
       return out
     end)
 
-    -- The Viridian catch tutorial is a demo battle: the engine marks it with
-    -- ctx.demo and normally resolves the original generated/oldmanb.png path.
-    -- Keep Oak's separate Yellow intro portrait untouched, but route the real
-    -- Old Man through the bundled full-colour static back portrait instead of
-    -- allowing the ROM back sprite to leak through.
+    -- Catch tutorials are demo battles: the engine marks them with ctx.demo
+    -- and normally resolves a generated ROM portrait.  Keep Oak's separate
+    -- Yellow intro portrait untouched; Crystal is handled by the Ace Trainer
+    -- branch below and Yellow retains its own Old Man portrait.
     mod.hooks:wrap("player.sprite", function(next, path, ctx)
       local out = next(path, ctx)
       -- Any player/trainer image resolved from this mod's battle asset tree
@@ -1540,11 +1546,47 @@ return function(mod)
       if ctx and isHgssTrueColorPath(out) then
         ctx.trueColor = true
       end
+      -- Gen 2's battle intro has its own playerPic path (the Crystal player
+      -- back image is not a Pokémon battler).  Route that path through the
+      -- selected player option just like the Gen 1 BattleState bridge below.
+      -- Keep the tutorial/Dude and Oak demo exceptions on their stock paths.
+      if ctx and ctx.kind == "battle" and ctx.side == "back"
+         and not ctx.demo and selectedBattlePlayerPath then
+        local replacement = selectedBattlePlayerPath(ctx.battle)
+        if replacement then
+          ctx.trueColor = true
+          return replacement
+        end
+      end
       if ctx and ctx.side == "back" and ctx.demo and ctx.oakDemo then
         local oak = mod.assets:path("assets/battle/back-static/oak.png")
         if assetExists("assets/battle/back-static/oak.png") then
           ctx.trueColor = true
           return oak
+        end
+      end
+      -- Gen 2's Route 29 catching demonstration is a different event from
+      -- Yellow's Viridian tutorial.  Both use the engine's `demo` flag, but
+      -- the Gen 2 state carries BATTLETYPE_TUTORIAL (3) on its battle object.
+      -- Crystal presents an Ace Trainer in this demonstration, so do not
+      -- inherit Yellow's Old Man portrait.  Keep this branch before the
+      -- generic demo fallback so each game's canonical trainer is selected
+      -- without changing ordinary battle backs.
+      local tutorialBattle = ctx and ctx.battle
+      local isGen2Tutorial = ctx and ctx.side == "back" and ctx.demo
+        and isGen2()
+        and tutorialBattle
+        and (tutorialBattle.tutorial == true
+          or tutorialBattle.battleType == 3)
+      if isGen2Tutorial then
+        -- The battle portrait itself is the first frame of the animated HGSS
+        -- Ace Trainer back.  Gen2BattleState replaces it with the subsequent
+        -- frames below, while this static path remains a safe fallback for
+        -- older engine builds that do not expose the update seam.
+        local ace = mod.assets:path("assets/battle/back-static/ace-trainer.png")
+        if assetExists("assets/battle/back-static/ace-trainer.png") then
+          ctx.trueColor = true
+          return ace
         end
       end
       if not (ctx and ctx.side == "back" and ctx.demo and not ctx.oakDemo) then
@@ -1570,12 +1612,13 @@ return function(mod)
   local playerTrainerStates = setmetatable({}, { __mode = "k" })
 
   -- PLAYER SELECT is the single owner of the player trainer shown in battle.
-  -- Keep the generation-to-character mapping internal and expose only
-  -- RED/ASH/ETHAN through PLAYER SELECT in this mod.
+  -- Keep the generation-to-character mapping internal; the Battle Art
+  -- generation selectors are intentionally no longer part of this mod's UI.
   local PLAYER_BATTLE_STRIPS = {
     red = "redplayer.png",
     ash = "ashplayer.png",
     ethan = "gen2player.png",
+    lyra = "lyraplayer.png",
     -- Leaf and Brendan use dedicated full-color animated back sheets when
     -- present.  Static portraits remain the defensive fallback for older
     -- installations that do not yet contain those atlases.
@@ -1586,13 +1629,21 @@ return function(mod)
     red = "player.png",
     ash = "ashplayer.png",
     ethan = "gen2player.png",
+    lyra = "lyraplayer.png",
     leaf = "leafplayer.png",
     brendan = "brendanplayer.png",
+  }
+  local PLAYER_BATTLE_KEYS = {
+    red = true, ash = true, ethan = true, lyra = true,
+    leaf = true, brendan = true,
   }
 
   local function selectedPlayerBattleKey()
     local value = selectedPlayerOption()
-    return PLAYER_BATTLE_STRIPS[value] and value or "red"
+    -- Every selectable protagonist with a bundled Battle Art back resolves
+    -- to its own strip. Unknown or unavailable choices still fall back to
+    -- Red's established behavior.
+    return PLAYER_BATTLE_KEYS[value] and value or "red"
   end
 
   local function loadPlayerTrainerFrames(key)
@@ -1624,7 +1675,8 @@ return function(mod)
   end
 
   local function selectedBattlePlayerStatic(key)
-    local filename = PLAYER_BATTLE_STATIC[key] or PLAYER_BATTLE_STATIC.red
+    local filename = PLAYER_BATTLE_STATIC[key]
+    if not filename then return nil end
     local path = mod.assets:path("assets/battle/back-static/" .. filename)
     if not assetExists("assets/battle/back-static/" .. filename) then return nil end
     if trainerImageCache[path] == nil then
@@ -1636,6 +1688,15 @@ return function(mod)
       trainerImageCache[path] = ok and image or false
     end
     return trainerImageCache[path] or nil
+  end
+
+  selectedBattlePlayerPath = function(_battle)
+    local key = selectedPlayerBattleKey()
+    local filename = PLAYER_BATTLE_STATIC[key]
+    if not filename then return nil end
+    local rel = "assets/battle/back-static/" .. filename
+    if not assetExists(rel) then return nil end
+    return mod.assets:path(rel)
   end
 
   local function playerTrainerProgress(battle)
@@ -1701,7 +1762,355 @@ return function(mod)
       end)
       trainerImageCache[path] = ok and image or false
     end
-    return trainerImageCache[path] or nil
+    -- Keep the resolved path available to Gen2's renderer.  Its scale registry
+    -- is keyed by path, so returning it lets the adapter register a fit-to-box
+    -- scale without changing the authored image or locking a generation.
+    return trainerImageCache[path] or nil, path
+  end
+
+  -- Gen2 battle boxes are fixed at 48px (player) and 56px (opponent).  The
+  -- selectable battle generations contain assets with different native cell
+  -- sizes, while the player portraits also have character-specific aspect
+  -- ratios.  Register a presentation-only scale for each resolved image so a
+  -- 70px-tall player back does not overflow the Crystal box.  The source PNG
+  -- remains untouched and the selected generation still comes from the menu.
+  local function registerGen2BattleScale(data, path, image, target)
+    if not (data and path and image and type(data) == "table") then return end
+    local ok, width, height = pcall(function()
+      return image:getWidth(), image:getHeight()
+    end)
+    if not ok or not width or not height then return end
+    local scale = math.min(1, (tonumber(target) or 56)
+      / math.max(1, width, height))
+    if scale >= 0.999 then return end
+    data.battle_sprite_scales = data.battle_sprite_scales or {}
+    local registry = data.battle_sprite_scales
+    for id, record in pairs(registry) do
+      if id ~= "_owners" and type(record) == "table"
+         and record.path == path then
+        record.scale = scale
+        return
+      end
+    end
+    local id = "HGSS_GEN2_" .. tostring(#registry + 1)
+    registry[id] = { path = path, scale = scale }
+  end
+
+  -- Crystal's UI owns trainer portraits in src.ui.gen2.BattleState rather
+  -- than routing them through the Gen 1 BattleState hooks.  Patch the
+  -- constructor seam defensively: the stock state still builds all battle
+  -- data and animation queues, while only the decoded portrait references are
+  -- replaced with the selected HGSS trainer artwork.  Pokémon animation and
+  -- static pictures continue through the public pokemon.sprite hook above.
+  local okGen2BattleState, Gen2BattleState =
+    pcall(require, "src.ui.gen2.BattleState")
+  if okGen2BattleState and Gen2BattleState
+     and type(Gen2BattleState.new) == "function"
+     and not Gen2BattleState.__hgssTrainerPictureHook then
+    -- BattleState:pic decodes the selected asset through the same renderer
+    -- cache used by the game.  Keep the dependency local to the Gen2 bridge
+    -- so Yellow/Red builds do not require a Gen2-only module at load time.
+    local Gen2Assets
+    do
+      local okAssets, assets = pcall(require, "src.render.Assets")
+      if okAssets and type(assets) == "table" then Gen2Assets = assets end
+    end
+    -- Crystal's catching demonstration uses an Ace Trainer rather than the
+    -- Yellow/Gold Old Man.  Keep the five Battle Art back-facing frames in a
+    -- separate strip and crop them here, so the engine never draws the whole
+    -- atlas as one oversized portrait.  The first frame also exists as a
+    -- static fallback for older builds that do not expose this constructor.
+    local gen2TutorialAceFramesCache
+    local gen2TutorialAcePath =
+      "assets/battle/back-animated/ace-trainer.png"
+    local gen2TutorialAceStaticPath =
+      "assets/battle/back-static/ace-trainer.png"
+    local function loadGen2TutorialAceFrames()
+      if gen2TutorialAceFramesCache ~= nil then
+        return gen2TutorialAceFramesCache or nil
+      end
+      if not assetExists(gen2TutorialAcePath) then
+        gen2TutorialAceFramesCache = false
+        return nil
+      end
+      local ok, frames = pcall(function()
+        local sheet = love.image.newImageData(mod.assets:path(gen2TutorialAcePath))
+        local sheetW, sheetH = sheet:getDimensions()
+        local columns = 5
+        if sheetW % columns ~= 0 or sheetH < 1 then return nil end
+        local width = sheetW / columns
+        local out = {}
+        for index = 0, columns - 1 do
+          local cell = love.image.newImageData(width, sheetH)
+          cell:paste(sheet, 0, 0, index * width, 0, width, sheetH)
+          local image = love.graphics.newImage(cell)
+          if image.setFilter then image:setFilter("nearest", "nearest") end
+          out[#out + 1] = image
+        end
+        return out
+      end)
+      gen2TutorialAceFramesCache = ok and frames or false
+      return gen2TutorialAceFramesCache or nil
+    end
+
+    local oldGen2BattleNew = Gen2BattleState.new
+    Gen2BattleState.new = function(game, opts, ...)
+      local battle = oldGen2BattleNew(game, opts, ...)
+      if not battle then return battle end
+
+      -- The tutorial has no player Pokémon to replace; its back portrait is
+      -- displayed for the entire demonstration.  Install the Ace Trainer's
+      -- first frame now and let the update wrapper advance the strip.
+      if opts and opts.tutorial then
+        local frames = loadGen2TutorialAceFrames()
+        local staticPath = mod.assets:path(gen2TutorialAceStaticPath)
+        if frames and #frames > 0
+           and assetExists(gen2TutorialAceStaticPath) then
+          battle.__hgssTutorialAceFrames = frames
+          battle.__hgssTutorialAceFrame = 1
+          battle.__hgssTutorialAceElapsed = 0
+          battle.playerBackImage = frames[1]
+          battle.playerBackPath = staticPath
+          battle.playerBackTrueColor = true
+          registerGen2BattleScale(battle.game and battle.game.data,
+            staticPath, frames[1], 48)
+        end
+      end
+
+      -- Gen 2 Battle Art is deliberately left untouched.  In particular, do
+      -- not replace the opponent trainer portrait here: this mod owns only
+      -- the selected player's back portrait in Crystal/Gold/Silver.
+
+      -- The player back is resolved by Sprites.playerPic while the original
+      -- constructor runs.  Keep this explicit assignment as a fallback for
+      -- builds that cache the resolver before mod hooks are registered.
+      if not (opts and opts.tutorial) and selectedBattlePlayerPath then
+        local path = selectedBattlePlayerPath(battle.battle)
+        local key = selectedPlayerBattleKey()
+        -- The supplied player backs are five-frame 80x80 strips. Crystal's
+        -- `playerPic` seam is path-based and would decode the whole strip as
+        -- one picture, so install its first logical frame directly here. The
+        -- static file remains the fallback for characters without a strip.
+        local frames = loadPlayerTrainerFrames(key)
+        local image = frames and frames[1] or selectedBattlePlayerStatic(key)
+        if path and image then
+          battle.playerBackPath = path
+          battle.playerBackImage = image
+          battle.playerBackTrueColor = true
+          registerGen2BattleScale(battle.game and battle.game.data,
+            path, image, 48)
+        end
+      end
+      return battle
+    end
+    Gen2BattleState.__hgssTrainerPictureHook = true
+
+    -- Gen 2's renderer accepts a path from pokemon.sprite and decodes that
+    -- path again in BattleState:pic.  Animated generation assets are atlas
+    -- sheets, so returning the atlas path directly makes every cell appear
+    -- at once (and makes the selected generation look broken).  Keep the
+    -- selector-driven path, but hand the renderer one logical frame at a
+    -- time, exactly as the Yellow BattleState bridge does.
+    local gen2BattleFrameStates = setmetatable({}, { __mode = "k" })
+    local function gen2BattleFrameFor(battle, mon, back)
+      if not battle or not mon then return nil end
+      -- Crystal keeps its native Pokémon pictures; this bridge now owns only
+      -- the player trainer back portrait.
+      if isGen2() then return nil end
+      if battleOption("battle_scope") == "trainers" then return nil end
+      local side = back and "back" or "front"
+      local gen = battleOption(back and "battle_back_gen"
+        or "battle_front_gen") or "rom"
+      if gen == "rom" then return nil end
+      local species = mon.species or mon.id or mon.dataId
+      local shiny = battleIsShiny(mon)
+      local def = battleDefinition(gen, side, species, shiny)
+      local frames = def and not def.static and battleFrames(def) or nil
+      local path = def and def.image
+      if os.getenv("HGSS_DEBUG_BATTLE_FRAMES") == "1" then
+        local count = frames and #frames or 0
+        print(("[HGSS] Gen2 pic gen=%s side=%s species=%s def=%s image=%s frames=%d"):format(
+          tostring(gen), tostring(side), tostring(species), tostring(def ~= nil),
+          tostring(path), count))
+      end
+      if not frames then
+        -- Gen 2 backs are native static cells; Gen 1 and missing metadata also
+        -- use the selected path as a safe one-cell fallback.
+        local selected = selectedBattlePokemonImage(species, side, shiny)
+        if not selected then return nil end
+        if not Gen2Assets or type(Gen2Assets.image) ~= "function" then
+          return nil
+        end
+        local ok, image = pcall(Gen2Assets.image, selected)
+        if ok and image then return image, true, selected end
+        return nil
+      end
+
+      local state = gen2BattleFrameStates[battle]
+      if not state then
+        state = {}
+        gen2BattleFrameStates[battle] = state
+      end
+      local slot = state[side]
+      if not slot or slot.mon ~= mon or slot.gen ~= gen
+          or slot.shiny ~= shiny or slot.frames ~= frames then
+        slot = { mon = mon, gen = gen, shiny = shiny,
+          frames = frames, def = def, frame = 1, elapsed = 0 }
+        state[side] = slot
+      end
+      return frames[slot.frame], true, path
+    end
+
+    local function advanceGen2BattleFrames(battle, dt)
+      local state = battle and gen2BattleFrameStates[battle]
+      if not state then return end
+      local delta = tonumber(dt) or 0
+      for side, slot in pairs(state) do
+        if slot and slot.frames and #slot.frames > 1 then
+          slot.elapsed = slot.elapsed + delta
+          local durations = slot.def and slot.def.durations or {}
+          local duration = math.max(1,
+            tonumber(durations[slot.frame]) or 100) / 1000
+          while slot.elapsed >= duration do
+            slot.elapsed = slot.elapsed - duration
+            slot.frame = slot.frame % #slot.frames + 1
+            duration = math.max(1,
+              tonumber(durations[slot.frame]) or 100) / 1000
+          end
+        end
+      end
+    end
+
+    -- Crystal has a second animation path for front pictures: after the
+    -- initial `pic()` call it asks BattleState:animSheetPath for a sheet and
+    -- then expects the ROM's *vertical, one-column* layout.  Our generation
+    -- assets intentionally keep the Yellow/Battle-Art horizontal atlases, so
+    -- handing that path to Crystal's native animator draws the entire atlas
+    -- (a grid of duplicate Pokémon).  Replace only this animation seam when a
+    -- menu-selected external generation is active.  The state still advances
+    -- one logical cropped frame at a time and the stock renderer continues to
+    -- own positioning, palettes, fainting and trainer-only mode.
+    local function selectedGen2FrontFrames(mon)
+      if isGen2() or not mon or battleOption("battle_scope") == "trainers" then
+        return nil
+      end
+      local gen = battleOption("battle_front_gen") or "rom"
+      if gen == "rom" or gen == "gen1" then return nil end
+      local species = mon.species or mon.id or mon.dataId
+      local shiny = battleIsShiny(mon)
+      local def = battleDefinition(gen, "front", species, shiny)
+      if not def or def.static then return nil end
+      local frames = battleFrames(def)
+      if not frames or #frames == 0 then return nil end
+      return frames, def
+    end
+
+    if type(Gen2BattleState.startFrontAnim) == "function"
+       and not Gen2BattleState.__hgssFrontAnimationHook then
+      local oldStartFrontAnim = Gen2BattleState.startFrontAnim
+      Gen2BattleState.startFrontAnim = function(self, mon, ...)
+        local frames, def = selectedGen2FrontFrames(mon)
+        if frames then
+          local first = frames[1]
+          local fw, fh = first:getDimensions()
+          local quads = {}
+          for i, frame in ipairs(frames) do
+            local w, h = frame:getDimensions()
+            quads[i] = love.graphics.newQuad(0, 0, w, h, w, h)
+          end
+          self.frontAnim = {
+            __hgss = true, mon = mon, frames = frames, quads = quads,
+            frame = 1, elapsed = 0,
+            durations = (def and def.durations) or {},
+            size = math.max(fw, fh),
+          }
+          return
+        end
+        return oldStartFrontAnim(self, mon, ...)
+      end
+      Gen2BattleState.__hgssFrontAnimationHook = true
+    end
+
+    if type(Gen2BattleState.stepFrontAnim) == "function"
+       and not Gen2BattleState.__hgssFrontAnimationStepHook then
+      local oldStepFrontAnim = Gen2BattleState.stepFrontAnim
+      Gen2BattleState.stepFrontAnim = function(self, ...)
+        local state = self.frontAnim
+        if not (state and state.__hgss) then
+          return oldStepFrontAnim(self, ...)
+        end
+        if not state.frames or #state.frames <= 1 then return end
+        -- BattleState:update has no dt argument; one call is one game frame.
+        state.elapsed = (state.elapsed or 0) + (1000 / 60)
+        local duration = math.max(1,
+          tonumber(state.durations and state.durations[state.frame]) or 100)
+        while state.elapsed >= duration do
+          state.elapsed = state.elapsed - duration
+          state.frame = state.frame % #state.frames + 1
+          duration = math.max(1,
+            tonumber(state.durations and state.durations[state.frame]) or 100)
+        end
+      end
+      Gen2BattleState.__hgssFrontAnimationStepHook = true
+    end
+
+    if type(Gen2BattleState.frontAnimFrame) == "function"
+       and not Gen2BattleState.__hgssFrontAnimationFrameHook then
+      local oldFrontAnimFrame = Gen2BattleState.frontAnimFrame
+      Gen2BattleState.frontAnimFrame = function(self, mon, ...)
+        local state = self.frontAnim
+        if state and state.__hgss and state.mon == mon then
+          local index = math.max(1, math.min(#state.frames, state.frame or 1))
+          return state.frames[index], state.quads[index], state.size
+        end
+        return oldFrontAnimFrame(self, mon, ...)
+      end
+      Gen2BattleState.__hgssFrontAnimationFrameHook = true
+    end
+
+    if type(Gen2BattleState.pic) == "function"
+       and not Gen2BattleState.__hgssPokemonPictureHook then
+      local oldGen2Pic = Gen2BattleState.pic
+      Gen2BattleState.pic = function(self, mon, back, ...)
+        local image, trueColor, path = gen2BattleFrameFor(self, mon, back)
+        if image then return image, trueColor, path end
+        return oldGen2Pic(self, mon, back, ...)
+      end
+      Gen2BattleState.__hgssPokemonPictureHook = true
+    end
+    if type(Gen2BattleState.update) == "function"
+       and not Gen2BattleState.__hgssPokemonAnimationHook then
+      local oldGen2Update = Gen2BattleState.update
+      Gen2BattleState.update = function(self, dt, ...)
+        local result = oldGen2Update(self, dt, ...)
+        advanceGen2BattleFrames(self, dt)
+        -- Animate the Crystal catch-tutorial Ace Trainer back without
+        -- touching normal trainer/player battles.  The source frames are
+        -- cropped at their native resolution and the existing path scale
+        -- keeps them bottom-aligned inside the 48px player battle box.
+        local frames = self.__hgssTutorialAceFrames
+        if self.tutorial and frames and #frames > 1 then
+          local elapsed = (self.__hgssTutorialAceElapsed or 0)
+            + (tonumber(dt) or (1 / 60))
+          local duration = 0.16
+          local frame = self.__hgssTutorialAceFrame or 1
+          -- The catch demonstration is a scripted entrance, not a normal
+          -- battle idle.  Play the Ace Trainer's five-frame throw-in once
+          -- and hold on the final pose instead of wrapping back to frame 1.
+          while frame < #frames and elapsed >= duration do
+            elapsed = elapsed - duration
+            frame = frame + 1
+          end
+          if frame >= #frames then elapsed = 0 end
+          self.__hgssTutorialAceElapsed = elapsed
+          self.__hgssTutorialAceFrame = frame
+          self.playerBackImage = frames[frame]
+          self.playerBackTrueColor = true
+        end
+        return result
+      end
+      Gen2BattleState.__hgssPokemonAnimationHook = true
+    end
   end
 
   local okBattleState, BattleState = pcall(require, "src.battle.BattleState")
@@ -2005,18 +2414,23 @@ return function(mod)
   end
 
   local function gen2PlayerFiles(selected)
-    selected = tostring(selected or "ethan"):lower()
-    -- The Gen-4 OW collection uses the correct HGSS female protagonist under
-    -- the Lyra role.  `leaf` remains a Yellow/Gen-1 selector and is not the
-    -- source for the Crystal player.
-    if selected == "lyra" then
-      return "overrides/sprites/lyra", "lyra_bike"
-    end
-    -- Red/Ash/Leaf/Brendan are Yellow player choices.  Gen 2 has no native
-    -- slots for those protagonists.  Use the user-provided canonical Ethan
-    -- charset from overrides/sprites (the same 32x192, six-frame source used
-    -- by the Gen-1 player), while keeping the dedicated Gen-2 bike sheet.
-    return "overrides/sprites/ethan", "ethan_bike"
+    selected = tostring(selected or "red"):lower()
+    -- Gen 2 exposes one active male slot (`CHRIS`) and one female slot
+    -- (`KRIS`), but PLAYER SELECT is shared by all supported games. Resolve
+    -- that choice to its matching HGSS overworld pair instead of silently
+    -- showing Ethan whenever Crystal is running.  The source dimensions are
+    -- detected by gen2SpriteGeometry, so compact 32x192 sheets and 256x1536
+    -- sheets keep their authored pixels and movement frames alike.
+    local files = {
+      red = { "overrides/sprites/red", "red_bike" },
+      ash = { "overrides/sprites/ash", "ash_bike" },
+      ethan = { "overrides/sprites/ethan", "ethan_bike" },
+      lyra = { "overrides/sprites/lyra", "lyra_bike" },
+      leaf = { "overrides/sprites/leaf", "leaf_bike" },
+      brendan = { "overrides/sprites/brendan", "brendan_bike" },
+    }
+    local pair = files[selected] or files.red
+    return pair[1], pair[2]
   end
 
   local function patchGen2PlayerSprites()
@@ -2188,6 +2602,46 @@ return function(mod)
       return npc
     end
     World.__hgssElmObjectBall = true
+  end
+
+  -- In Crystal's Route 30 script, the two Pokémon that accompany Joey and
+  -- Mikey are Rattata (`ROUTE30_MONSTER1`/`ROUTE30_MONSTER2`).  The map table
+  -- labels both objects with the generic `SPRITE_MONSTER` slot, whose native
+  -- extractor supplies a Rhydon-like placeholder.  Redirect only those two
+  -- Route 30 object indices to the authored HGSS Rattata sheet; every other
+  -- `SPRITE_MONSTER` object (dolls, Ampharos, fossils, etc.) keeps its native
+  -- sprite and behavior.
+  local function patchGen2Route30Rattata()
+    local okWorld, World = pcall(require, "src.world.gen2.World")
+    if not okWorld or type(World) ~= "table"
+        or type(World.pooledNpc) ~= "function"
+        or World.__hgssRoute30Rattata then
+      return
+    end
+
+    patchGen2Sprite("RATTATA", "rattata",
+      { hgssGen2ScaleMultiplier = 1.0 })
+
+    local originalPooledNpc = World.pooledNpc
+    World.pooledNpc = function(self, mapId, obj)
+      local index = type(obj) == "table" and tonumber(obj.index) or nil
+      local useRattata = mapId == "ROUTE_30"
+        and (index == 6 or index == 7)
+      if not useRattata then
+        return originalPooledNpc(self, mapId, obj)
+      end
+
+      -- Swap only while the engine resolves the sprite definition.  Restore
+      -- the source object immediately so scripted movement and battle events
+      -- continue to see their original object identity and palette metadata.
+      local originalSprite = obj.sprite
+      obj.sprite = "SPRITE_RATTATA"
+      local ok, npc = pcall(originalPooledNpc, self, mapId, obj)
+      obj.sprite = originalSprite
+      if not ok then error(npc, 0) end
+      return npc
+    end
+    World.__hgssRoute30Rattata = true
   end
 
   -- Elm's starter balls are the one Gen-2 scene where the game opens a
@@ -2412,6 +2866,7 @@ return function(mod)
   patchGen2PlayerSprites()
   patchGen2NpcSprites()
   patchGen2ElmObjectBall()
+  patchGen2Route30Rattata()
   patchGen2ElmStarterPokePics()
 
   -- The stock renderer always builds 16x16 quads.  Our generated sheets are
@@ -4553,8 +5008,8 @@ return function(mod)
   -- entered and keeps that definition on the live world.  Registry patches
   -- are intentionally frozen by the time the Mod Manager emits an option
   -- event, so PLAYER SELECT must update the live table and ask World to
-  -- rebuild the renderer.  This keeps Ethan/Lyra changes immediate and also
-  -- covers a save/map reload without touching the Yellow field registry.
+  -- rebuild the renderer. This keeps every protagonist choice immediate and
+  -- also covers a save/map reload without touching the Yellow field registry.
   local function applyGen2PlayerSelection(game)
     if not isGen2(game) then return end
     game = game or liveGame

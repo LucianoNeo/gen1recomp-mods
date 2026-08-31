@@ -6,6 +6,7 @@
   "entry": "main.lua",
   "profile": "overhaul",
   "games": ["gen1", "gen2"],
+  "gen2compat": true,
   "category": "GRAPHICS",
   "game_version": ">=0.1.75 <10.0.0",
   "priority": 150,
@@ -16,5 +17,5 @@
   "conflicts": [],
   "author": "LucianoNeo",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "HGSS intro, overworld and self-contained battle trainer/Pokemon artwork. PLAYER SELECT controls the player trainer in both map and battle, including Leaf's animated battle back sprite."
+  "description": "HGSS intro and overworld overhaul with player-selected battle back portraits. PLAYER SELECT controls the player trainer in map and battle using the matching Red, Ash, Ethan, Lyra, Leaf or Brendan asset. Gen 2 Pokémon and opponent battle sprites remain unchanged."
 }

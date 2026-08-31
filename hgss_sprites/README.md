@@ -11,17 +11,20 @@ are in the [repository README](../README.md).
 - Player selection (`RED`, `ASH`, `ETHAN`, `LEAF`, `BRENDAN`), dedicated walking
   and bicycle sheets, follower Pikachu, forced Surfing Pikachu and
   species-specific overworld objects.
+- In Gold/Silver/Crystal, `PLAYER SELECT` now resolves the matching foot and
+  bicycle sheet for Red, Ash, Ethan, Lyra, Leaf or Brendan; it no longer
+  substitutes Ethan for the other choices.
 - Grounding and lighting behavior for both the 2D and Voxel renderers.
-- Battle front/back/trainer artwork for generations 1–5, with animated/native
-  resolution assets and transparent backgrounds.
+- Player battle back portraits follow `PLAYER SELECT` (Red, Ash, Ethan, Lyra,
+  Leaf or Brendan); Pokémon and opponent battle sprites remain the game's
+  originals. Each selectable protagonist uses its own bundled HGSS Battle Art
+  back strip.
 - Leaf's animated full-color battle back sprite is selected by `PLAYER SELECT >
   LEAF`; the Leaf player sprite set is credited to `setogabes` (Discord).
-- `TRAINERS ONLY` as the default battle scope, with an optional `COMPLETE`
-  scope for bundled Pokémon battle art.
 - Optional HGSS party menu, animated party icons and PC box icons, with
   original-screen toggles and four-way party navigation.
-- Configurable battle generations, player battle intro and overworld size
-  (`0.5x`–`1.0x`, default `0.8x`).
+- Player battle intro selection and configurable overworld size (`0.5x`–`1.0x`,
+  default `0.8x`).
 - Intro, catch-summary, evolution, Pokédex and Hall of Fame artwork paths use
   the bundled assets with safe fallback to the game originals.
 
@@ -32,10 +35,6 @@ The options are exposed by the g1recomp Mods menu:
 | Option | Values | Default |
 | --- | --- | --- |
 | Player Select | `RED`, `ASH`, `ETHAN`, `LEAF`, `BRENDAN` | `RED` |
-| Battle Art Scope | `TRAINERS ONLY`, `COMPLETE` | `TRAINERS ONLY` |
-| Battle Front Gen | `GEN 1`–`GEN 5` | `GEN 5` |
-| Battle Back Gen | `GEN 1`–`GEN 5` | `GEN 5` |
-| Battle Trainer Gen | `GEN 1`–`GEN 5` | `GEN 3` |
 | Party Menu | `ON`, `OFF` | `ON` |
 | PC Box Icons | `ON`, `OFF` | `ON` |
 | Sprite Size | `0.5x`–`1.0x` | `0.8x` |
