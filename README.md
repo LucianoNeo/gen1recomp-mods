@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 1.0.4](https://img.shields.io/badge/version-1.0.4-gold)
+![Version 1.0.5](https://img.shields.io/badge/version-1.0.5-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow-red)
 
 HGSS Visual Overhaul is a complete visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue and Yellow while preserving the original game logic and map geometry.
 
-## What version 1.0.4 provides
+## What version 1.0.5 provides
 
 ### Overworld
 
@@ -32,14 +32,16 @@ HGSS Visual Overhaul is a complete visual companion for [g1recomp](https://githu
 ### Menus and icons
 
 - Optional HGSS party screen with animated, full-color party icons; the original party screen remains available.
-- Optional animated PC box icons for withdraw, deposit and release lists.
+- Optional animated PC box icons for withdraw, deposit and release lists, with
+  full-screen native-resolution transfer panels, aligned names, levels and
+  cursors.
 - Four-way party cursor navigation and aligned selection markers.
 - Corrected catch-summary, evolution, Pokédex and Hall of Fame artwork paths.
 - Menu options expose `PLAYER SELECT`, `BATTLE ART SCOPE`, battle generations, `PARTY MENU`, `PC BOX ICONS` and `SPRITE SIZE`.
 
 ## Screenshots (Voxel enabled)
 
-These captures were taken in-game with the Voxel renderer active and show the final 1.0.3 assets rather than mockups.
+These captures were taken in-game with the Voxel renderer active and show the shipped assets rather than mockups.
 
 ![Red and Pikachu outdoors with full Voxel](hgss_sprites/docs/media/readme-voxel-outdoor-pikachu.png)
 
@@ -53,7 +55,7 @@ These captures were taken in-game with the Voxel renderer active and show the fi
 
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 
-The following additional 1.0.3 captures were taken with Voxel enabled and the
+The following additional captures were taken with Voxel enabled and the
 global overworld size set to `0.8x`. The Pallet Town scenes use daylight so the
 ground shadows remain visible. Each scene contains only the requested
 characters: Leaf or Brendan with Pikachu, then Red separated from Jessie and
@@ -62,12 +64,12 @@ James in Mt. Moon.
 ![Leaf and Pikachu in Pallet Town with full Voxel](hgss_sprites/docs/media/readme-voxel-leaf-pallet.png)
 
 Leaf is available from `MOD > PLAYER SELECT > LEAF`; her dedicated walking,
-bicycle and animated battle sprites are included in the 1.0.3 package.
+bicycle and animated battle sprites are included in the 1.0.5 package.
 
 ![Brendan and Pikachu in Pallet Town with full Voxel](hgss_sprites/docs/media/readme-voxel-brendan-pallet.png)
 
 Brendan is available from `MOD > PLAYER SELECT > BRENDAN`; his dedicated
-walking and bicycle sprites are included in the 1.0.3 package.
+walking and bicycle sprites are included in the 1.0.5 package.
 
 ![Red, Pikachu, Jessie and James in Mt. Moon with full Voxel](hgss_sprites/docs/media/readme-voxel-red-jessie-james-cave.png)
 
@@ -76,7 +78,7 @@ player centered below them.
 
 ## Installation
 
-Download the release package from [HGSS Visual Overhaul 1.0.3](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v1.0.3), then import `HGSS_SPRITES-1.0.3.zip` from the g1recomp Mods screen. Enable the mod for Red, Blue or Yellow and restart the game after changing presentation options.
+Download the release package from [HGSS Visual Overhaul 1.0.5](https://github.com/LucianoNeo/gen1recomp-mods/releases/tag/v1.0.5), then import `HGSS_SPRITES-1.0.5.zip` from the g1recomp Mods screen. Enable the mod for Red, Blue or Yellow and restart the game after changing presentation options.
 
 The package targets the g1recomp Mod API 2 and is compatible with the current Red, Blue and Yellow runtimes. The companion Voxel renderer is optional; 2D mode remains fully supported.
 
