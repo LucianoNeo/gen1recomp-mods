@@ -1,19 +1,20 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
   "category": "GRAPHICS",
+  "games": ["red", "blue", "yellow"],
   "game_version": ">=0.1.75 <10.0.0",
   "priority": 150,
   "affects_link": true,
   "permissions": ["engine_internals"],
   "dependencies": [],
-  "optional_dependencies": ["CRYSTAL_251", "SHINY_POKEMON"],
+  "optional_dependencies": ["SHINY_POKEMON"],
   "conflicts": [],
   "author": "LucianoNeo",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "HGSS intro, overworld and self-contained battle trainer/Pokemon artwork. PLAYER SELECT controls the player trainer in both map and battle."
+  "description": "HGSS intro, overworld and self-contained battle trainer/Pokemon artwork. PLAYER SELECT controls Red, Ash, Ethan, Lyra, Leaf or Brendan in map and battle, with OFF preserving the game's original player."
 }

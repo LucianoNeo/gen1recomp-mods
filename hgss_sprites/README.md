@@ -1,19 +1,23 @@
-# HGSS_SPRITES 1.0.0
+# HGSS_SPRITES 1.0.5
 
-This directory is the importable `HGSS_SPRITES` mod for Pokémon Yellow on
-g1recomp. The project overview, current screenshots and companion-mod links
+This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue and
+Yellow on g1recomp. The project overview, current screenshots and companion-mod links
 are in the [repository README](../README.md).
 
 ## Current feature set
 
 - HGSS-style full-color overworld charsets with six-frame movement for Red,
   Ash, Ethan, NPCs, Gym Leaders, Elite Four, Team Rocket and named map objects.
-- Player selection (`RED`, `ASH`, `ETHAN`, `LEAF`, `BRENDAN`), dedicated walking
-  and bicycle sheets, follower Pikachu, forced Surfing Pikachu and
+- Player selection (`RED`, `ASH`, `ETHAN`, `LYRA`, `LEAF`, `BRENDAN`) with an `OFF`
+  option that preserves the game's original player, dedicated walking and
+  bicycle sheets, follower Pikachu, forced Surfing Pikachu and
   species-specific overworld objects.
 - Grounding and lighting behavior for both the 2D and Voxel renderers.
 - Battle front/back/trainer artwork for generations 1–5, with animated/native
   resolution assets and transparent backgrounds.
+- Leaf's and Brendan's animated full-color battle back sprites are selected by
+  `PLAYER SELECT > LEAF` and `PLAYER SELECT > BRENDAN`; both player sprite sets
+  are credited to `setogabes` (Discord).
 - `TRAINERS ONLY` as the default battle scope, with an optional `COMPLETE`
   scope for bundled Pokémon battle art.
 - Optional HGSS party menu, animated party icons and PC box icons, with
@@ -29,7 +33,7 @@ The options are exposed by the g1recomp Mods menu:
 
 | Option | Values | Default |
 | --- | --- | --- |
-| Player Select | `RED`, `ASH`, `ETHAN`, `LEAF`, `BRENDAN` | `RED` |
+| Player Select | `RED`, `ASH`, `ETHAN`, `LYRA`, `LEAF`, `BRENDAN`, `OFF` | `RED` |
 | Battle Art Scope | `TRAINERS ONLY`, `COMPLETE` | `TRAINERS ONLY` |
 | Battle Front Gen | `GEN 1`–`GEN 5` | `GEN 5` |
 | Battle Back Gen | `GEN 1`–`GEN 5` | `GEN 5` |

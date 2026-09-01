@@ -39,10 +39,13 @@ frame counts and timing metadata needed to animate those collections without
 loading Battle Art at runtime.
 
 The player battle trainer is selected by the HGSS mod's `PLAYER SELECT` option:
-`RED` uses `redplayer.png`, `ASH` uses `ashplayer.png`, and `ETHAN` uses the
-Battle Art-compatible `gen2player.png` strip. These three strips are bundled
-and do not require Battle Art Voxel Fork. Missing Pokemon art still falls back
-to the ROM sprite.
+`RED` uses `redplayer.png`, `ASH` uses `ashplayer.png`, `ETHAN` uses the
+Battle Art-compatible `gen2player.png` strip, `LEAF` uses the animated
+`leafplayer.png` strip, and `BRENDAN` uses the animated `brendanplayer.png`
+strip. Leaf's and Brendan's player artwork (battle, overworld and bicycle) is
+credited to `setogabes` on Discord. These strips are bundled and do not
+require Battle Art Voxel Fork. Missing Pokemon art still falls back to the ROM
+sprite.
 
 ## Source and attribution notes
 
