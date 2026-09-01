@@ -2893,7 +2893,7 @@ return function(mod)
   local oldListMenuDraw = ListMenu.draw
   local oldListMenuNew = ListMenu.new
   local Boxes = require("src.pokemon.Boxes")
-  local ListStrings = require("src.core.Strings")
+  local ListFont = require("src.render.Font")
 
   -- A native 32px icon needs a 32px row.  Keep the stock seven-row layout
   -- available for OFF, but let the custom PC list use four native rows while
@@ -2905,6 +2905,17 @@ return function(mod)
     if kind == "pc_box_withdraw" or kind == "pc_box_deposit"
         or kind == "pc_box_release" then
       menu.hgssPcBoxList = true
+      -- Some engine builds initialize ListMenu instances with an explicit
+      -- `isOpaque = false`, which makes the underlying Bill's PC menu draw
+      -- through the transfer list.  The PC list is a full-screen state and
+      -- must hide that menu while it is open.
+      menu.isOpaque = true
+      -- Deposit uses the same native list in the game, but some engine builds
+      -- can omit the itemBox flag on that path.  Normalize both directions so
+      -- deposit cannot fall through to the 16px/0.5x renderer while withdraw
+      -- gets the full-size panel and icons.
+      menu.itemBox = true
+      menu.cursorRows = 3
     end
     return menu
   end
@@ -2924,23 +2935,20 @@ return function(mod)
     return nil
   end
 
-  local function drawPcBoxIcon(menu, mon, row)
-    if not mon or not partyIconEntries[mon.species] then return end
-    local path = partyIconEntries[mon.species].image
-    local image, quads = loadPartyIcon(path)
-    if not image or not quads then return end
-    local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
-    local quad = quads[frame] or quads[0]
-    if not quad then return end
-    -- The authored icon sheets carry transparent top padding.  Lift the
-    -- native cell by one quarter-row so the visible creature aligns with the
-    -- selector/name line rather than appearing to hang below it.
-    local y = 8 + (row - 1) * 32
-    local x = 0
-    PartyPaletteFX.markTrueColor(x, y, 32, 32)
-    love.graphics.setColor(1, 1, 1, 1)
-    -- No scaling: these are the same native 32x32 frames drawn by PartyMenu.
-    love.graphics.draw(image, quad, x, y)
+  -- Forward declaration: the compact glyph renderer is defined below the
+  -- ListMenu hook but is also used for the PC box level column.
+  local drawPartyName
+  local drawPartyLevel
+
+  local function fitPcBoxName(label, maxWidth)
+    local text = tostring(label or "")
+    if ListFont.width(text) <= maxWidth then return text end
+    -- Keep a whole-glyph truncation marker so long species names never run
+    -- into the right-aligned level column or escape the item-box frame.
+    while #text > 1 and ListFont.width(text .. ".") > maxWidth do
+      text = text:sub(1, -2)
+    end
+    return text .. "."
   end
 
   ListMenu.draw = function(self, ...)
@@ -2954,8 +2962,127 @@ return function(mod)
     -- Keep ListMenu's own renderer authoritative.  It handles localized
     -- titles, cursor glyphs and the renderer's canvas lifetime; this hook only
     -- adds the optional 32px party icon after the list has been drawn.
-    self.rows = 7
+    -- The PC transfer panel reserves four rows; the native renderer uses this
+    -- value both for its frame height and for cursor/scroll bounds.
+    self.rows = 4
+
+    -- BoxMenu encodes the level in the same label (`NAME :Lxx`).  On the
+    -- PC's four-row panel the stock renderer wraps that suffix onto a second
+    -- line, which pushes the following entry toward the bottom border.  Give
+    -- the native renderer name-only labels, then place a compact level on the
+    -- same baseline at the right-hand column.
+    local originalItems = self.items
+    local displayItems = {}
+    local levels = {}
+    for index, item in ipairs(originalItems or {}) do
+      local label = tostring(item.label or "")
+      local name, level = label:match("^(.-)%s*:L(%d+)$")
+      local subLevel = item.sub and tostring(item.sub):match("^:L(%d+)$")
+      local copy = {}
+      for key, value in pairs(item) do copy[key] = value end
+      if name and level then
+        copy.label = name
+      elseif subLevel then
+        -- BoxMenu stores the level in `item.sub`, which the native item-box
+        -- renderer places on a second line.  Remove it before drawing and
+        -- put the compact level back on the name line below.
+        copy.sub = nil
+      end
+      if self.itemBox then
+        -- One tile of leading space moves the name toward the screen center;
+        -- leave enough room for the right-hand level column.
+        copy.label = " " .. fitPcBoxName(copy.label, 80)
+      end
+      levels[index] = level or subLevel
+      displayItems[index] = copy
+    end
+    self.items = displayItems
+
+    if self.itemBox then
+      -- The old item-box is only 16px high per row and cannot contain the
+      -- authored 32px frames.  Replace it with a full-screen 20x18-tile
+      -- grade so the original icon quads can be drawn at 1:1.
+      -- Do not call the native renderer here.  PC transfer lists are created
+      -- with a nil title, and ListMenu:draw() unconditionally passes that
+      -- title through Strings()/Font.draw(); on supported runtimes this raises before
+      -- the custom panel is painted (the error handler then reports a
+      -- misleading "love.event.pump ... Canvas" failure).  The custom
+      -- full-screen panel owns every pixel, so there is no native layer to
+      -- preserve underneath it.
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.rectangle("fill", 0, 0, 160, 144)
+      love.graphics.setColor(0, 0, 0, 1)
+      ListFont.drawBox(0, 0, 20, 18)
+      -- BoxMenu passes a nil title for these lists.  The native 0.2.45
+      -- presentation supplies the contextual heading, so reproduce it here
+      -- instead of leaving the top row blank in the custom panel.
+      local heading = self.title
+      if not heading then
+        local save = self.game and self.game.save
+        local boxNumber = save and save.currentBox or 1
+        if self.kind == "pc_box_withdraw" then
+          heading = ("BOX %d (WITHDRAW)"):format(boxNumber)
+        elseif self.kind == "pc_box_deposit" then
+          heading = "PARTY (DEPOSIT)"
+        elseif self.kind == "pc_box_release" then
+          heading = ("BOX %d (RELEASE)"):format(boxNumber)
+        end
+      end
+      if heading then ListFont.draw(heading, 8, 8) end
+
+      for row = 1, self.rows do
+        local i = (self.scroll or 0) + row
+        local item = displayItems[i]
+        if not item then break end
+        -- The source sheets carry 8px of transparent top padding.  Keep the
+        -- text on the same visible baseline by shifting both down together.
+        local nameY = 32 + (row - 1) * 32
+        local iconY = 16 + (row - 1) * 32
+        love.graphics.setColor(0, 0, 0, 1)
+        -- The leading space in item-box labels places the name at x=48 when
+        -- drawn from x=40, leaving the cursor at x=40 immediately beside it.
+        ListFont.draw(item.label, 40, nameY)
+        if levels[i] then drawPartyLevel(levels[i], 136, nameY) end
+
+        local mon = pcBoxListMon(self, row)
+        if mon and partyIconEntries[mon.species] then
+          local path = partyIconEntries[mon.species].image
+          local image, quads = loadPartyIcon(path)
+          local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
+          local quad = quads and (quads[frame] or quads[0])
+          if image and quad then
+            PartyPaletteFX.markTrueColor(8, iconY, 32, 32)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.draw(image, quad, 8, iconY)
+          end
+        end
+        if i == self.index or i == self.swapIndex then
+          love.graphics.setColor(0, 0, 0, 1)
+          local cursor = self.hollowIndex == i
+            and PartyTheme.cursorHollow or PartyTheme.cursor
+          ListFont.drawCode(cursor, 40, nameY)
+        end
+      end
+      if (self.scroll or 0) + self.rows < #self.items then
+        ListFont.drawCode(PartyTheme.moreArrow, 144, 136)
+      end
+      self.items = originalItems
+      love.graphics.setColor(1, 1, 1, 1)
+      return
+    end
+
     oldListMenuDraw(self, ...)
+    self.items = originalItems
+
+    love.graphics.setColor(0, 0, 0, 1)
+    for row = 1, self.rows do
+      local i = (self.scroll or 0) + row
+      local level = levels[i]
+      if level then
+        local y = self.itemBox and (32 + (row - 1) * 16) or (8 + row * 16)
+        drawPartyLevel(level, 136, y)
+      end
+    end
     for row = 1, self.rows do
       local i = self.scroll + row
       local item = self.items[i]
@@ -2967,12 +3094,30 @@ return function(mod)
         local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
         local quad = quads and (quads[frame] or quads[0])
         if image and quad then
-          -- Stock PC rows are 16px high.  Draw the native 32px icon at half
-          -- scale so it never overlaps neighboring rows or cursor text.
-          local y = 8 + row * 16
-          PartyPaletteFX.markTrueColor(0, y, 16, 16)
+          -- Draw the original 32px frame with an exact 0.5 nearest-neighbor
+          -- scale.  Fractional resampling (for example 0.6) redistributes
+          -- source pixels unevenly and makes these pixel-art icons look
+          -- deformed; an exact half keeps every surviving pixel proportional.
+          local y = self.itemBox and (24 + (row - 1) * 16) or (row * 16)
+          -- Keep the enlarged icon immediately before the centered name.
+          local x = self.itemBox and 32 or 0
+          local iconScale = 0.5
+          local iconSize = math.floor(32 * iconScale)
+          PartyPaletteFX.markTrueColor(x, y, iconSize, iconSize)
           love.graphics.setColor(1, 1, 1, 1)
-          love.graphics.draw(image, quad, 0, y, 0, 0.5, 0.5)
+          love.graphics.draw(image, quad, x, y, 0, iconScale, iconScale)
+
+          -- The native item-box cursor is at x=40, which sits underneath an
+          -- enlarged icon.  Redraw it after the icon in the gap immediately
+          -- before the centered name so selection remains unambiguous.
+          if i == self.index or i == self.swapIndex then
+            local cursor = self.hollowIndex == i
+              and PartyTheme.cursorHollow or PartyTheme.cursor
+            local cursorX = self.itemBox and 48 or 8
+            local cursorY = self.itemBox and (32 + (row - 1) * 16)
+              or (8 + row * 16)
+            ListFont.drawCode(cursor, cursorX, cursorY)
+          end
         end
       end
     end
@@ -3024,11 +3169,12 @@ return function(mod)
     ["8"]={"0110","1001","1001","0110","1001","1001","0110"},
     ["9"]={"0110","1001","1001","0111","0001","0001","1110"},
     ["."]={"0000","0000","0000","0000","0000","0110","0110"},
+    [":"]={"0000","0000","0010","0000","0010","0000","0000"},
     [" "]={"0000","0000","0000","0000","0000","0000","0000"},
     ["?"]={"1110","0001","0010","0100","0100","0000","0100"},
   }
 
-  local function drawPartyName(name, x, y)
+  drawPartyName = function(name, x, y)
     local text = tostring(name or ""):upper()
     local count = #text
     if count == 0 then return end
@@ -3041,6 +3187,40 @@ return function(mod)
         for col = 1, glyphWidth do
           if bits:sub(col, col) == "1" then
             love.graphics.rectangle("fill", gx + col - 1, y + row - 1, 1, 1)
+          end
+        end
+      end
+    end
+  end
+
+  -- Levels use a deliberately smaller 3x5 pixel font than the 4x7 name
+  -- glyphs, keeping the right column readable without competing with names.
+  local LEVEL_FONT = {
+    [":"]={"000","010","000","010","000"},
+    L={"100","100","100","100","111"},
+    ["0"]={"110","101","101","101","110"},
+    ["1"]={"010","110","010","010","111"},
+    ["2"]={"110","001","010","100","111"},
+    ["3"]={"110","001","010","001","110"},
+    ["4"]={"101","101","111","001","001"},
+    ["5"]={"111","100","110","001","110"},
+    ["6"]={"011","100","110","101","010"},
+    ["7"]={"111","001","010","010","010"},
+    ["8"]={"110","101","010","101","110"},
+    ["9"]={"110","101","011","001","110"},
+  }
+
+  drawPartyLevel = function(level, x, y)
+    local text = (":L" .. tostring(level or "")):upper()
+    for index = 1, #text do
+      local glyph = LEVEL_FONT[text:sub(index, index)]
+      if glyph then
+        local gx = x + (index - 1) * 4
+        for row, bits in ipairs(glyph) do
+          for col = 1, 3 do
+            if bits:sub(col, col) == "1" then
+              love.graphics.rectangle("fill", gx + col - 1, y + row, 1, 1)
+            end
           end
         end
       end
