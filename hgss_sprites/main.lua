@@ -626,6 +626,46 @@ return function(mod)
 
   mod.options:define({
     {
+      key = "battle_scope",
+      label = "BATTLE ART SCOPE",
+      type = "choice",
+      default = "trainers",
+      choices = {
+        { "TRAINERS ONLY", "trainers" },
+        { "COMPLETE", "complete" },
+      },
+    },
+    {
+      key = "battle_front_gen",
+      label = "BATTLE FRONT GEN",
+      type = "choice",
+      default = "gen5",
+      choices = {
+        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
+        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
+      },
+    },
+    {
+      key = "battle_back_gen",
+      label = "BATTLE BACK GEN",
+      type = "choice",
+      default = "gen5",
+      choices = {
+        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
+        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
+      },
+    },
+    {
+      key = "battle_trainer_gen",
+      label = "BATTLE TRAINER GEN",
+      type = "choice",
+      default = "gen3",
+      choices = {
+        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
+        { "GEN 3", "gen3" },
+      },
+    },
+    {
       key = "player_select",
       label = "PLAYER SELECT",
       type = "choice",
@@ -729,17 +769,20 @@ return function(mod)
     end
   end
 
-  -- Battle Art generation selectors are intentionally not exposed by this
-  -- mod anymore.  Keep their internal values pinned to the engine artwork so
-  -- no stale setting from an older installation can replace Gen 2 Pokémon or
-  -- opponent portraits.  The player's back portrait is resolved separately
-  -- from PLAYER SELECT below.
-  local battleOptionValues = {
-    battle_scope = "trainers",
-    battle_front_gen = "rom",
-    battle_back_gen = "rom",
-    battle_trainer_gen = "rom",
+  -- Battle Art selectors remain active for Gen 1. Gen 2 keeps its Pokémon and
+  -- opponent battle artwork native, so the resolver pins those values to ROM
+  -- whenever a Gen 2 game is active.
+  local battleOptionValues = {}
+  local BATTLE_OPTION_KEYS = {
+    battle_scope = true,
+    battle_front_gen = true,
+    battle_back_gen = true,
+    battle_trainer_gen = true,
   }
+  for key in pairs(BATTLE_OPTION_KEYS) do
+    local ok, value = pcall(mod.options.get, mod.options, key)
+    if ok then battleOptionValues[key] = value end
+  end
   -- Mod Manager events can arrive before the option store is refreshed. Keep
   -- SPRITE SIZE in a live cache as well, so Gen-2/voxel redraws immediately
   -- use the newly selected value instead of the previous menu value.
@@ -757,7 +800,12 @@ return function(mod)
   end
   local function battleTrace(_) end
   local function battleOption(key)
-    local value = battleOptionValues[key]
+    local value
+    if isGen2() then
+      value = key == "battle_scope" and "trainers" or "rom"
+    else
+      value = battleOptionValues[key] or mod.options:get(key)
+    end
     battleTrace(("option %s=%s"):format(tostring(key), tostring(value)))
     return value
   end
@@ -768,6 +816,9 @@ return function(mod)
       if value == nil then value = ev.newValue end
       if key == "sprite_size" and value ~= nil then
         spriteSizeValue = value
+      end
+      if BATTLE_OPTION_KEYS[key] and value ~= nil then
+        battleOptionValues[key] = tostring(value):lower()
       end
       if key == "player_select" and value ~= nil then
         playerSelectionValue = tostring(value):lower()
