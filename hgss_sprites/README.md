@@ -1,30 +1,32 @@
-# HGSS_SPRITES 1.0.2
+# HGSS_SPRITES 1.0.5
 
-This directory is the importable `HGSS_SPRITES` mod for Pokémon Yellow on
-g1recomp. The project overview, current screenshots and companion-mod links
+This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
+Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
 are in the [repository README](../README.md).
 
 ## Current feature set
 
 - HGSS-style full-color overworld charsets with six-frame movement for Red,
   Ash, Ethan, NPCs, Gym Leaders, Elite Four, Team Rocket and named map objects.
-- Player selection (`RED`, `ASH`, `ETHAN`, `LEAF`, `BRENDAN`), dedicated walking
-  and bicycle sheets, follower Pikachu, forced Surfing Pikachu and
+- Player selection (`RED`, `ASH`, `ETHAN`, `LYRA`, `LEAF`, `BRENDAN`) with an `OFF`
+  option that preserves the game's original player, dedicated walking and
+  bicycle sheets, follower Pikachu, forced Surfing Pikachu and
   species-specific overworld objects.
-- In Gold/Silver/Crystal, `PLAYER SELECT` now resolves the matching foot and
-  bicycle sheet for Red, Ash, Ethan, Lyra, Leaf or Brendan; it no longer
-  substitutes Ethan for the other choices.
+- Gen 2 player, NPC, Elm's Lab object and Route 30 overworld replacements use
+  the native Gen 2 sprite registry; Pokémon and opponent battle sprites remain
+  on the game's original artwork.
 - Grounding and lighting behavior for both the 2D and Voxel renderers.
-- Player battle back portraits follow `PLAYER SELECT` (Red, Ash, Ethan, Lyra,
-  Leaf or Brendan); Pokémon and opponent battle sprites remain the game's
-  originals. Each selectable protagonist uses its own bundled HGSS Battle Art
-  back strip.
-- Leaf's animated full-color battle back sprite is selected by `PLAYER SELECT >
-  LEAF`; the Leaf player sprite set is credited to `setogabes` (Discord).
+- Battle front/back/trainer artwork for Gen 1, with animated/native resolution
+  assets and transparent backgrounds; Gen 2 battle Pokémon remain native.
+- Leaf's and Brendan's animated full-color battle back sprites are selected by
+  `PLAYER SELECT > LEAF` and `PLAYER SELECT > BRENDAN`; both player sprite sets
+  are credited to `setogabes` (Discord).
+- `TRAINERS ONLY` as the default battle scope, with an optional `COMPLETE`
+  scope for bundled Pokémon battle art.
 - Optional HGSS party menu, animated party icons and PC box icons, with
   original-screen toggles and four-way party navigation.
-- Player battle intro selection and configurable overworld size (`0.5x`–`1.0x`,
-  default `0.8x`).
+- Configurable battle generations, player battle intro and overworld size
+  (`0.5x`–`1.0x`, default `0.8x`).
 - Intro, catch-summary, evolution, Pokédex and Hall of Fame artwork paths use
   the bundled assets with safe fallback to the game originals.
 
@@ -34,7 +36,9 @@ The options are exposed by the g1recomp Mods menu:
 
 | Option | Values | Default |
 | --- | --- | --- |
-| Player Select | `RED`, `ASH`, `ETHAN`, `LEAF`, `BRENDAN` | `RED` |
+| Player Select | `RED`, `ASH`, `ETHAN`, `LYRA`, `LEAF`, `BRENDAN`, `OFF` | `RED` |
+| Battle Art Scope (Gen 1) | `TRAINERS ONLY`, `COMPLETE` | `TRAINERS ONLY` |
+| Battle Front/Back/Trainer Gen (Gen 1) | `GEN 1`–`GEN 5` | `GEN 5` / `GEN 3` |
 | Party Menu | `ON`, `OFF` | `ON` |
 | PC Box Icons | `ON`, `OFF` | `ON` |
 | Sprite Size | `0.5x`–`1.0x` | `0.8x` |

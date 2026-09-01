@@ -1,5 +1,34 @@
 # Changelog
 
+## 1.0.5
+
+- Refactored the PC withdraw, deposit and release lists into a full-screen
+  native-resolution layout with original 32px animated icons.
+- Restored contextual headings, compact level labels, cursor placement and
+  centered names for all PC transfer screens.
+- Normalized `itemBox` handling for deposit and withdraw and removed the
+  nil-title renderer path that caused transfer-screen crashes.
+- Verified the visual and interactive flows on Gen1Recomp 0.2.45.
+
+## 1.0.4
+
+- Fixed a crash when opening the PC deposit, withdrawal or release lists with
+  `PC BOX ICONS` enabled. The native list renderer now owns the canvas/state
+  lifecycle, while HGSS icons are added as a safe overlay.
+
+## 1.0.3
+
+- Declared runtime support for Pokémon Red, Blue and Yellow.
+- Restored the original Gen 1 player cleanly when `PLAYER SELECT` is `OFF`.
+- Added the vanilla player fallback assets outside the HGSS override
+  namespace so the original 16x96 charset is not shadowed by HD sprites.
+- Kept Yellow-only tileset, lounge and object corrections scoped to Yellow;
+  Red and Blue retain their native map art and follower behavior.
+- When RBYMMO owns a local character, `PLAYER SELECT = OFF` leaves its live
+  renderer untouched while retaining the vanilla fallback for later maps.
+- Updated Brendan and Leaf player battle/overworld/bicycle sprite credits to
+  `setogabes` (Discord).
+- Added Lyra as selectable player
 ## 1.0.2
 
 - Updated the Red bicycle overworld sprite to the new transparent six-frame

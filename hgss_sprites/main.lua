@@ -131,9 +131,9 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- 256x1536 HD atlases.  The 256x1536 sheets remain enabled for the HD
   -- player choices and bike variants that actually use that layout.
   local playerSheet = file == "ash" or file == "ethan"
-    or file == "brendan"
+    or file == "lyra"
   local playerBikeSheet = file == "ash_bike" or file == "ethan_bike"
-    or file == "brendan_bike"
+    or file == "lyra_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
@@ -141,11 +141,11 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   local highDensity = file == "jessie" or file == "james" or hdSheet
   local nativeWide = file == "jessie" or file == "james"
     or file == "lorelei" or playerSheet or playerBikeSheet
-  -- Jessie/James, Ash and Ethan use 256px-wide authored frames; match the
+  -- Jessie/James, Ash, Ethan and Lyra use 256px-wide authored frames; match the
   -- source cell so the renderer samples each complete frame instead of
   -- shrinking it or cutting off the head and feet.
   -- Agatha, Lorelei and Officer Jenny use the same native 256x1536 six-frame
-  -- sheets as Red/Ash/Ethan. Keeping them in the 256px branch is important:
+  -- sheets as Red/Ash/Ethan/Lyra. Keeping them in the 256px branch is important:
   -- the old 288/394px assumptions made their 256px cells fail sheet
   -- detection in 2D and appear at inconsistent sizes in Voxel.
   local frameSize = (file == "jessie" or file == "james"
@@ -342,6 +342,30 @@ return function(mod)
     local value = detectGeneration(game or liveGame)
     if game then activeGeneration = value end
     return (value or activeGeneration) == 2
+  end
+
+  -- g1recomp selects the concrete Gen 1 version before loading mods. Keep
+  -- that value available so Yellow-only map/tileset fixes do not leak into
+  -- Red or Blue, while the shared sprite/player hooks remain active for all
+  -- three games.
+  local GameVersion
+  do
+    local ok, value = pcall(require, "src.core.GameVersion")
+    if ok and type(value) == "table" then GameVersion = value end
+  end
+  local function activeGameVersion(game)
+    local version = game and game.save and game.save.version
+    if type(version) == "string" and version ~= "" then
+      return version:lower()
+    end
+    if GameVersion and type(GameVersion.get) == "function" then
+      local ok, value = pcall(GameVersion.get)
+      if ok and type(value) == "string" then return value:lower() end
+    end
+    return nil
+  end
+  local function isYellowGame(game)
+    return activeGameVersion(game) == "yellow"
   end
 
   -- Yellow's POKECENTER tileset contains one seated figure painted directly
@@ -613,6 +637,7 @@ return function(mod)
         { "LYRA", "lyra" },
         { "LEAF", "leaf" },
         { "BRENDAN", "brendan" },
+        { "OFF", "off" },
       },
     },
     {
@@ -751,12 +776,47 @@ return function(mod)
   end)
 
   local function selectedPlayerOption()
-    local value = playerSelectionValue
+    -- The manager normally updates both `modOptions` and the event cache, but
+    -- older/local builds can persist the menu choice without dispatching the
+    -- event (or dispatch it before the option table is refreshed). Prefer the
+    -- live game value whenever it exists so OFF cannot leave a stale HGSS
+    -- charset attached to the player; fall back to the event cache for
+    -- headless drivers and older API versions that have no live game yet.
+    local value
+    local game = liveGame
+    local function readOptions(options)
+      local row = options and options[mod.id]
+      return type(row) == "table" and row.player_select or nil
+    end
+    if game then
+      local mods = game.mods and game.mods.modOptions
+      value = readOptions(mods)
+      if value == nil then
+        local save = game.save and game.save.options
+        value = readOptions(save and save.modOptions)
+      end
+    end
+    if value == nil then value = playerSelectionValue end
     if value == nil then
       local ok, current = pcall(mod.options.get, mod.options, "player_select")
       if ok then value = current end
     end
     return tostring(value or "red"):lower()
+  end
+
+  -- RBYMMO can intentionally wear its own local character (including while
+  -- its network connection is active). When our selector is OFF, preserve
+  -- that ownership instead of replacing the MMO renderer on every map
+  -- refresh. If it has no explicit/worn look, OFF still restores the game's
+  -- vanilla player as usual.
+  local function rbyMmoOwnsPlayer()
+    if type(mod.find) ~= "function" then return false end
+    local ok, handle = pcall(function() return mod:find("rby_mmo") end)
+    local exports = ok and handle and handle.exports
+    local wornLook = exports and exports.wornLook
+    if type(wornLook) ~= "function" then return false end
+    local okLook, value = pcall(wornLook)
+    return okLook and value ~= nil
   end
 
   -- Attribution: the resolver/atlas-playback architecture below was
@@ -1184,6 +1244,7 @@ return function(mod)
 
   local function selectedHallPlayerImage()
     local key = selectedPlayerOption()
+    if key == "off" then return nil end
     -- Hall of Fame expects a front battle portrait, never an overworld
     -- charset sheet.  Keep a dedicated portrait for every PLAYER SELECT
     -- option so the Hall screen cannot silently reuse Red's art.
@@ -1710,6 +1771,10 @@ return function(mod)
     if not (battle and battle.showPlayerBack) then return nil end
     -- Oak/Old Man's scripted introduction must retain its dedicated portrait.
     if battle.demo then return nil end
+    -- OFF leaves the engine's native player back untouched.  Returning nil
+    -- here is important: the battle hooks treat a missing custom image as a
+    -- request to continue with the ROM artwork.
+    if selectedPlayerOption() == "off" then return nil end
     local key = selectedPlayerBattleKey()
     local frames = loadPlayerTrainerFrames(key)
     if not frames then return selectedBattlePlayerStatic(key) end
@@ -2771,6 +2836,214 @@ return function(mod)
   -- own data.gen2Sprites names and the adapter cannot translate arbitrary
   -- Yellow object IDs.  The Gen2 player and NPC tables are registered in the
   -- separate block below using only Crystal's native short IDs.
+  -- Snapshot the pristine player entries before this mod patches the field
+  -- registry and the RED sprite records. This must run before the
+  -- patchOverworld calls below so PLAYER SELECT > OFF can restore vanilla.
+  -- Snapshot the pristine player entries before this mod patches the field
+  -- registry and the RED sprite records.  This must run before the
+  -- patchOverworld calls below: those calls patch SPRITE_RED in place, so
+  -- taking the snapshot afterwards would preserve the HGSS definition and
+  -- make PLAYER SELECT > OFF render only a clipped quarter of the sprite.
+  local function cloneSpriteDef(value, seen)
+    if type(value) ~= "table" then return value end
+    seen = seen or {}
+    if seen[value] then return seen[value] end
+    local copy = {}
+    seen[value] = copy
+    for key, child in pairs(value) do
+      copy[key] = type(child) == "table"
+        and cloneSpriteDef(child, seen) or child
+    end
+    local metatable = getmetatable(value)
+    if metatable then setmetatable(copy, metatable) end
+    return copy
+  end
+
+  local originalPlayerSprites = {}
+  do
+    local ok, value = pcall(function()
+      return mod.content.field:get("playerSprites")
+    end)
+    if ok and type(value) == "table" then
+      originalPlayerSprites.walk = value.walk
+      originalPlayerSprites.bike = value.bike
+    end
+  end
+  originalPlayerSprites.walk = originalPlayerSprites.walk or "SPRITE_RED"
+  originalPlayerSprites.bike = originalPlayerSprites.bike or "SPRITE_RED_BIKE"
+
+  local originalPlayerSpriteDefs = {}
+  for slot, id in pairs({
+    walk = originalPlayerSprites.walk,
+    bike = originalPlayerSprites.bike,
+  }) do
+    local ok, value = pcall(function()
+      return mod.content.sprites:get(id)
+    end)
+    if ok and type(value) == "table" then
+      originalPlayerSpriteDefs[slot] = cloneSpriteDef(value)
+    end
+  end
+
+  -- Some local engine builds expose the sprite registry after another
+  -- content operation has already replaced `image` with our 16px proxy.  A
+  -- vanilla fallback must never retain that proxy: Wilds of Kanto creates a
+  -- lightweight SpriteRenderer definition from `def.image` and would then
+  -- display only the top-left quarter of the HGSS sheet.  Prefer the
+  -- untouched extracted PNG, and derive its conventional path when the
+  -- registry value is already proxy-backed.  Strip every HGSS-only field so
+  -- neither the core renderer nor companion mods can select the native HD
+  -- path while PLAYER SELECT is OFF.
+  local function sanitizeVanillaPlayerDef(slot, id, def)
+    if type(def) ~= "table" then return def end
+    local image = def.image
+    local vanillaAsset = ({
+      SPRITE_RED = "red",
+      SPRITE_RED_BIKE = "red_bike",
+    })[id]
+    if vanillaAsset then
+      -- Keep the fallback in this mod's private asset namespace.  Generated
+      -- paths are globally overrideable, so pointing at them would resolve
+      -- back to HGSS_SPRITES/overrides/sprites/<name>.png.
+      image = mod.assets:path("assets/vanilla/players/" .. vanillaAsset .. ".png")
+    elseif type(image) ~= "string"
+       or image:find("frame_layout_", 1, true)
+       or image:find("HGSS_SPRITES", 1, true) then
+      local stem = tostring(id):gsub("^SPRITE_", ""):lower()
+      -- The `../../assets` traversal intentionally bypasses
+      -- Assets.resolve's generated override lookup.  The resolver checks
+      -- `overrides/<rel>` first; this path cannot exist there, while LÖVE
+      -- still normalizes it back to the engine's generated asset.
+      image = "assets/generated/sprites/../../../assets/generated/sprites/"
+        .. stem .. ".png"
+    elseif image:find("^assets/generated/sprites/", 1) then
+      -- Even an apparently vanilla path is shadowed by this mod's
+      -- overrides/sprites/<name>.png through Assets.resolve.  Keep the
+      -- traversal prefix for every extracted player sheet.
+      image = mod.assets:path("assets/vanilla/players/"
+        .. image:sub(#"assets/generated/sprites/" + 1))
+    end
+    def.image = image
+    def.frames = tonumber(def.frames) or 6
+    def.walker = def.walker ~= false
+    def.trueColor = nil
+    for key in pairs(def) do
+      if type(key) == "string" and key:match("^hgss") then
+        def[key] = nil
+      end
+    end
+    return def
+  end
+  for slot, id in pairs(originalPlayerSprites) do
+    originalPlayerSpriteDefs[slot] = sanitizeVanillaPlayerDef(
+      slot, id, originalPlayerSpriteDefs[slot])
+  end
+
+  -- Do not rely on rewriting SPRITE_RED after the registry has merged.  That
+  -- shared id is also used by NPCs and companion mods, and an already-created
+  -- renderer can retain the HGSS geometry even after the table entry changes.
+  -- Give OFF its own vanilla records instead: future Player.new calls resolve
+  -- these ids directly and can never sample the 256px HGSS sheet as a 16px
+  -- native frame.  The copies are made before our RED patches below.
+  local originalPlayerFallbackIds = {
+    walk = "SPRITE_HGSS_ORIGINAL_PLAYER",
+    bike = "SPRITE_HGSS_ORIGINAL_PLAYER_BIKE",
+  }
+  for slot, id in pairs(originalPlayerFallbackIds) do
+    local def = originalPlayerSpriteDefs[slot]
+    if def and type(mod.content.sprites.register) == "function" then
+      def.id = id
+      pcall(function() mod.content.sprites:register(id, def) end)
+    end
+  end
+
+  -- Keep a reference to the modded registry entries as well.  OFF temporarily
+  -- restores the original records under the same IDs (usually SPRITE_RED and
+  -- SPRITE_RED_BIKE); switching back to a selected HGSS player must put our
+  -- definitions back before a new map/player instance is constructed.
+  local customPlayerSpriteDefs = {}
+  local function rememberCustomPlayerDefs(data)
+    local sprites = data and data.sprites
+    if type(sprites) ~= "table" then return end
+    for _, id in pairs(PLAYER_SPRITE_IDS) do
+      local def = sprites[id]
+      if type(def) == "table" and def.hgssNativeImage then
+        customPlayerSpriteDefs[id] = def
+      end
+    end
+    for _, id in pairs(PLAYER_BIKE_SPRITE_IDS) do
+      local def = sprites[id]
+      if type(def) == "table" and def.hgssNativeImage then
+        customPlayerSpriteDefs[id] = def
+      end
+    end
+  end
+
+  local function selectedPlayerSpriteId()
+    local selected = selectedPlayerOption()
+    if selected == "off" then return originalPlayerFallbackIds.walk end
+    return PLAYER_SPRITE_IDS[selected] or PLAYER_SPRITE_IDS.red
+  end
+
+  local function selectedPlayerBikeSpriteId()
+    local selected = selectedPlayerOption()
+    if selected == "off" then return originalPlayerFallbackIds.bike end
+    return PLAYER_BIKE_SPRITE_IDS[selected] or PLAYER_BIKE_SPRITE_IDS.red
+  end
+
+  -- Yellow's stock Pikachu is intentionally parked on the player for one
+  -- transition frame by Wilds of Kanto.  With PLAYER SELECT > OFF that
+  -- parking hides the restored vanilla Red (only the cap/edge pixels remain),
+  -- which looks like a broken sprite.  Once the vanilla player is active,
+  -- move only an overlapping stock follower to the first walkable cell behind
+  -- him; Wilds keeps ownership of the follower and resumes its normal trail.
+  local function separateOffYellowFollower(game)
+    if not isYellowGame(game) or selectedPlayerOption() ~= "off" then return end
+    local ow = game and (game.world or game.overworld)
+    local p = ow and ow.player
+    if not (ow and p) or p._pokepcAsPokemon then return end
+    local map = ow.map
+    local candidates = {
+      left = { 1, 0 }, right = { -1, 0 },
+      up = { 0, 1 }, down = { 0, -1 },
+    }
+    local delta = candidates[p.facing] or candidates.down
+    local choices = {
+      delta,
+      { -delta[1], -delta[2] },
+      { delta[2], -delta[1] },
+      { -delta[2], delta[1] },
+    }
+    local function usable(x, y)
+      if not map or type(map.inBounds) ~= "function" then return true end
+      if not map:inBounds(x, y) then return false end
+      if type(map.isWalkableCell) == "function" and not map:isWalkableCell(x, y) then
+        return false
+      end
+      return x ~= p.cellX or y ~= p.cellY
+    end
+    for _, npc in ipairs(ow.npcs or {}) do
+      if npc and npc.pikachuFollower and not npc.pokepcTrailer
+         and npc.cellX == p.cellX and npc.cellY == p.cellY then
+        local nx, ny
+        for _, d in ipairs(choices) do
+          local tx, ty = p.cellX + d[1], p.cellY + d[2]
+          if usable(tx, ty) then nx, ny = tx, ty; break end
+        end
+        if nx then
+          npc.cellX, npc.cellY = nx, ny
+          npc.px, npc.py = nx * 16, ny * 16
+          npc.targetX, npc.targetY = nil, nil
+          npc.goalX, npc.goalY = nil, nil
+          npc.moving, npc.progress = false, 0
+          if ow.pikachuTrail then
+            ow.pikachuTrail.x, ow.pikachuTrail.y = nx, ny
+          end
+        end
+      end
+    end
+  end
+
   if not isGen2() then
   for shortId in words(WALKERS) do
     patchOverworld(mod, shortId, 6, true)
@@ -2816,19 +3089,19 @@ return function(mod)
   -- Gen2 has a different field/player registry and different trainer roster.
   -- Keep the Yellow field patch out of the Gen2 arm until the Ethan/Kris
   -- mapping is installed against data.gen2Sprites.
-  if not isGen2() then
-    mod.content.field:patch("playerSprites", {
-      walk = selectedPlayerSpriteId(),
-      bike = selectedPlayerBikeSpriteId(),
-      -- Always use the authored Surfing Pikachu ride for Yellow.  The original
-      -- game only selects `surfPikachu` when the party's SURF user is Pikachu,
-      -- but Pikachu cannot learn SURF through the normal Yellow HM flow.  Keep
-      -- both water paths on the same registered sheet so the custom ride is
-      -- reachable without Stadium/event save data, while preserving the
-      -- engine's surfing movement and collision rules.
-      surf = "SPRITE_SURFING_PIKACHU",
-      surfPikachu = "SPRITE_SURFING_PIKACHU",
-    })
+  local playerSpritePatch = {}
+  if isYellowGame() then
+    playerSpritePatch.surf = "SPRITE_SURFING_PIKACHU"
+    playerSpritePatch.surfPikachu = "SPRITE_SURFING_PIKACHU"
+  end
+  -- An OFF value must omit walk/bike entirely from the registry patch so the
+  -- runtime option handler can restore the game's original player.
+  if selectedPlayerOption() ~= "off" then
+    playerSpritePatch.walk = selectedPlayerSpriteId()
+    playerSpritePatch.bike = selectedPlayerBikeSpriteId()
+  end
+  if next(playerSpritePatch) ~= nil or selectedPlayerOption() ~= "off" then
+    mod.content.field:patch("playerSprites", playerSpritePatch)
   end
 
   -- Gym maps in Yellow deliberately reuse generic GBC character IDs.  Keep
@@ -3829,7 +4102,7 @@ return function(mod)
   local oldListMenuDraw = ListMenu.draw
   local oldListMenuNew = ListMenu.new
   local Boxes = require("src.pokemon.Boxes")
-  local ListStrings = require("src.core.Strings")
+  local ListFont = require("src.render.Font")
 
   -- A native 32px icon needs a 32px row.  Keep the stock seven-row layout
   -- available for OFF, but let the custom PC list use four native rows while
@@ -3842,6 +4115,17 @@ return function(mod)
     if kind == "pc_box_withdraw" or kind == "pc_box_deposit"
         or kind == "pc_box_release" then
       menu.hgssPcBoxList = true
+      -- Some engine builds initialize ListMenu instances with an explicit
+      -- `isOpaque = false`, which makes the underlying Bill's PC menu draw
+      -- through the transfer list.  The PC list is a full-screen state and
+      -- must hide that menu while it is open.
+      menu.isOpaque = true
+      -- Deposit uses the same native list in the game, but some engine builds
+      -- can omit the itemBox flag on that path.  Normalize both directions so
+      -- deposit cannot fall through to the 16px/0.5x renderer while withdraw
+      -- gets the full-size panel and icons.
+      menu.itemBox = true
+      menu.cursorRows = 3
     end
     return menu
   end
@@ -3861,23 +4145,20 @@ return function(mod)
     return nil
   end
 
-  local function drawPcBoxIcon(menu, mon, row)
-    if not mon or not partyIconEntries[mon.species] then return end
-    local path = partyIconEntries[mon.species].image
-    local image, quads = loadPartyIcon(path)
-    if not image or not quads then return end
-    local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
-    local quad = quads[frame] or quads[0]
-    if not quad then return end
-    -- The authored icon sheets carry transparent top padding.  Lift the
-    -- native cell by one quarter-row so the visible creature aligns with the
-    -- selector/name line rather than appearing to hang below it.
-    local y = 8 + (row - 1) * 32
-    local x = 0
-    PartyPaletteFX.markTrueColor(x, y, 32, 32)
-    love.graphics.setColor(1, 1, 1, 1)
-    -- No scaling: these are the same native 32x32 frames drawn by PartyMenu.
-    love.graphics.draw(image, quad, x, y)
+  -- Forward declaration: the compact glyph renderer is defined below the
+  -- ListMenu hook but is also used for the PC box level column.
+  local drawPartyName
+  local drawPartyLevel
+
+  local function fitPcBoxName(label, maxWidth)
+    local text = tostring(label or "")
+    if ListFont.width(text) <= maxWidth then return text end
+    -- Keep a whole-glyph truncation marker so long species names never run
+    -- into the right-aligned level column or escape the item-box frame.
+    while #text > 1 and ListFont.width(text .. ".") > maxWidth do
+      text = text:sub(1, -2)
+    end
+    return text .. "."
   end
 
   ListMenu.draw = function(self, ...)
@@ -3891,44 +4172,169 @@ return function(mod)
       return
     end
 
+    -- Keep ListMenu's own renderer authoritative.  It handles localized
+    -- titles, cursor glyphs and the renderer's canvas lifetime; this hook only
+    -- adds the optional 32px party icon after the list has been drawn.
+    -- The PC transfer panel reserves four rows; the native renderer uses this
+    -- value both for its frame height and for cursor/scroll bounds.
     self.rows = 4
-    local oldScroll = self.scroll
-    local maxScroll = math.max(0, #self.items - self.rows)
-    self.scroll = math.min(self.scroll or 0, maxScroll)
 
-    -- Reproduce the small, stable part of ListMenu.draw that the PC transfer
-    -- lists use, but leave enough room for native icon frames.  The footer,
-    -- dialogue and money variants are not used by these three BoxMenu lists;
-    -- all input, callbacks and cursor state still belong to ListMenu.
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.rectangle("fill", 0, 0, 160, 144)
+    -- BoxMenu encodes the level in the same label (`NAME :Lxx`).  On the
+    -- PC's four-row panel the stock renderer wraps that suffix onto a second
+    -- line, which pushes the following entry toward the bottom border.  Give
+    -- the native renderer name-only labels, then place a compact level on the
+    -- same baseline at the right-hand column.
+    local originalItems = self.items
+    local displayItems = {}
+    local levels = {}
+    for index, item in ipairs(originalItems or {}) do
+      local label = tostring(item.label or "")
+      local name, level = label:match("^(.-)%s*:L(%d+)$")
+      local subLevel = item.sub and tostring(item.sub):match("^:L(%d+)$")
+      local copy = {}
+      for key, value in pairs(item) do copy[key] = value end
+      if name and level then
+        copy.label = name
+      elseif subLevel then
+        -- BoxMenu stores the level in `item.sub`, which the native item-box
+        -- renderer places on a second line.  Remove it before drawing and
+        -- put the compact level back on the name line below.
+        copy.sub = nil
+      end
+      if self.itemBox then
+        -- One tile of leading space moves the name toward the screen center;
+        -- leave enough room for the right-hand level column.
+        copy.label = " " .. fitPcBoxName(copy.label, 80)
+      end
+      levels[index] = level or subLevel
+      displayItems[index] = copy
+    end
+    self.items = displayItems
+
+    if self.itemBox then
+      -- The old item-box is only 16px high per row and cannot contain the
+      -- authored 32px frames.  Replace it with a full-screen 20x18-tile
+      -- grade so the original icon quads can be drawn at 1:1.
+      -- Do not call the native renderer here.  PC transfer lists are created
+      -- with a nil title, and ListMenu:draw() unconditionally passes that
+      -- title through Strings()/Font.draw(); on supported runtimes this raises before
+      -- the custom panel is painted (the error handler then reports a
+      -- misleading "love.event.pump ... Canvas" failure).  The custom
+      -- full-screen panel owns every pixel, so there is no native layer to
+      -- preserve underneath it.
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.rectangle("fill", 0, 0, 160, 144)
+      love.graphics.setColor(0, 0, 0, 1)
+      ListFont.drawBox(0, 0, 20, 18)
+      -- BoxMenu passes a nil title for these lists.  The native 0.2.45
+      -- presentation supplies the contextual heading, so reproduce it here
+      -- instead of leaving the top row blank in the custom panel.
+      local heading = self.title
+      if not heading then
+        local save = self.game and self.game.save
+        local boxNumber = save and save.currentBox or 1
+        if self.kind == "pc_box_withdraw" then
+          heading = ("BOX %d (WITHDRAW)"):format(boxNumber)
+        elseif self.kind == "pc_box_deposit" then
+          heading = "PARTY (DEPOSIT)"
+        elseif self.kind == "pc_box_release" then
+          heading = ("BOX %d (RELEASE)"):format(boxNumber)
+        end
+      end
+      if heading then ListFont.draw(heading, 8, 8) end
+
+      for row = 1, self.rows do
+        local i = (self.scroll or 0) + row
+        local item = displayItems[i]
+        if not item then break end
+        -- The source sheets carry 8px of transparent top padding.  Keep the
+        -- text on the same visible baseline by shifting both down together.
+        local nameY = 32 + (row - 1) * 32
+        local iconY = 16 + (row - 1) * 32
+        love.graphics.setColor(0, 0, 0, 1)
+        -- The leading space in item-box labels places the name at x=48 when
+        -- drawn from x=40, leaving the cursor at x=40 immediately beside it.
+        ListFont.draw(item.label, 40, nameY)
+        if levels[i] then drawPartyLevel(levels[i], 136, nameY) end
+
+        local mon = pcBoxListMon(self, row)
+        if mon and partyIconEntries[mon.species] then
+          local path = partyIconEntries[mon.species].image
+          local image, quads = loadPartyIcon(path)
+          local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
+          local quad = quads and (quads[frame] or quads[0])
+          if image and quad then
+            PartyPaletteFX.markTrueColor(8, iconY, 32, 32)
+            love.graphics.setColor(1, 1, 1, 1)
+            love.graphics.draw(image, quad, 8, iconY)
+          end
+        end
+        if i == self.index or i == self.swapIndex then
+          love.graphics.setColor(0, 0, 0, 1)
+          local cursor = self.hollowIndex == i
+            and PartyTheme.cursorHollow or PartyTheme.cursor
+          ListFont.drawCode(cursor, 40, nameY)
+        end
+      end
+      if (self.scroll or 0) + self.rows < #self.items then
+        ListFont.drawCode(PartyTheme.moreArrow, 144, 136)
+      end
+      self.items = originalItems
+      love.graphics.setColor(1, 1, 1, 1)
+      return
+    end
+
+    oldListMenuDraw(self, ...)
+    self.items = originalItems
+
     love.graphics.setColor(0, 0, 0, 1)
-    PartyFont.draw(ListStrings(self.title), 8, 4)
+    for row = 1, self.rows do
+      local i = (self.scroll or 0) + row
+      local level = levels[i]
+      if level then
+        local y = self.itemBox and (32 + (row - 1) * 16) or (8 + row * 16)
+        drawPartyLevel(level, 136, y)
+      end
+    end
     for row = 1, self.rows do
       local i = self.scroll + row
       local item = self.items[i]
       if not item then break end
-      local y = 16 + (row - 1) * 32
       local mon = pcBoxListMon(self, row)
-      drawPcBoxIcon(self, mon, row)
-      -- Match PartyMenu's native entry geometry: the label begins exactly at
-      -- the icon's right edge (x=32), with no extra 8px drift.
-      PartyFont.draw(item.label, 32, y + 8)
-      if item.right then
-        PartyFont.draw(item.right, 160 - 8 - PartyFont.width(item.right), y + 8)
-      end
-      if i == self.index then
-        -- Keep the selector on the same baseline as the entry text.
-        PartyFont.drawCode(PartyTheme.cursor, 0, y + 8)
-      end
-      if self.swapIndex == i and i ~= self.index then
-        PartyFont.drawCode(PartyTheme.cursorHollow, 0, y + 8)
+      if mon and partyIconEntries[mon.species] then
+        local path = partyIconEntries[mon.species].image
+        local image, quads = loadPartyIcon(path)
+        local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
+        local quad = quads and (quads[frame] or quads[0])
+        if image and quad then
+          -- Draw the original 32px frame with an exact 0.5 nearest-neighbor
+          -- scale.  Fractional resampling (for example 0.6) redistributes
+          -- source pixels unevenly and makes these pixel-art icons look
+          -- deformed; an exact half keeps every surviving pixel proportional.
+          local y = self.itemBox and (24 + (row - 1) * 16) or (row * 16)
+          -- Keep the enlarged icon immediately before the centered name.
+          local x = self.itemBox and 32 or 0
+          local iconScale = 0.5
+          local iconSize = math.floor(32 * iconScale)
+          PartyPaletteFX.markTrueColor(x, y, iconSize, iconSize)
+          love.graphics.setColor(1, 1, 1, 1)
+          love.graphics.draw(image, quad, x, y, 0, iconScale, iconScale)
+
+          -- The native item-box cursor is at x=40, which sits underneath an
+          -- enlarged icon.  Redraw it after the icon in the gap immediately
+          -- before the centered name so selection remains unambiguous.
+          if i == self.index or i == self.swapIndex then
+            local cursor = self.hollowIndex == i
+              and PartyTheme.cursorHollow or PartyTheme.cursor
+            local cursorX = self.itemBox and 48 or 8
+            local cursorY = self.itemBox and (32 + (row - 1) * 16)
+              or (8 + row * 16)
+            ListFont.drawCode(cursor, cursorX, cursorY)
+          end
+        end
       end
     end
     love.graphics.setColor(1, 1, 1, 1)
-    -- Keep this assignment explicit for a menu that was resized while an
-    -- option change arrived between frames; ListMenu owns the actual value.
-    self.scroll = math.min(self.scroll or oldScroll or 0, maxScroll)
   end
 
   -- Compact 4x7 pixel glyphs for the party-name column.  The regular engine
@@ -3976,11 +4382,12 @@ return function(mod)
     ["8"]={"0110","1001","1001","0110","1001","1001","0110"},
     ["9"]={"0110","1001","1001","0111","0001","0001","1110"},
     ["."]={"0000","0000","0000","0000","0000","0110","0110"},
+    [":"]={"0000","0000","0010","0000","0010","0000","0000"},
     [" "]={"0000","0000","0000","0000","0000","0000","0000"},
     ["?"]={"1110","0001","0010","0100","0100","0000","0100"},
   }
 
-  local function drawPartyName(name, x, y)
+  drawPartyName = function(name, x, y)
     local text = tostring(name or ""):upper()
     local count = #text
     if count == 0 then return end
@@ -3993,6 +4400,40 @@ return function(mod)
         for col = 1, glyphWidth do
           if bits:sub(col, col) == "1" then
             love.graphics.rectangle("fill", gx + col - 1, y + row - 1, 1, 1)
+          end
+        end
+      end
+    end
+  end
+
+  -- Levels use a deliberately smaller 3x5 pixel font than the 4x7 name
+  -- glyphs, keeping the right column readable without competing with names.
+  local LEVEL_FONT = {
+    [":"]={"000","010","000","010","000"},
+    L={"100","100","100","100","111"},
+    ["0"]={"110","101","101","101","110"},
+    ["1"]={"010","110","010","010","111"},
+    ["2"]={"110","001","010","100","111"},
+    ["3"]={"110","001","010","001","110"},
+    ["4"]={"101","101","111","001","001"},
+    ["5"]={"111","100","110","001","110"},
+    ["6"]={"011","100","110","101","010"},
+    ["7"]={"111","001","010","010","010"},
+    ["8"]={"110","101","010","101","110"},
+    ["9"]={"110","101","011","001","110"},
+  }
+
+  drawPartyLevel = function(level, x, y)
+    local text = (":L" .. tostring(level or "")):upper()
+    for index = 1, #text do
+      local glyph = LEVEL_FONT[text:sub(index, index)]
+      if glyph then
+        local gx = x + (index - 1) * 4
+        for row, bits in ipairs(glyph) do
+          for col = 1, 3 do
+            if bits:sub(col, col) == "1" then
+              love.graphics.rectangle("fill", gx + col - 1, y + row, 1, 1)
+            end
           end
         end
       end
@@ -4829,13 +5270,16 @@ return function(mod)
   local function objectSpriteTarget(mapId, def)
     if not def then return nil end
     local objectName = tostring(def.name or "")
-    local target = OBJECT_SPRITE_FIXES[mapId]
+    -- These object-name corrections were authored from Yellow's map tables;
+    -- Red and Blue keep their ROM object records and only use the shared
+    -- registry/player replacements below.
+    local target = isYellowGame(liveGame) and OBJECT_SPRITE_FIXES[mapId]
       and OBJECT_SPRITE_FIXES[mapId][objectName]
 
     -- Some map loaders expose this counter attendant under a generated
     -- name instead of the ROM object label. Catch both forms so the
     -- original 16px Yellow receptionist cannot leak through in Viridian.
-    if mapId == "VIRIDIAN_POKECENTER"
+    if isYellowGame(liveGame) and mapId == "VIRIDIAN_POKECENTER"
         and (objectName:find("RECEPTIONIST", 1, true)
           or tostring(def.sprite or "") == "SPRITE_LINK_RECEPTIONIST") then
       target = "SPRITE_LINK_RECEPTIONIST"
@@ -4860,6 +5304,7 @@ return function(mod)
   -- it as map geometry, and its unique name/index make this idempotent.
   local function ensurePokecenterLoungeBoy()
     local game = liveGame
+    if not isYellowGame(game) then return end
     local overworld = game and game.overworld
     local map = overworld and overworld.map
     local mapId = tostring(map and map.id or "")
@@ -4947,6 +5392,10 @@ return function(mod)
     if not overworld then return end
     ensurePokecenterLoungeBoy()
     local mapId = tostring(overworld.map and overworld.map.id or "")
+    -- Gym/Elite Four object names are shared by the three Gen 1 maps, so
+    -- their dedicated HGSS leader sheets remain active on Red, Blue and
+    -- Yellow. Yellow-only Pokémon/object corrections are gated separately in
+    -- objectSpriteTarget below.
     local gymObjects = GYM_LEADER_OBJECTS[mapId]
     local eliteObjects = ELITE_OBJECTS[mapId]
     -- The Dojo's object records encode the trainer sight line in `range`.
@@ -5069,9 +5518,38 @@ return function(mod)
 
   local function applyPlayerSelection(game)
     if isGen2(game) then return end
+    -- Keep the option resolver tied to the instance being refreshed. This is
+    -- important during boot and map reloads, when the manager has already
+    -- copied a profile value into `game.save` but has not emitted an event.
+    if game then liveGame = game end
+    local disabled = selectedPlayerOption() == "off"
     local selectedId = selectedPlayerSpriteId()
     local data = game and game.data
     if not data then return end
+    local mmoOwns = disabled and rbyMmoOwnsPlayer()
+
+    -- OFF uses dedicated vanilla records rather than rewriting SPRITE_RED in
+    -- place.  The shared Red id remains available to NPCs/companion mods,
+    -- while every future Player.new resolves the unmodified 16x96 charset.
+    -- Keep the patched records remembered so toggling back to a selected HGSS
+    -- player is reversible even when the menu changes without a map reload.
+    rememberCustomPlayerDefs(data)
+    if data.sprites then
+      local function setSprite(id, def)
+        if id and def then
+          pcall(function() data.sprites[id] = def end)
+        end
+      end
+      if disabled then
+        setSprite(originalPlayerFallbackIds.walk, originalPlayerSpriteDefs.walk)
+        setSprite(originalPlayerFallbackIds.bike, originalPlayerSpriteDefs.bike)
+      else
+        setSprite(originalPlayerSprites.walk,
+          customPlayerSpriteDefs[originalPlayerSprites.walk])
+        setSprite(originalPlayerSprites.bike,
+          customPlayerSpriteDefs[originalPlayerSprites.bike])
+      end
+    end
 
     -- Keep future Player.new calls on the selected charset.  The protected
     -- assignment is intentionally narrow: old engine builds expose `field`
@@ -5085,11 +5563,17 @@ return function(mod)
       end)
     end
 
+    -- RBYMMO writes its chosen look directly to the live player. Keep the
+    -- vanilla fallback in the field registry for future player instances,
+    -- but do not overwrite the MMO-owned renderer while OFF is selected.
+    if mmoOwns then return end
+
     -- A menu change can happen while a save is already open. Refresh the
     -- live player and bicycle without touching surf sprites. New maps
     -- construct both from field.playerSprites.
     local player = game.overworld and game.overworld.player
     local spriteDef = data.sprites and data.sprites[selectedId]
+      or (disabled and originalPlayerSpriteDefs.walk)
     if not player then return end
     if spriteDef and (not player.sprite or player.sprite.def ~= spriteDef) then
       player.sprite = SpriteRenderer.new(spriteDef, "player")
@@ -5099,12 +5583,14 @@ return function(mod)
     end
     local bikeId = selectedPlayerBikeSpriteId()
     local bikeDef = data.sprites and data.sprites[bikeId]
+      or (disabled and originalPlayerSpriteDefs.bike)
     if bikeDef and (not player.bikeSprite or player.bikeSprite.def ~= bikeDef) then
       player.bikeSprite = SpriteRenderer.new(bikeDef, "player")
       if player.bikeSprite and player.bikeSprite.def then
         player.bikeSprite.def.walker = true
       end
     end
+    separateOffYellowFollower(game)
   end
 
   local function applyCrispDisplay(game)

@@ -1,5 +1,5 @@
 return {
-  summary = "HGSS intro portraits, overworld charsets and party icons for Yellow.",
+  summary = "HGSS intro portraits, overworld charsets and party icons for Red, Blue and Yellow.",
   author = "Luciano",
   tags = { "graphics", "overhaul", "hgss", "pixel-art" },
   differences = {
@@ -10,12 +10,12 @@ return {
     },
     added = {
       "an optional crisp-display policy for integer-scaled presentation",
-      "PLAYER SELECT (RED, ASH, ETHAN, LEAF or BRENDAN) for the overworld charset and battle intro",
+      "PLAYER SELECT (RED, ASH, ETHAN, LYRA, LEAF or BRENDAN) for the overworld charset and battle intro",
       "a PARTY MENU toggle for the HGSS party screen and icons",
       "a PC BOX ICONS toggle for animated HGSS icons in PC storage lists",
     },
     known = {
-      "Pokemon Yellow only implements Pikachu as a follower; the other party icons do not create new followers",
+      "Pokemon Yellow implements Pikachu as a follower; Red and Blue keep their native follower behavior, and the other party icons do not create new followers",
       "Gen 1 menu geometry remains 160x144; this pack restyles it rather than replacing gameplay screens with DS layouts",
       "battle Pokemon generation selectors and trainer art are bundled; the player battle intro follows PLAYER SELECT",
     },
@@ -25,7 +25,7 @@ return {
     { who = "The Pokemon Company / DeNA", for_ = "high-resolution Pokemon Masters character renders" },
     { who = "Bulbagarden Archives contributors", for_ = "official sprite preservation and provenance" },
     { who = "The Spriters Resource contributors", for_ = "the credited HGSS sprite sheets retained in the source-assets tree" },
-    { who = "setogabes (Discord)", for_ = "the Leaf player sprite set, including the animated battle back atlas and updated overworld/bicycle sheets" },
+    { who = "setogabes (Discord)", for_ = "the Leaf and Brendan player sprite sets, including animated battle back atlases and updated overworld/bicycle sheets" },
     { who = "Battle Art Voxel Fork / DramaticShapeVoxelMod contributors", for_ = "the adapted battle asset library, atlas/timing conventions and reimplemented battle-art architecture; no runtime dependency" },
     { who = "Pokemon Gen 1 Recompilation Project", for_ = "g1recomp and its public Mod API 2" },
   },

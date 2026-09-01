@@ -1,13 +1,13 @@
 {
   "id": "HGSS_SPRITES",
   "name": "HGSS Visual Overhaul",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "api": 2,
   "entry": "main.lua",
   "profile": "overhaul",
+  "category": "GRAPHICS",
   "games": ["gen1", "gen2"],
   "gen2compat": true,
-  "category": "GRAPHICS",
   "game_version": ">=0.1.75 <10.0.0",
   "priority": 150,
   "affects_link": true,
@@ -17,5 +17,5 @@
   "conflicts": [],
   "author": "LucianoNeo",
   "github": "LucianoNeo/gen1recomp-mods",
-  "description": "HGSS intro and overworld overhaul with player-selected battle back portraits. PLAYER SELECT controls the player trainer in map and battle using the matching Red, Ash, Ethan, Lyra, Leaf or Brendan asset. Gen 2 Pokémon and opponent battle sprites remain unchanged."
+  "description": "HGSS intro and overworld overhaul with player-selected battle back portraits. PLAYER SELECT controls the matching Red, Ash, Ethan, Lyra, Leaf or Brendan asset. Gen 2 Pokémon and opponent battle sprites remain unchanged."
 }
