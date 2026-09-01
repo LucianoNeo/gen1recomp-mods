@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4
+
+- Fixed a crash when opening the PC deposit, withdrawal or release lists with
+  `PC BOX ICONS` enabled. The native list renderer now owns the canvas/state
+  lifecycle, while HGSS icons are added as a safe overlay.
+
 ## 1.0.3
 
 - Declared runtime support for Pokémon Red, Blue and Yellow.

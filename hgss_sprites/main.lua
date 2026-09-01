@@ -2951,44 +2951,32 @@ return function(mod)
       return
     end
 
-    self.rows = 4
-    local oldScroll = self.scroll
-    local maxScroll = math.max(0, #self.items - self.rows)
-    self.scroll = math.min(self.scroll or 0, maxScroll)
-
-    -- Reproduce the small, stable part of ListMenu.draw that the PC transfer
-    -- lists use, but leave enough room for native icon frames.  The footer,
-    -- dialogue and money variants are not used by these three BoxMenu lists;
-    -- all input, callbacks and cursor state still belong to ListMenu.
-    love.graphics.setColor(1, 1, 1, 1)
-    love.graphics.rectangle("fill", 0, 0, 160, 144)
-    love.graphics.setColor(0, 0, 0, 1)
-    PartyFont.draw(ListStrings(self.title), 8, 4)
+    -- Keep ListMenu's own renderer authoritative.  It handles localized
+    -- titles, cursor glyphs and the renderer's canvas lifetime; this hook only
+    -- adds the optional 32px party icon after the list has been drawn.
+    self.rows = 7
+    oldListMenuDraw(self, ...)
     for row = 1, self.rows do
       local i = self.scroll + row
       local item = self.items[i]
       if not item then break end
-      local y = 16 + (row - 1) * 32
       local mon = pcBoxListMon(self, row)
-      drawPcBoxIcon(self, mon, row)
-      -- Match PartyMenu's native entry geometry: the label begins exactly at
-      -- the icon's right edge (x=32), with no extra 8px drift.
-      PartyFont.draw(item.label, 32, y + 8)
-      if item.right then
-        PartyFont.draw(item.right, 160 - 8 - PartyFont.width(item.right), y + 8)
-      end
-      if i == self.index then
-        -- Keep the selector on the same baseline as the entry text.
-        PartyFont.drawCode(PartyTheme.cursor, 0, y + 8)
-      end
-      if self.swapIndex == i and i ~= self.index then
-        PartyFont.drawCode(PartyTheme.cursorHollow, 0, y + 8)
+      if mon and partyIconEntries[mon.species] then
+        local path = partyIconEntries[mon.species].image
+        local image, quads = loadPartyIcon(path)
+        local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
+        local quad = quads and (quads[frame] or quads[0])
+        if image and quad then
+          -- Stock PC rows are 16px high.  Draw the native 32px icon at half
+          -- scale so it never overlaps neighboring rows or cursor text.
+          local y = 8 + row * 16
+          PartyPaletteFX.markTrueColor(0, y, 16, 16)
+          love.graphics.setColor(1, 1, 1, 1)
+          love.graphics.draw(image, quad, 0, y, 0, 0.5, 0.5)
+        end
       end
     end
     love.graphics.setColor(1, 1, 1, 1)
-    -- Keep this assignment explicit for a menu that was resized while an
-    -- option change arrived between frames; ListMenu owns the actual value.
-    self.scroll = math.min(self.scroll or oldScroll or 0, maxScroll)
   end
 
   -- Compact 4x7 pixel glyphs for the party-name column.  The regular engine

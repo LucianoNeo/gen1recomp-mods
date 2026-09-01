@@ -1,4 +1,4 @@
-# HGSS_SPRITES 1.0.3
+# HGSS_SPRITES 1.0.4
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue and
 Yellow on g1recomp. The project overview, current screenshots and companion-mod links
