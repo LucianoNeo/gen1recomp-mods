@@ -29,6 +29,279 @@ KABUTOPS AERODACTYL SNORLAX ARTICUNO ZAPDOS MOLTRES DRATINI DRAGONAIR
 DRAGONITE MEWTWO MEW
 ]]
 
+-- Crystal's National Dex continues with these 100 Johto species.  Wilds of
+-- Kanto ships the complete 251-species overworld set; the icon adapter uses
+-- the same 32px cells for Gen 2 so party/PC lists never fall back to a GSC
+-- icon or a front-static picture.  Keep this list separate from SPECIES:
+-- the latter is also used by the Gen 1 reversible icon registry and must not
+-- be expanded in a way that changes Yellow's original entries.
+local GEN2_SPECIES = [[
+CHIKORITA BAYLEEF MEGANIUM CYNDAQUIL QUILAVA TYPHLOSION TOTODILE CROCONAW
+FERALIGATR SENTRET FURRET HOOTHOOT NOCTOWL LEDYBA LEDIAN SPINARAK ARIADOS
+CROBAT CHINCHOU LANTURN PICHU CLEFFA IGGLYBUFF TOGEPI TOGETIC NATU XATU
+MAREEP FLAAFFY AMPHAROS BELLOSSOM MARILL AZUMARILL SUDOWOODO POLITOED HOPPIP
+SKIPLOOM JUMPLUFF AIPOM SUNKERN SUNFLORA YANMA WOOPER QUAGSIRE ESPEON UMBREON
+MURKROW SLOWKING MISDREAVUS UNOWN WOBBUFFET GIRAFARIG PINECO FORRETRESS
+DUNSPARCE GLIGAR STEELIX SNUBBULL GRANBULL QWILFISH SCIZOR SHUCKLE HERACROSS
+SNEASEL TEDDIURSA URSARING SLUGMA MAGCARGO SWINUB PILOSWINE CORSOLA REMORAID
+OCTILLERY DELIBIRD MANTINE SKARMORY HOUNDOUR HOUNDOOM KINGDRA PHANPY DONPHAN
+PORYGON2 STANTLER SMEARGLE TYROGUE HITMONTOP SMOOCHUM ELEKID MAGBY MILTANK
+BLISSEY RAIKOU ENTEI SUICUNE LARVITAR PUPITAR TYRANITAR LUGIA HO_OH CELEBI
+]]
+
+-- Crystal's map table contains many Pokémon-specific objects, but the ROM
+-- reuses a handful of generic sprite slots (for example SPRITE_MOLTRES is
+-- used for Dodrio, Fearow, Pidgey and Murkrow).  Keep the asset/redirect
+-- tables outside the mod entry function: the Mod API sandbox limits one entry
+-- function to 200 locals, and the rest of this file already uses that budget
+-- heavily.  The redirect table below is keyed by the stable map object index,
+-- so each object gets its real species without changing a shared Gen-2 slot.
+local GEN2_POKEMON_OVERWORLD = {
+  -- Crystal's complete 35-slot overworld-Pokemon registry.  Even when a
+  -- particular slot is not placed directly on the current map, scripts and
+  -- SPRITE_VARS may resolve it at runtime, so every canonical slot needs its
+  -- HGSS equivalent instead of retaining the GSC sheet.
+  BULBASAUR = "001-normal",
+  CHARMANDER = "004-normal",
+  SQUIRTLE = "007-normal",
+  WEEDLE = "013-normal",
+  -- Remaining canonical/direct slots. Some Crystal maps reuse one of these
+  -- ids for another species; the object table below corrects only that map
+  -- instance while the canonical slot itself keeps its actual species.
+  BUTTERFREE = "012-normal",
+  CLEFAIRY = "035-normal",
+  DIGLETT = "050-normal",
+  EKANS = "023-normal",
+  GENGAR = "094-normal",
+  GEODUDE = "074-normal",
+  GRIMER = "088-normal",
+  GROWLITHE = "058-normal",
+  GYARADOS = "130-normal",
+  -- Lake of Rage's object is the scripted Red Gyarados. Keep this private
+  -- sprite id separate so ordinary Gyarados objects remain blue/normal.
+  GYARADOS_SHINY = "130-shiny",
+  JIGGLYPUFF = "039-normal",
+  JYNX = "124-normal",
+  LAPRAS = "131-normal",
+  MACHOP = "066-normal",
+  MAGIKARP = "129-normal",
+  MOLTRES = "146-normal",
+  ODDISH = "043-normal",
+  PARAS = "046-normal",
+  POLIWAG = "060-normal",
+  RHYDON = "112-normal",
+  SHELLDER = "090-normal",
+  SLOWPOKE = "079-normal",
+  SNORLAX = "143-normal",
+  STARMIE = "121-normal",
+  TAUROS = "128-normal",
+  TENTACOOL = "072-normal",
+  TOGEPI = "175-normal",
+  SUDOWOODO = "185-normal",
+  UNOWN = "201-normal",
+  VOLTORB = "100-normal",
+  ZUBAT = "041-normal",
+  BIG_LAPRAS = "131-normal",
+  BIG_ONIX = "095-normal",
+  BIG_SNORLAX = "143-normal",
+  ENTEI = "244-normal",
+  RAIKOU = "243-normal",
+  SUICUNE = "245-normal",
+  LUGIA = "249-normal",
+  HO_OH = "250-normal",
+  -- Species below are present in Crystal only through a reused/generic slot;
+  -- they are registered under private ids and selected per map object.
+  ABRA = "063-normal",
+  AMPHAROS = "181-normal",
+  BAYLEEF = "153-normal",
+  BLISSEY = "242-normal",
+  DODRIO = "085-normal",
+  DODUO = "084-normal",
+  DRAGONITE = "149-normal",
+  DRATINI = "147-normal",
+  ELECTRODE = "101-normal",
+  FARFETCHD = "083-normal",
+  FEAROW = "022-normal",
+  MEOWTH = "052-normal",
+  MILTANK = "241-normal",
+  MURKROW = "198-normal",
+  NIDORAN_F = "029-normal",
+  NIDORAN_M = "032-normal",
+  NIDORINO = "033-normal",
+  PERSIAN = "053-normal",
+  PIDGEY = "016-normal",
+  PIKACHU = "025-normal",
+  POLIWRATH = "062-normal",
+  PSYDUCK = "054-normal",
+  RATTATA = "019-normal",
+  SLOWBRO = "080-normal",
+  SPEAROW = "021-normal",
+}
+
+local GEN2_POKEMON_DIRECT = {
+  -- The 35 canonical records from SPRITE_UNOWN through SPRITE_HO_OH.
+  UNOWN = true, GEODUDE = true, GROWLITHE = true, WEEDLE = true,
+  SHELLDER = true, ODDISH = true, GENGAR = true, ZUBAT = true,
+  MAGIKARP = true, SQUIRTLE = true, TOGEPI = true, BUTTERFREE = true,
+  DIGLETT = true, POLIWAG = true, PIKACHU = true, CLEFAIRY = true,
+  CHARMANDER = true, JYNX = true, STARMIE = true, BULBASAUR = true,
+  JIGGLYPUFF = true, GRIMER = true, EKANS = true, PARAS = true,
+  TENTACOOL = true, TAUROS = true, MACHOP = true, VOLTORB = true,
+  LAPRAS = true, RHYDON = true, MOLTRES = true, SNORLAX = true,
+  GYARADOS = true, LUGIA = true, HO_OH = true,
+  -- Additional species-specific records installed by this mod.
+  BIG_LAPRAS = true, BIG_ONIX = true, BIG_SNORLAX = true,
+  ENTEI = true, RAIKOU = true, SUICUNE = true,
+  RATTATA = true, SUDOWOODO = true,
+}
+
+local function gen2PokemonSpriteId(species)
+  return GEN2_POKEMON_DIRECT[species] and species
+    or ("HGSS_GEN2_" .. tostring(species))
+end
+
+-- Map/object index -> real species.  The indices mirror the extracted
+-- `data/maps/*.asm` object order and are stable in 0.2.45 Crystal.  Dolls are
+-- included deliberately: they are Pokémon artwork too, while their original
+-- object flags/movement remain unchanged by the temporary sprite swap.
+local GEN2_POKEMON_OBJECTS = {
+  AZALEA_TOWN = { [5] = "SLOWPOKE", [6] = "SLOWPOKE", [7] = "SLOWPOKE", [8] = "SLOWPOKE" },
+  BLACKTHORN_DRAGON_SPEECH_HOUSE = { [2] = "DRATINI" },
+  BURNED_TOWER_B1F = {
+    [2] = "RAIKOU", [3] = "ENTEI", [4] = "SUICUNE",
+    [5] = "RAIKOU", [6] = "ENTEI", [7] = "SUICUNE",
+  },
+  CELADON_CITY = { [2] = "POLIWRATH" },
+  CELADON_MANSION_1F = { [2] = "MEOWTH", [3] = "CLEFAIRY", [4] = "NIDORAN_F" },
+  CERULEAN_CITY = { [3] = "SLOWBRO" },
+  CERULEAN_POLICE_STATION = { [3] = "DIGLETT" },
+  CERULEAN_TRADE_SPEECH_HOUSE = { [3] = "RHYDON", [4] = "ZUBAT" },
+  CHARCOAL_KILN = { [3] = "FARFETCHD" },
+  CIANWOOD_CITY = { [12] = "SUICUNE" },
+  COPYCATS_HOUSE_1F = { [3] = "BLISSEY" },
+  COPYCATS_HOUSE_2F = {
+    [2] = "DODRIO", [3] = "CLEFAIRY", [4] = "PIKACHU", [5] = "DODUO",
+  },
+  DANCE_THEATER = { [7] = "RHYDON" },
+  GOLDENROD_DEPT_STORE_B1F = { [8] = "MACHOP" },
+  ILEX_FOREST = { [1] = "FARFETCHD" },
+  INDIGO_PLATEAU_POKECENTER_1F = { [6] = "ABRA" },
+  KURTS_HOUSE = { [3] = "SLOWPOKE" },
+  -- Crystal's object 9 is RedGyarados (EVENT_LAKE_OF_RAGE_RED_GYARADOS),
+  -- not an ordinary overworld Gyarados.
+  LAKE_OF_RAGE = { [9] = "GYARADOS_SHINY" },
+  MAHOGANY_MART_1F = { [4] = "DRAGONITE" },
+  MOUNT_MOON_SQUARE = { [1] = "CLEFAIRY", [2] = "CLEFAIRY" },
+  MR_FUJIS_HOUSE = { [3] = "PSYDUCK", [4] = "NIDORINO", [5] = "PIDGEY" },
+  NATIONAL_PARK = { [7] = "PERSIAN" },
+  OLIVINE_HOUSE_BETA = { [2] = "RHYDON" },
+  OLIVINE_LIGHTHOUSE_6F = { [2] = "AMPHAROS" },
+  PEWTER_NIDORAN_SPEECH_HOUSE = { [2] = "NIDORAN_M" },
+  PEWTER_POKECENTER_1F = { [3] = "JIGGLYPUFF" },
+  POKEMON_FAN_CLUB = { [5] = "CLEFAIRY", [6] = "BAYLEEF" },
+  RADIO_TOWER_2F = { [9] = "JIGGLYPUFF" },
+  RADIO_TOWER_4F = { [3] = "MEOWTH" },
+  ROUTE_28_STEEL_WING_HOUSE = { [2] = "FEAROW" },
+  ROUTE_30 = { [6] = "RATTATA", [7] = "RATTATA" },
+  ROUTE_34_ILEX_FOREST_GATE = { [2] = "BUTTERFREE" },
+  ROUTE_36 = { [9] = "SUICUNE" },
+  ROUTE_39 = { [4] = "MILTANK", [5] = "MILTANK", [6] = "MILTANK", [7] = "MILTANK" },
+  ROUTE_39_BARN = { [3] = "MILTANK" },
+  ROUTE_42 = { [9] = "SUICUNE" },
+  SLOWPOKE_WELL_B1F = { [5] = "SLOWPOKE", [6] = "SLOWPOKE" },
+  TEAM_ROCKET_BASE_B2F = {
+    [4] = "DRAGONITE", [5] = "ELECTRODE", [6] = "ELECTRODE",
+    [7] = "ELECTRODE", [8] = "ELECTRODE", [9] = "ELECTRODE", [10] = "ELECTRODE",
+  },
+  TEAM_ROCKET_BASE_B3F = { [3] = "MURKROW" },
+  TIN_TOWER_1F = { [1] = "SUICUNE", [2] = "RAIKOU", [3] = "ENTEI" },
+  TIN_TOWER_ROOF = { [1] = "HO_OH" },
+  VERMILION_CITY = { [3] = "MACHOP", [5] = "BIG_SNORLAX" },
+  VIOLET_NICKNAME_SPEECH_HOUSE = { [3] = "PIDGEY" },
+  VIRIDIAN_NICKNAME_SPEECH_HOUSE = { [3] = "SPEAROW", [4] = "RATTATA" },
+  WHIRL_ISLAND_LUGIA_CHAMBER = { [1] = "LUGIA" },
+}
+
+local function patchGen2PokemonSprites(patchSprite)
+  for species, file in pairs(GEN2_POKEMON_OVERWORLD) do
+    patchSprite(gen2PokemonSpriteId(species), "assets/gen2/pokemon-overworld/" .. file, {
+      -- Keep every Pokémon on the same 32px logical card as a Gen-2
+      -- character.  249/250 are 64px source cells and are reduced only at
+      -- draw time by gen2SpriteGeometry; their pixels are never resampled.
+      hgssGen2ScaleMultiplier = 1.0,
+      hgssVoxelWidth = 32,
+      hgssVoxelHeight = 32,
+      hgssBaseVoxelWidth = 32,
+      hgssBaseVoxelHeight = 32,
+      -- Crystal's large bedroom dolls normally decode half-sheets through a
+      -- GSC-specific mirroring routine. The Gen2 draw adapter below instead
+      -- presents the complete HGSS Onix/Lapras frame once.
+      hgssFullBigDoll = species == "BIG_LAPRAS" or species == "BIG_ONIX",
+    })
+  end
+end
+
+local function patchGen2BigDollRenderer()
+  local okNpc, Npc = pcall(require, "src.world.gen2.Npc")
+  if not okNpc or type(Npc) ~= "table" or Npc.__hgssFullBigDoll then return end
+  if type(Npc.drawBig) ~= "function" or type(Npc.drawBigAsym) ~= "function" then
+    return
+  end
+
+  local oldDrawBig = Npc.drawBig
+  local oldDrawBigAsym = Npc.drawBigAsym
+  local function drawHgssFull(self, fallback)
+    local renderer = self and self.sprite
+    local def = renderer and renderer.def
+    if not (def and def.hgssFullBigDoll) then return fallback(self) end
+    local image = renderer.resolveImage and renderer:resolveImage()
+    local quad = renderer.frames and renderer.frames[0]
+    if not image or not quad then return fallback(self) end
+
+    -- The large-doll object owns a 2x2 (32px) cell. Draw the complete HGSS
+    -- down-facing frame into that exact footprint; the surrounding Npc:draw
+    -- transform still applies palette, camera and object Y offset normally.
+    love.graphics.draw(image, quad,
+      math.floor(tonumber(self.px) or 0),
+      math.floor(tonumber(self.py) or 0) - 4)
+  end
+  Npc.drawBig = function(self) return drawHgssFull(self, oldDrawBig) end
+  Npc.drawBigAsym = function(self)
+    return drawHgssFull(self, oldDrawBigAsym)
+  end
+  Npc.__hgssFullBigDoll = true
+end
+
+local function patchGen2PokemonObjectRedirects(patchSprite)
+  local okWorld, World = pcall(require, "src.world.gen2.World")
+  if not okWorld or type(World) ~= "table"
+      or type(World.pooledNpc) ~= "function"
+      or World.__hgssGen2PokemonObjects then
+    return
+  end
+
+  local originalPooledNpc = World.pooledNpc
+  World.pooledNpc = function(self, mapId, obj)
+    local index = type(obj) == "table" and tonumber(obj.index) or nil
+    local byMap = GEN2_POKEMON_OBJECTS[tostring(mapId)]
+    local species = byMap and index and byMap[index]
+    if not species then
+      return originalPooledNpc(self, mapId, obj)
+    end
+
+    -- Swap only while the engine resolves the sprite definition.  Restore the
+    -- source object immediately so script/event code still sees the ROM sprite
+    -- id, palette and movement flags it expects.
+    local originalSprite = obj.sprite
+    obj.sprite = "SPRITE_" .. gen2PokemonSpriteId(species)
+    local ok, npc = pcall(originalPooledNpc, self, mapId, obj)
+    obj.sprite = originalSprite
+    if not ok then error(npc, 0) end
+    return npc
+  end
+  World.__hgssGen2PokemonObjects = true
+end
+
 local WALKERS = [[
 AGATHA ASH BEAUTY BIKER BIRD BLUE BRUNETTE_GIRL BRUNO CHANNELER COOK
 COOLTRAINER_F COOLTRAINER_M DAISY FAIRY FISHER GAMBLER GENTLEMAN GIOVANNI
@@ -131,9 +404,9 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- 256x1536 HD atlases.  The 256x1536 sheets remain enabled for the HD
   -- player choices and bike variants that actually use that layout.
   local playerSheet = file == "ash" or file == "ethan"
-    or file == "lyra"
+    or file == "lyra" or file == "kris"
   local playerBikeSheet = file == "ash_bike" or file == "ethan_bike"
-    or file == "lyra_bike"
+    or file == "lyra_bike" or file == "kris_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
@@ -337,6 +610,12 @@ return function(mod)
   -- Set by game.ready; declared here so rendering helpers can also consult
   -- the live save options when the manager has not refreshed mod.options yet.
   local liveGame
+  -- Gen2's Boy/Girl answer mirrors the shared PLAYER SELECT row to Ethan or
+  -- Lyra. Keep a guard while that mirror emits the normal option event so a
+  -- menu refresh does not mistake the synchronized value for a manual edit.
+  local gen2PlayerSelectSynced = false
+  local gen2PlayerSelectSyncing = false
+  local syncGen2PlayerOption
   local activeGeneration = detectGeneration()
   local function isGen2(game)
     local value = detectGeneration(game or liveGame)
@@ -482,12 +761,13 @@ return function(mod)
         end
         if ethan then
           speech.playerPic = ethan
+          speech.playerPicMale = ethan
+          speech.playerPicMaleColors = nil
           speech.playerColors = nil
         end
-        -- OakSpeech currently starts Crystal with the male player, but retain
-        -- the female image on the instance too.  This keeps Lyra available to
-        -- the upcoming gender-select path and replaces the native Kris
-        -- descriptor whenever that path is present.
+        -- Retain both images on the instance so the native Crystal gender
+        -- step (or the compatibility step below) can switch to Lyra before
+        -- NamePick and the first overworld map are shown.
         if lyra then
           speech.playerPicFemale = lyra
           speech.playerPicFemaleColors = nil
@@ -558,6 +838,76 @@ return function(mod)
       OakSpeech.__hgssIntroScaleHook = true
     end
 
+    -- The HGSS player pair is gendered.  g1recomp 0.2.45 builds may already
+    -- expose a native `gender_select` step; older Gen 2 caches do not. Add the
+    -- Crystal-style Boy/Girl choice only when it is missing, then normalize
+    -- either path into save.player.gender before the first overworld map is
+    -- constructed. This screen-local hook leaves Gen 1's Oak speech alone.
+    if ok and type(OakSpeech) == "table"
+       and type(OakSpeech.buildSteps) == "function"
+       and type(OakSpeech.recordAnswer) == "function"
+       and not OakSpeech.__hgssGen2GenderHook then
+      local oldBuildSteps = OakSpeech.buildSteps
+      OakSpeech.buildSteps = function(self, ...)
+        local steps = oldBuildSteps(self, ...)
+        if not isGen2(self and self.game) or type(steps) ~= "table" then
+          return steps
+        end
+
+        -- A newer engine may already expose its own gender step.  Respect it
+        -- rather than putting a second question in front of the player.
+        for _, step in ipairs(steps) do
+          if type(step) == "table"
+             and (step.id == "player_gender" or step.saveKey == "gender") then
+            return steps
+          end
+        end
+
+        local insertAt = #steps + 1
+        for index, step in ipairs(steps) do
+          if type(step) == "table" and step.id == "ask_player_name" then
+            insertAt = index
+            break
+          end
+        end
+        table.insert(steps, insertAt, {
+          id = "player_gender",
+          kind = "choice",
+          text = "ARE YOU A BOY OR A GIRL?",
+          choices = { "BOY", "GIRL" },
+          values = { "male", "female" },
+          saveKey = "gender",
+          pic = "player",
+        })
+        return steps
+      end
+
+      local oldRecordAnswer = OakSpeech.recordAnswer
+      OakSpeech.recordAnswer = function(self, step, index, label, value, ...)
+        if isGen2(self and self.game) and type(step) == "table"
+           and (step.id == "player_gender" or step.saveKey == "gender") then
+          local gender = tostring(value or label or "male"):lower()
+          gender = (gender == "female" or gender == "girl")
+            and "female" or "male"
+          local save = self.game and self.game.save
+          if save and save.player then save.player.gender = gender end
+          syncGen2PlayerOption(self.game, gender)
+
+          -- Keep the rest of the intro (including NamePick and the shrink)
+          -- on the same gendered artwork chosen for the future overworld.
+          if gender == "female" and self.playerPicFemale then
+            self.playerPic = self.playerPicFemale
+            self.playerColors = self.playerPicFemaleColors
+          elseif gender == "male" and self.playerPicMale then
+            self.playerPic = self.playerPicMale
+            self.playerColors = self.playerPicMaleColors
+          end
+        end
+        return oldRecordAnswer(self, step, index, label, value, ...)
+      end
+      OakSpeech.__hgssGen2GenderHook = true
+    end
+
     local okName, NamePick = pcall(require, "src.ui.gen2.NamePick")
     if okName and type(NamePick) == "table"
        and type(NamePick.drawPic) == "function"
@@ -624,8 +974,12 @@ return function(mod)
     }
   end
 
-  mod.options:define({
-    {
+  -- Battle Art generation/scope selectors are a Gen 1 presentation feature.
+  -- Keep their stored values and resolver compatibility intact, but do not
+  -- expose dead controls on Gold/Silver/Crystal's Gen 2 options screen.
+  local optionRows = {}
+  if not isGen2() then
+    optionRows[#optionRows + 1] = {
       key = "battle_scope",
       label = "BATTLE ART SCOPE",
       type = "choice",
@@ -634,8 +988,8 @@ return function(mod)
         { "TRAINERS ONLY", "trainers" },
         { "COMPLETE", "complete" },
       },
-    },
-    {
+    }
+    optionRows[#optionRows + 1] = {
       key = "battle_front_gen",
       label = "BATTLE FRONT GEN",
       type = "choice",
@@ -644,8 +998,8 @@ return function(mod)
         { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
         { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
       },
-    },
-    {
+    }
+    optionRows[#optionRows + 1] = {
       key = "battle_back_gen",
       label = "BATTLE BACK GEN",
       type = "choice",
@@ -654,8 +1008,8 @@ return function(mod)
         { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
         { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
       },
-    },
-    {
+    }
+    optionRows[#optionRows + 1] = {
       key = "battle_trainer_gen",
       label = "BATTLE TRAINER GEN",
       type = "choice",
@@ -664,8 +1018,9 @@ return function(mod)
         { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
         { "GEN 3", "gen3" },
       },
-    },
-    {
+    }
+  end
+  optionRows[#optionRows + 1] = {
       key = "player_select",
       label = "PLAYER SELECT",
       type = "choice",
@@ -675,30 +1030,31 @@ return function(mod)
         { "ASH", "ash" },
         { "ETHAN", "ethan" },
         { "LYRA", "lyra" },
+        { "KRIS", "kris" },
         { "LEAF", "leaf" },
         { "BRENDAN", "brendan" },
         { "OFF", "off" },
       },
-    },
-    {
+    }
+  optionRows[#optionRows + 1] = {
       key = "party_menu",
       label = "PARTY MENU",
       type = "toggle",
       default = true,
-    },
-    {
+    }
+  optionRows[#optionRows + 1] = {
       key = "pc_box_icons",
       label = "PC BOX ICONS",
       type = "toggle",
       default = true,
-    },
-    {
+    }
+  optionRows[#optionRows + 1] = {
       key = "crisp_display",
       label = "CRISP DISPLAY",
       type = "toggle",
       default = false,
-    },
-    {
+    }
+  optionRows[#optionRows + 1] = {
       key = "sprite_size",
       label = "SPRITE SIZE",
       type = "choice",
@@ -711,8 +1067,21 @@ return function(mod)
         { "0.9x", "0.9" },
         { "1.0x", "1.0" },
       },
-    },
-  })
+    }
+  optionRows[#optionRows + 1] = {
+      key = "voxel_y_offset",
+      label = "VOXEL Y OFFSET",
+      type = "choice",
+      default = "-5",
+      choices = {
+        { "-1 px", "-1" },
+        { "-2 px", "-2" },
+        { "-3 px", "-3" },
+        { "-4 px", "-4" },
+        { "-5 px", "-5" },
+      },
+    }
+  mod.options:define(optionRows)
 
   -- The edge-anchored Start Menu is useful while DRAMALESS_SHAPE owns the
   -- world pass, but in classic 2D some g1recomp builds composite the source
@@ -787,16 +1156,20 @@ return function(mod)
   -- SPRITE SIZE in a live cache as well, so Gen-2/voxel redraws immediately
   -- use the newly selected value instead of the previous menu value.
   local spriteSizeValue
+  local voxelYOffsetValue
   -- Keep PLAYER SELECT in a live cache. Older Mod API builds update the event
   -- payload before the option store, so reading mod.options:get() during
   -- battle construction can otherwise select Red even after another player
   -- was chosen in the menu.
   local playerSelectionValue
+  local playerSelectionEventSeen = false
   do
     local ok, value = pcall(mod.options.get, mod.options, "player_select")
     if ok then playerSelectionValue = value end
     local okSize, size = pcall(mod.options.get, mod.options, "sprite_size")
     if okSize then spriteSizeValue = size end
+    local okY, y = pcall(mod.options.get, mod.options, "voxel_y_offset")
+    if okY then voxelYOffsetValue = y end
   end
   local function battleTrace(_) end
   local function battleOption(key)
@@ -817,11 +1190,18 @@ return function(mod)
       if key == "sprite_size" and value ~= nil then
         spriteSizeValue = value
       end
+      if key == "voxel_y_offset" and value ~= nil then
+        voxelYOffsetValue = value
+      end
       if BATTLE_OPTION_KEYS[key] and value ~= nil then
         battleOptionValues[key] = tostring(value):lower()
       end
       if key == "player_select" and value ~= nil then
         playerSelectionValue = tostring(value):lower()
+        playerSelectionEventSeen = true
+        if not gen2PlayerSelectSyncing then
+          gen2PlayerSelectSynced = false
+        end
       end
     end
   end)
@@ -839,6 +1219,13 @@ return function(mod)
       local row = options and options[mod.id]
       return type(row) == "table" and row.player_select or nil
     end
+    -- Once the manager has delivered a PLAYER SELECT event, its event value
+    -- is authoritative for this live change.  The manager may refresh its
+    -- persisted table one frame later; reading that older table first made a
+    -- post-boot character change look like it had been ignored.
+    if playerSelectionEventSeen and playerSelectionValue ~= nil then
+      return tostring(playerSelectionValue):lower()
+    end
     if game then
       local mods = game.mods and game.mods.modOptions
       value = readOptions(mods)
@@ -853,6 +1240,51 @@ return function(mod)
       if ok then value = current end
     end
     return tostring(value or "red"):lower()
+  end
+
+  -- Keep the visible shared option in step with the Gen2 save.  The manager
+  -- exposes its live option table through `game.mods.modOptions`; mirroring
+  -- both that table and save.options makes the value visible immediately and
+  -- keeps it after restarting the game. Explicit non-player values (Leaf,
+  -- Brendan, etc.) are left alone so those custom overrides remain usable.
+  syncGen2PlayerOption = function(game, gender)
+    if not game or not isGen2(game) then return false end
+    local current = selectedPlayerOption()
+    if current ~= "red" and current ~= "off"
+       and current ~= "ethan" and current ~= "lyra" then
+      return false
+    end
+    local value = gender == "female" and "lyra" or "ethan"
+    local changed = current ~= value
+    playerSelectionValue = value
+    gen2PlayerSelectSynced = true
+
+    local mods = game.mods
+    if mods then
+      mods.modOptions = mods.modOptions or {}
+      mods.modOptions[mod.id] = mods.modOptions[mod.id] or {}
+      mods.modOptions[mod.id].player_select = value
+    end
+    local save = game.save
+    if save then
+      save.options = save.options or {}
+      save.options.modOptions = save.options.modOptions or {}
+      save.options.modOptions[mod.id] = save.options.modOptions[mod.id] or {}
+      save.options.modOptions[mod.id].player_select = value
+    end
+    if game.writeOptions then pcall(function() game:writeOptions() end) end
+
+    if changed and mods and mods.events
+       and type(mods.events.emit) == "function" then
+      gen2PlayerSelectSyncing = true
+      pcall(function()
+        mods.events:emit("mod.options_changed", {
+          mod = mod.id, key = "player_select", value = value,
+        })
+      end)
+      gen2PlayerSelectSyncing = false
+    end
+    return true
   end
 
   -- RBYMMO can intentionally wear its own local character (including while
@@ -1722,6 +2154,7 @@ return function(mod)
   local trainerImageCache = {}
   local playerTrainerFramesCache = {}
   local playerTrainerStates = setmetatable({}, { __mode = "k" })
+  local gen2PlayerTrainerStates = setmetatable({}, { __mode = "k" })
 
   -- PLAYER SELECT is the single owner of the player trainer shown in battle.
   -- Keep the generation-to-character mapping internal; the Battle Art
@@ -1731,6 +2164,8 @@ return function(mod)
     ash = "ashplayer.png",
     ethan = "gen2player.png",
     lyra = "lyraplayer.png",
+    -- Kris's animated back strip is extracted from the supplied trainer sheet.
+    kris = "krisplayer.png",
     -- Leaf and Brendan use dedicated full-color animated back sheets when
     -- present.  Static portraits remain the defensive fallback for older
     -- installations that do not yet contain those atlases.
@@ -1742,16 +2177,32 @@ return function(mod)
     ash = "ashplayer.png",
     ethan = "gen2player.png",
     lyra = "lyraplayer.png",
+    -- Keep Lyra as a defensive static fallback if an older install lacks the
+    -- new Kris atlas.
+    kris = "lyraplayer.png",
     leaf = "leafplayer.png",
     brendan = "brendanplayer.png",
   }
   local PLAYER_BATTLE_KEYS = {
-    red = true, ash = true, ethan = true, lyra = true,
+    red = true, ash = true, ethan = true, lyra = true, kris = true,
     leaf = true, brendan = true,
   }
 
   local function selectedPlayerBattleKey()
     local value = selectedPlayerOption()
+    -- Battle Art's Gen2 animated player set is a single Ethan atlas.  The
+    -- actual protagonist is still chosen by the save's Boy/Girl answer (or
+    -- by the explicit PLAYER SELECT choice), so never let that generic
+    -- `gen2player.png` selection replace Lyra in a voxel battle.
+    if isGen2() and value == "off" then
+      return "red"
+    end
+    if isGen2() and value == "red" then
+      local player = liveGame and liveGame.save and liveGame.save.player
+      local gender = player and tostring(player.gender or ""):lower()
+      if gender == "female" then return "lyra" end
+      return "ethan"
+    end
     -- Every selectable protagonist with a bundled Battle Art back resolves
     -- to its own strip. Unknown or unavailable choices still fall back to
     -- Red's established behavior.
@@ -1803,6 +2254,7 @@ return function(mod)
   end
 
   selectedBattlePlayerPath = function(_battle)
+    if selectedPlayerOption() == "off" then return nil end
     local key = selectedPlayerBattleKey()
     local filename = PLAYER_BATTLE_STATIC[key]
     if not filename then return nil end
@@ -1818,8 +2270,12 @@ return function(mod)
     return math.max(0, math.min(72, -(tonumber(offset) or 0)))
   end
 
-  selectedBattlePlayerImage = function(battle)
-    if not (battle and battle.showPlayerBack) then return nil end
+  selectedBattlePlayerImage = function(battle, forcedLeaveFrames)
+    local gen2Surface = battle and battle.showPlayerTrainer ~= nil
+    local state = gen2Surface and gen2PlayerTrainerStates[battle] or nil
+    local visible = battle and (battle.showPlayerBack or battle.showPlayerTrainer
+      or battle.__hgssPlayerTrainerImage or state)
+    if not visible then return nil end
     -- Oak/Old Man's scripted introduction must retain its dedicated portrait.
     if battle.demo then return nil end
     -- OFF leaves the engine's native player back untouched.  Returning nil
@@ -1829,6 +2285,40 @@ return function(mod)
     local key = selectedPlayerBattleKey()
     local frames = loadPlayerTrainerFrames(key)
     if not frames then return selectedBattlePlayerStatic(key) end
+
+    -- Gen2 hides its native trainer field as soon as the player's Pokémon
+    -- begins its send-out. Battle Art keeps the five-pose exit in private
+    -- state, but that state belongs to its Ethan atlas. Track the same
+    -- 18-frame departure locally so the selected Lyra/Leaf/Brendan strip
+    -- advances through matching poses instead of being pinned to frame 1.
+    if gen2Surface then
+      state = state or { key = key, frames = frames, frame = 1,
+                         leaveFrames = 0 }
+      if state.key ~= key or state.frames ~= frames then
+        state = { key = key, frames = frames, frame = 1, leaveFrames = 0 }
+      end
+      if battle.showPlayerTrainer then
+        state.leaveFrames = 0
+        state.frame = 1
+      else
+        local leaveFrames = tonumber(forcedLeaveFrames)
+        if not leaveFrames or leaveFrames <= 0 then
+          leaveFrames = (state.leaveFrames or 0) + 1
+        end
+        state.leaveFrames = leaveFrames
+        if state.leaveFrames >= 18 then
+          gen2PlayerTrainerStates[battle] = nil
+          battle.__hgssPlayerTrainerImage = nil
+          return nil
+        end
+        local movingFrames = math.max(1, #frames - 1)
+        state.frame = math.min(#frames,
+          2 + math.floor(math.max(0, state.leaveFrames - 1)
+            * movingFrames / 18))
+      end
+      gen2PlayerTrainerStates[battle] = state
+      return frames[state.frame]
+    end
 
     local state = playerTrainerStates[battle]
     if not state or state.key ~= key or state.frames ~= frames then
@@ -1956,21 +2446,185 @@ return function(mod)
         if sheetW % columns ~= 0 or sheetH < 1 then return nil end
         local width = sheetW / columns
         local out = {}
+        local voxel = {}
         for index = 0, columns - 1 do
           local cell = love.image.newImageData(width, sheetH)
           cell:paste(sheet, 0, 0, index * width, 0, width, sheetH)
           local image = love.graphics.newImage(cell)
           if image.setFilter then image:setFilter("nearest", "nearest") end
           out[#out + 1] = image
+          local x1, y1, x2, y2 = width, sheetH, -1, -1
+          for y = 0, sheetH - 1 do
+            for x = 0, width - 1 do
+              local _, _, _, alpha = cell:getPixel(x, y)
+              if alpha and alpha > 0 then
+                x1 = math.min(x1, x); y1 = math.min(y1, y)
+                x2 = math.max(x2, x); y2 = math.max(y2, y)
+              end
+            end
+          end
+          if x2 >= x1 and y2 >= y1 then
+            local cropped = love.image.newImageData(x2 - x1 + 1, y2 - y1 + 1)
+            cropped:paste(cell, 0, 0, x1, y1, x2 - x1 + 1, y2 - y1 + 1)
+            local croppedImage = love.graphics.newImage(cropped)
+            if croppedImage.setFilter then croppedImage:setFilter("nearest", "nearest") end
+            voxel[#voxel + 1] = croppedImage
+          else
+            voxel[#voxel + 1] = image
+          end
         end
-        return out
+        return { normal = out, voxel = voxel }
       end)
       gen2TutorialAceFramesCache = ok and frames or false
       return gen2TutorialAceFramesCache or nil
     end
 
+    -- Battle Art Voxel's world-stage compatibility surface predates the Gen2
+    -- state and reads the Gen1 names `showPlayerBack`/`playerBackPic`.
+    -- Crystal's state calls those fields `showPlayerTrainer`/`playerBackImage`;
+    -- without this bridge the voxel stage falls through to the ordinary
+    -- player battler (Ethan) during the DUDE demonstration.
+    local function installGen2TutorialVoxelBridge()
+      local okFind, provider = pcall(function()
+        return mod:find("BATTLE_ART_VOXEL_GEN2")
+      end)
+      local lib = okFind and provider and provider.exports
+        and provider.exports.lib
+      if not (lib and type(lib.require) == "function") then return end
+      local okBattleArt, BattleArt = pcall(lib.require, "BattleArt")
+      if not (okBattleArt and type(BattleArt) == "table"
+              and type(BattleArt.applyTrainers) == "function") then
+        return
+      end
+
+      -- Battle Art's animated manager owns the Gen2 trainer field and its
+      -- built-in `gen2` set is Ethan-only. Reclaim that surface after the
+      -- manager advances each frame so PLAYER SELECT can supply Lyra (or any
+      -- other selected protagonist) to both the flat and voxel renderers.
+      local okAnimated, AnimatedBattleArt =
+        pcall(lib.require, "AnimatedBattleArt")
+      if okAnimated and type(AnimatedBattleArt) == "table"
+         and type(AnimatedBattleArt.update) == "function"
+         and not AnimatedBattleArt.__hgssPlayerTrainerBridge then
+        local oldAnimatedUpdate = AnimatedBattleArt.update
+        local oldPlayerTrainerFrame = AnimatedBattleArt.playerTrainerFrame
+        local oldHasPlayerTrainerFrame = AnimatedBattleArt.hasPlayerTrainerFrame
+        local oldAnimatedFinish = AnimatedBattleArt.finish
+        AnimatedBattleArt.update = function(artBattle, dt, trainerBattle, ...)
+          local result = oldAnimatedUpdate(artBattle, dt, trainerBattle, ...)
+          local battle = trainerBattle or artBattle
+          if isGen2() and battle and not battle.tutorial
+             and selectedBattlePlayerImage then
+            local leaveFrames = 0
+            if not battle.showPlayerTrainer
+               and type(oldPlayerTrainerFrame) == "function" then
+              local _, offset = oldPlayerTrainerFrame(battle)
+              leaveFrames = math.floor(math.max(0, -(tonumber(offset) or 0)) / 4)
+            end
+            local image = selectedBattlePlayerImage(battle, leaveFrames)
+            if image then
+              -- Keep both names populated: Gen2's native draw uses
+              -- playerBackImage while older voxel consumers inspect the Gen1
+              -- playerBackPic alias.
+              battle.playerBackImage = image
+              battle.playerBackPic = image
+              battle.playerBackTrueColor = true
+              battle.__hgssPlayerTrainerImage = image
+            end
+          end
+          return result
+        end
+        if type(oldPlayerTrainerFrame) == "function" then
+          AnimatedBattleArt.playerTrainerFrame = function(battle, ...)
+            local image, offset = oldPlayerTrainerFrame(battle, ...)
+            local custom = battle and battle.__hgssPlayerTrainerImage
+            if custom then return custom, offset end
+            return image, offset
+          end
+        end
+        if type(oldHasPlayerTrainerFrame) == "function" then
+          AnimatedBattleArt.hasPlayerTrainerFrame = function(battle, ...)
+            if battle and battle.__hgssPlayerTrainerImage then return true end
+            return oldHasPlayerTrainerFrame(battle, ...)
+          end
+        end
+        if type(oldAnimatedFinish) == "function" then
+          AnimatedBattleArt.finish = function(battle, trainerBattle, ...)
+            if trainerBattle then
+              trainerBattle.__hgssPlayerTrainerImage = nil
+            elseif battle then
+              battle.__hgssPlayerTrainerImage = nil
+            end
+            return oldAnimatedFinish(battle, trainerBattle, ...)
+          end
+        end
+        AnimatedBattleArt.__hgssPlayerTrainerBridge = true
+      end
+      if BattleArt.__hgssGen2TutorialBridge then return end
+      local oldApplyTrainers = BattleArt.applyTrainers
+      BattleArt.applyTrainers = function(battle, ...)
+        -- Gen2BattleState owns the DUDE portrait. Battle Art's generic demo
+        -- branch assumes Yellow's Old Man and would overwrite the Ace alias.
+        if battle and battle.tutorial then return end
+        return oldApplyTrainers(battle, ...)
+      end
+      if type(BattleArt.apply) == "function"
+         and not BattleArt.__hgssGen2TutorialApplyBridge then
+        local oldApply = BattleArt.apply
+        BattleArt.apply = function(battle, ...)
+          local result = oldApply(battle, ...)
+          -- Reassert the aliases after Battle Art has applied its regular
+          -- trainer/animation ownership. This is the last point before
+          -- OverworldBattle.sideTexture checks visibility for the voxel card.
+          if battle and battle.tutorial and battle.playerBackImage then
+            battle.showPlayerBack = true
+            battle.playerBackPic = battle.playerBackImage
+          end
+          return result
+        end
+        BattleArt.__hgssGen2TutorialApplyBridge = true
+      end
+
+      local okOverworld, OverworldBattle = pcall(lib.require, "OverworldBattle")
+      if okOverworld and type(OverworldBattle) == "table"
+         and type(OverworldBattle.sideTexture) == "function"
+         and not OverworldBattle.__hgssGen2TutorialCaptureBridge then
+        local oldSideTexture = OverworldBattle.sideTexture
+        OverworldBattle.sideTexture = function(battle, side, ...)
+          local capture = side == "player" and battle and battle.tutorial
+          if capture then battle.__hgssTutorialVoxelCapture = true end
+          local ok, result = pcall(oldSideTexture, battle, side, ...)
+          if capture then battle.__hgssTutorialVoxelCapture = nil end
+          if not ok then error(result, 0) end
+          if capture and type(result) == "table" then result.ay = 144 end
+          return result
+        end
+        OverworldBattle.__hgssGen2TutorialCaptureBridge = true
+      end
+
+      BattleArt.__hgssGen2TutorialBridge = true
+    end
+
+    local function syncGen2TutorialVoxelFields(battle)
+      if not (battle and battle.tutorial and battle.playerBackImage) then
+        return
+      end
+      installGen2TutorialVoxelBridge()
+      battle.showPlayerBack = true
+      battle.playerBackPic = battle.playerBackImage
+      -- Presentation-only alias used by the voxel stage to hide the empty
+      -- tutorial party's fallback player card.
+      battle.demo = true
+    end
+
+    -- Install the shared Battle Art bridge at mod load, not only when the
+    -- Route 29 tutorial is constructed. Ordinary Crystal battles use the
+    -- same animated trainer manager and otherwise revert to Ethan in Voxel.
+    if isGen2() then installGen2TutorialVoxelBridge() end
+
     local oldGen2BattleNew = Gen2BattleState.new
     Gen2BattleState.new = function(game, opts, ...)
+      if isGen2(game) then installGen2TutorialVoxelBridge() end
       local battle = oldGen2BattleNew(game, opts, ...)
       if not battle then return battle end
 
@@ -1980,16 +2634,41 @@ return function(mod)
       if opts and opts.tutorial then
         local frames = loadGen2TutorialAceFrames()
         local staticPath = mod.assets:path(gen2TutorialAceStaticPath)
-        if frames and #frames > 0
+        if frames and frames.normal and #frames.normal > 0
            and assetExists(gen2TutorialAceStaticPath) then
-          battle.__hgssTutorialAceFrames = frames
+          battle.__hgssTutorialAceFrames = frames.normal
+          battle.__hgssTutorialAceVoxelFrames = frames.voxel
           battle.__hgssTutorialAceFrame = 1
           battle.__hgssTutorialAceElapsed = 0
-          battle.playerBackImage = frames[1]
+          battle.playerBackImage = frames.normal[1]
           battle.playerBackPath = staticPath
           battle.playerBackTrueColor = true
           registerGen2BattleScale(battle.game and battle.game.data,
-            staticPath, frames[1], 48)
+            -- 196px Ace Trainer cells land on an exact quarter-pixel scale;
+            -- avoiding the repeating 0.244897... factor keeps every source
+            -- pixel on a uniform nearest-neighbour block in Voxel.
+            staticPath, frames.normal[1], 49)
+          local oldDrawPic = battle.drawPic
+          if type(oldDrawPic) == "function" then
+            battle.drawPic = function(self, mon, back, ...)
+              if self.__hgssTutorialVoxelCapture and self.tutorial and back
+                 and self.__hgssTutorialAceVoxelFrames then
+                local index = self.__hgssTutorialAceFrame or 1
+                local image = self.__hgssTutorialAceVoxelFrames[index]
+                if image then
+                  local w, h = image:getDimensions()
+                  local scale = 1 / 3
+                  love.graphics.setColor(1, 1, 1, 1)
+                  love.graphics.draw(image,
+                    math.floor((160 - w * scale) / 2),
+                    math.floor(144 - h * scale), 0, scale, scale)
+                  return
+                end
+              end
+              return oldDrawPic(self, mon, back, ...)
+            end
+          end
+          syncGen2TutorialVoxelFields(battle)
         end
       end
 
@@ -2222,6 +2901,7 @@ return function(mod)
           self.__hgssTutorialAceFrame = frame
           self.playerBackImage = frames[frame]
           self.playerBackTrueColor = true
+          syncGen2TutorialVoxelFields(self)
         end
         return result
       end
@@ -2379,12 +3059,24 @@ return function(mod)
       and liveGame.mods.modOptions[mod.id].sprite_size
     -- The manager writes the selected value to the save options before (or
     -- alongside) emitting mod.options_changed. Reading it here makes the
-    -- Potato texture resize immediately even on builds whose option store is
+    -- Battle Art Voxel texture resize immediately even on builds whose option store is
     -- refreshed one frame later.
-    local value = tonumber(liveOptions or saved or spriteSizeValue
+    -- The options-changed event is the authoritative value while the game is
+    -- running.  Some voxel builds keep `liveGame.mods.modOptions` at the
+    -- startup value for the rest of the session; preferring that stale table
+    -- made the menu appear to work in 2D but left Battle Art Voxel at the old
+    -- size.  Fall back to the live/save tables only before the first event.
+    local value = tonumber(spriteSizeValue or liveOptions or saved
       or mod.options:get("sprite_size"))
     if value == nil then value = 1 end
     return math.max(0.5, math.min(1.0, value))
+  end
+
+  local function voxelSpriteYOffset()
+    if not isGen2() then return 0 end
+    local value = tonumber(voxelYOffsetValue or mod.options:get("voxel_y_offset"))
+    if value == nil then value = -5 end
+    return math.max(-5, math.min(-1, value))
   end
 
   local PLAYER_SPRITE_IDS = {
@@ -2392,6 +3084,7 @@ return function(mod)
     ash = "SPRITE_ASH",
     ethan = "SPRITE_ETHAN",
     lyra = "SPRITE_LYRA",
+    kris = "SPRITE_KRIS",
     leaf = "SPRITE_LEAF",
     brendan = "SPRITE_BRENDAN",
   }
@@ -2401,6 +3094,7 @@ return function(mod)
     ash = "SPRITE_ASH_BIKE",
     ethan = "SPRITE_ETHAN_BIKE",
     lyra = "SPRITE_LYRA_BIKE",
+    kris = "SPRITE_KRIS_BIKE",
     leaf = "SPRITE_LEAF_BIKE",
     brendan = "SPRITE_BRENDAN_BIKE",
   }
@@ -2452,7 +3146,7 @@ return function(mod)
         frameHeight = math.floor(height / 6)
       elseif width >= 32 and height >= 3 * 32 and height % 3 == 0 then
         -- A few Gen 2 NPC sheets (Mom, for example) contain only the
-        -- three standing facings. Potato still uses the six-frame walker
+        -- three standing facings. Battle Art Voxel still uses the six-frame walker
         -- contract, so advertise the real count and avoid sampling blank
         -- rows as if they were animation frames.
         frameWidth = width
@@ -2519,6 +3213,15 @@ return function(mod)
       -- pixels are changed, and the 256px sheet remains a 256px sheet.
       hgssGen2DisplayScale = geometry.displayScale * displayMultiplier,
       hgssGen2NearestFilter = true,
+      -- Battle Art Voxel uses these explicit dimensions for the physical
+      -- billboard footprint. Keep the authored source dimensions above for
+      -- UV/frame decoding, but constrain Gen2 actors to the native 32px
+      -- character card used by the Gen2 Pokémon sprites, so a 256px HGSS
+      -- sheet cannot become a giant world card while still matching mons.
+      hgssVoxelWidth = 32,
+      hgssVoxelHeight = 32,
+      hgssBaseVoxelWidth = 32,
+      hgssBaseVoxelHeight = 32,
       walker = true,
       spriteType = "WALKING_SPRITE",
       trueColor = true,
@@ -2542,6 +3245,7 @@ return function(mod)
       ash = { "overrides/sprites/ash", "ash_bike" },
       ethan = { "overrides/sprites/ethan", "ethan_bike" },
       lyra = { "overrides/sprites/lyra", "lyra_bike" },
+      kris = { "overrides/sprites/kris", "kris_bike" },
       leaf = { "overrides/sprites/leaf", "leaf_bike" },
       brendan = { "overrides/sprites/brendan", "brendan_bike" },
     }
@@ -2549,28 +3253,78 @@ return function(mod)
     return pair[1], pair[2]
   end
 
+  local function gen2SaveGender(game)
+    local value = game and game.save and game.save.player
+      and game.save.player.gender
+    value = tostring(value or "male"):lower()
+    return (value == "female" or value == "girl") and "female" or "male"
+  end
+
+  -- Keep the shared PLAYER SELECT menu useful for Gen 2 custom protagonists,
+  -- but let its existing RED default mean "use the Boy/Girl answer".  This
+  -- preserves explicit Ethan/Lyra/Leaf/etc. selections while a fresh Gen 2
+  -- save follows its own gender choice automatically.
+  local function gen2PlayerSelection(game)
+    local selected = tostring(selectedPlayerOption() or "red"):lower()
+    if selected == "red" or selected == "off" or gen2PlayerSelectSynced then
+      local gender = gen2SaveGender(game)
+      return gender == "female" and "lyra" or "ethan", true
+    end
+    return selected, false
+  end
+
   local function patchGen2PlayerSprites()
-    local footFile, bikeFile = gen2PlayerFiles(selectedPlayerOption())
+    local footFile, bikeFile = gen2PlayerFiles(gen2PlayerSelection())
     -- The Gen-2 world uses the Chris ids for the active player in all three
     -- games.  Crystal also exposes Kris, which stays on the HGSS Lyra sheet
     -- for scripts/NPC code that explicitly requests the female slot.
     -- Keep the native Gen-2 footprint at 1.0x.  The shared SPRITE SIZE
-    -- option is applied at draw time, including through Potato Voxel.
-    patchGen2Sprite("CHRIS", footFile, { hgssGen2ScaleMultiplier = 1.0 })
-    patchGen2Sprite("CHRIS_BIKE", bikeFile)
+    -- option is applied at draw time, including through Battle Art Voxel.
+    -- Keep the active player's physical Voxel card at the native 16px cell;
+    -- the 2D presentation and all Pokémon/NPC slots remain unchanged.
+    local playerVoxelWidth = 32
+    local playerVoxelHeight = 32
+    local playerVoxelSize = {
+      hgssVoxelWidth = playerVoxelWidth,
+      hgssVoxelHeight = playerVoxelHeight,
+      hgssBaseVoxelWidth = playerVoxelWidth,
+      hgssBaseVoxelHeight = playerVoxelHeight,
+    }
+    patchGen2Sprite("CHRIS", footFile, {
+      hgssGen2ScaleMultiplier = 1.0,
+      hgssVoxelWidth = playerVoxelWidth,
+      hgssVoxelHeight = playerVoxelHeight,
+      hgssBaseVoxelWidth = playerVoxelWidth,
+      hgssBaseVoxelHeight = playerVoxelHeight,
+    })
+    patchGen2Sprite("CHRIS_BIKE", bikeFile, playerVoxelSize)
     patchGen2Sprite("KRIS", "overrides/sprites/lyra",
-      { hgssGen2ScaleMultiplier = 1.0 })
-    patchGen2Sprite("KRIS_BIKE", "lyra_bike")
+      {
+        hgssGen2ScaleMultiplier = 1.0,
+        hgssVoxelWidth = playerVoxelWidth,
+        hgssVoxelHeight = playerVoxelHeight,
+        hgssBaseVoxelWidth = playerVoxelWidth,
+        hgssBaseVoxelHeight = playerVoxelHeight,
+      })
+    patchGen2Sprite("KRIS_BIKE", "lyra_bike", playerVoxelSize)
     -- Gen 2's surf state uses these ids.  The Pikachu ride remains an
     -- explicit opt-in asset; the engine still decides when the state is
     -- entered, so ordinary Surf keeps its native behavior.
     patchGen2Sprite("SURFING_PIKACHU", "surfing_pikachu")
-    -- Crystal still resolves the map's Fisherman-tagged object through
-    -- SPRITE_FISHER.  Use the supplied HGSS Fatman charset for that role;
-    -- the asset keeps all six directional/walk frames and is scaled only at
-    -- draw time, so the map object, palette role and interaction scripts stay
-    -- unchanged.
-    patchGen2Sprite("FISHER", "overrides/sprites/fatman",
+    -- Crystal's ordinary mounted state and the Friday Union Cave encounter
+    -- both resolve SPRITE_SURF. Use the dedicated HGSS swimming Lapras atlas
+    -- (including its waterline animation) instead of the native GSC sheet.
+    patchGen2Sprite("SURF", "assets/gen2/pokemon-overworld/131-surf", {
+      hgssGen2ScaleMultiplier = 1.0,
+      hgssVoxelWidth = 32,
+      hgssVoxelHeight = 32,
+      hgssBaseVoxelWidth = 32,
+      hgssBaseVoxelHeight = 32,
+    })
+    -- Crystal resolves the map's Fisherman-tagged object through
+    -- SPRITE_FISHER. Keep that role on the dedicated Fisher charset; Fatman
+    -- is a separate trainer and must never leak into the fishing spot.
+    patchGen2Sprite("FISHER", "overrides/sprites/fisher",
       { hgssGen2ScaleMultiplier = 1.0 })
     -- The city woman in the Gen-2 maps is tagged SPRITE_TEACHER.  Use the
     -- supplied HGSS Silph worker female charset for that role; keep the
@@ -2619,6 +3373,10 @@ return function(mod)
       BUG_CATCHER = "bug_catcher_gen2",
       BUGSY = "bugsy_gen2",
       CAPTAIN = "captain",
+      -- HGSS redesigns Cal as the male Ace Trainer used in the Trainer House.
+      -- Vanilla Crystal places SPRITE_CHRIS in that room, so the map-specific
+      -- redirect below is also required for the visible object.
+      CAL = "cooltrainer_m",
       CHUCK = "chuck_gen2",
       CLAIR = "clair_gen2",
       CLERK = "clerk",
@@ -2649,8 +3407,21 @@ return function(mod)
       NURSE = "nurse",
       OAK = "oak_gen2",
       OFFICER = "officer",
+      -- The legacy link receptionist and unused-guy slots are preloaded by
+      -- Crystal even though vanilla maps never instantiate them. Point them
+      -- at role-compatible HGSS walkers so no native GSC art remains in the
+      -- person registry if a script/mod does use either slot.
+      OLD_LINK_RECEPTIONIST = "link_receptionist",
+      UNUSED_GUY = "gramps",
+      -- Most uses of Crystal's shared slot are pharmacists or civilians,
+      -- including all three Kanto placements in Celadon. Actual Burglar
+      -- trainers are redirected by map/object index below.
+      PHARMACIST = "pharmacist_gen2",
       POKEFAN_M = "pokefan_m",
       PRYCE = "pryce_gen2",
+      -- Official HGSS SPRITE_GSWOMAN6 frames. HGSS uses this character for
+      -- Radio Tower, Trainer House and the other receptionist-style counters.
+      RECEPTIONIST = "receptionist_gen2",
       RED = "red",
       REDS_MOM = "mom_johto",
       ROCKER = "rocker",
@@ -2672,6 +3443,54 @@ return function(mod)
     for shortId, file in pairs(GEN2_NPC_SPRITES) do
       patchGen2Sprite(shortId, file, { hgssGen2ScaleMultiplier = 1.0 })
     end
+
+    -- Crystal reuses broad sprite ids for characters whose HGSS counterparts
+    -- are distinct. Redirect only the concrete map objects whose identity is
+    -- known, leaving the shared records intact for their other users:
+    --   * Cianwood's SPRITE_PHARMACIST is SPRITE_SUNGLASSES in HGSS;
+    --   * Trainer House Cal is SPRITE_CHRIS in Crystal but an Ace Trainer in
+    --     HGSS. Object indices come from the 0.2.45 Crystal map tables.
+    local okWorld, World = pcall(require, "src.world.gen2.World")
+    if not okWorld or type(World) ~= "table"
+        or type(World.pooledNpc) ~= "function"
+        or World.__hgssContextNpcSprites then
+      return
+    end
+
+    patchGen2Sprite("BURGLAR", "burglar_gen2",
+      { hgssGen2ScaleMultiplier = 1.0 })
+    patchGen2Sprite("BATTLE_TOWER_RECEPTIONIST",
+      "battle_tower_receptionist_gen2",
+      { hgssGen2ScaleMultiplier = 1.0 })
+
+    local originalPooledNpc = World.pooledNpc
+    World.pooledNpc = function(self, mapId, obj)
+      local index = type(obj) == "table" and tonumber(obj.index) or nil
+      local replacement
+      if mapId == "TRAINER_HOUSE_B1F" and index == 2 then
+        replacement = "SPRITE_CAL"
+      elseif (mapId == "FAST_SHIP_CABINS_NNW_NNE_NE" and index == 7)
+          or (mapId == "GOLDENROD_UNDERGROUND_SWITCH_ROOM_ENTRANCES"
+              and (index == 1 or index == 2)) then
+        replacement = "SPRITE_BURGLAR"
+      elseif (mapId == "BATTLE_TOWER_1F" and index == 1)
+          or (mapId == "BATTLE_TOWER_BATTLE_ROOM" and index == 2)
+          or (mapId == "BATTLE_TOWER_ELEVATOR" and index == 1)
+          or (mapId == "BATTLE_TOWER_HALLWAY" and index == 1) then
+        replacement = "SPRITE_BATTLE_TOWER_RECEPTIONIST"
+      end
+      if not replacement then
+        return originalPooledNpc(self, mapId, obj)
+      end
+
+      local originalSprite = obj.sprite
+      obj.sprite = replacement
+      local ok, npc = pcall(originalPooledNpc, self, mapId, obj)
+      obj.sprite = originalSprite
+      if not ok then error(npc, 0) end
+      return npc
+    end
+    World.__hgssContextNpcSprites = true
   end
 
   -- The three starter objects in Elm's Lab keep their original object ids and
@@ -2691,7 +3510,18 @@ return function(mod)
     -- and present it at 0.6x so it sits on the table at the same visual size
     -- as the native balls; interaction coordinates remain the original ones.
     patchGen2Sprite("ELM_POKE_BALL", "assets/gen2/elm-pokeball",
-      { hgssGen2ScaleMultiplier = 0.6 })
+      {
+        hgssGen2ScaleMultiplier = 0.6,
+        -- The authored Gen-4 object is a 32px image, but Elm's Lab places
+        -- it on a native Gen-2 16px map cell.  Battle Art Voxel uses these
+        -- physical dimensions (not the source texture size) for the
+        -- billboard, so keep the object at the same footprint as the flat
+        -- renderer.  This is scoped only to the three Elm starter balls.
+        hgssVoxelWidth = 16,
+        hgssVoxelHeight = 16,
+        hgssBaseVoxelWidth = 16,
+        hgssBaseVoxelHeight = 16,
+      })
 
     local originalPooledNpc = World.pooledNpc
     World.pooledNpc = function(self, mapId, obj)
@@ -2869,17 +3699,59 @@ return function(mod)
   -- table is adjusted only after every mod has finished loading, so OFF can
   -- restore the original entries supplied by the game or a companion mod.
   local partyIconEntries = {}
+  local partyIconEntriesByDex = {}
 
   -- Keep full-color HGSS party icon entries local until game.ready. Applying
   -- them at module load would overwrite the original registry before we can
   -- snapshot it for PARTY MENU OFF.
-  for species in words(SPECIES) do
+  local function makePartyIconEntry(species)
     local entry = {
       image = mod.assets:path("assets/icons/" .. assetName(species) .. ".png"),
       frames = 2,
       trueColor = true,
     }
+    return entry
+  end
+
+  local dex = 1
+  for species in words(SPECIES) do
+    local entry = makePartyIconEntry(species)
     partyIconEntries[species] = entry
+    partyIconEntriesByDex[dex] = entry
+    dex = dex + 1
+  end
+
+  -- Gen 2 species use the same runtime records as the Crystal data tables,
+  -- but they are not part of Yellow's 151-entry icon registry.  Register
+  -- them locally by National Dex so the Gen 2 PartyMenu/BoxMenu path can
+  -- resolve an icon without mutating the Gen 1 table.  The corresponding
+  -- assets are generated from Wilds of Kanto's 32x32 overworld cells.
+  dex = 152
+  for species in words(GEN2_SPECIES) do
+    local entry = makePartyIconEntry(species)
+    partyIconEntries[species] = entry
+    partyIconEntriesByDex[dex] = entry
+    dex = dex + 1
+  end
+
+  local function partyIconEntryFor(game, mon)
+    if not mon then return nil end
+    local entry = partyIconEntries[mon.species]
+    if entry then return entry end
+
+    -- A companion Gen 2 data pack may expose a species record before its
+    -- symbolic name is known to this mod.  Resolve that record by National
+    -- Dex as a defensive bridge; it remains inert for Gen 1 because all
+    -- native Yellow species already have a named entry above.
+    local def = game and game.data and game.data.pokemon
+      and game.data.pokemon[mon.species]
+    local nationalDex = tonumber(mon.dex or mon.nationalDex or mon.speciesId
+      or (def and (def.dex or def.nationalDex)))
+    entry = nationalDex and partyIconEntriesByDex[math.floor(nationalDex)]
+    if entry and mon.species ~= nil then
+      partyIconEntries[mon.species] = entry
+    end
+    return entry
   end
 
   -- The registration table below is Yellow's object namespace.  Do not
@@ -3183,15 +4055,22 @@ return function(mod)
   end
 
   -- Gen 2 uses a separate sprite registry and does not instantiate Yellow's
-  -- map objects.  Register the Gen-2 definitions during mod load, while the
-  -- content registry is still mutable.  The active game is not known yet at
-  -- this point, so these harmless extra records are installed for both
-  -- supported generations; only the Gen-2 resolver consumes them.
-  patchGen2PlayerSprites()
-  patchGen2NpcSprites()
-  patchGen2ElmObjectBall()
-  patchGen2Route30Rattata()
-  patchGen2ElmStarterPokePics()
+  -- map objects.  The selected game/version is already available through
+  -- GameVersion during mod load on the supported g1recomp builds, so gate the
+  -- Gen-2 writes here.  Keeping the gate at the registry boundary is
+  -- important: Pokémon names such as SPRITE_BUTTERFREE also exist in the
+  -- Gen-1 table, and an unconditional patch would replace Yellow's native
+  -- artwork before any runtime generation check could restore it.
+  if isGen2() then
+    patchGen2PlayerSprites()
+    patchGen2NpcSprites()
+    patchGen2PokemonSprites(patchGen2Sprite)
+    patchGen2BigDollRenderer()
+    patchGen2PokemonObjectRedirects(patchGen2Sprite)
+    patchGen2ElmObjectBall()
+    patchGen2Route30Rattata()
+    patchGen2ElmStarterPokePics()
+  end
 
   -- The stock renderer always builds 16x16 quads.  Our generated sheets are
   -- 32x192 (six 32x32 frames in native DS density), so install a small,
@@ -3225,6 +4104,14 @@ return function(mod)
   -- keeping this one-frame latch avoids relying on that timing-sensitive
   -- query when deciding whether a flat HD repaint would break depth order.
   local voxelWorldRendered = false
+  -- Alpha bounds for the authored HGSS frames.  The source sheets contain
+  -- different transparent rows below each pose; without normalizing that
+  -- padding, the Voxel card appears to hop whenever up/down changes frame.
+  local voxelFrameBottoms = {}
+  -- Keep the visible silhouette on the authored frame anchor as well.  The
+  -- walk poses have asymmetric arms/caps; when Voxel mirrors one, that
+  -- asymmetry otherwise becomes a visible horizontal jump.
+  local voxelFrameCenters = {}
   local function patchVoxelBillboards(afterWorldPass)
     if (voxelBillboardsPatched and (not afterWorldPass
         or voxelEntityPatchAttempted)) or voxelBillboardsPatching
@@ -3247,17 +4134,29 @@ return function(mod)
     -- upvalue path only for older voxel renderers that do not publish it.
     local billboards
     local voxelLib
-    local voxelProviderIds = { "potato_voxel", "BATTLE_ART_VOXEL_FORK",
-      "DRAMALESS_SHAPE", "DRAMATIC_SHAPE" }
+    local voxelProviderIds = { "BATTLE_ART_VOXEL_GEN2",
+      "BATTLE_ART_VOXEL_FORK", "DRAMALESS_SHAPE", "DRAMATIC_SHAPE" }
     for _, providerId in ipairs(voxelProviderIds) do
       if not billboards and type(mod.find) == "function" then
-        local okFind, provider = pcall(mod.find, providerId)
+        -- Gen2's provider lookup uses the namespace method form; the Gen1
+        -- branch keeps its historical call shape so this fix cannot change
+        -- the existing Gen1 billboard path.
+        local okFind, provider
+        if isGen2() then
+          okFind, provider = pcall(function()
+            return mod:find(providerId)
+          end)
+        else
+          okFind, provider = pcall(mod.find, providerId)
+        end
         local lib = okFind and provider and provider.exports
           and provider.exports.lib
         if lib and type(lib.require) == "function" then
           voxelLib = lib
           local okBillboards, exported = pcall(lib.require, "SpriteBillboards")
-          if okBillboards and type(exported) == "table" then billboards = exported end
+          if okBillboards and type(exported) == "table" then
+            billboards = exported
+          end
         end
       end
     end
@@ -3317,6 +4216,7 @@ return function(mod)
       local sized = setmetatable({}, { __mode = "k" })
       local baseVertices = setmetatable({}, { __mode = "k" })
       local shadowMeshes = setmetatable({}, { __mode = "k" })
+      local visibleMeshes = setmetatable({}, { __mode = "k" })
 
       local function rememberBase(mesh)
         local saved = baseVertices[mesh]
@@ -3331,16 +4231,29 @@ return function(mod)
       end
 
       local function copyGeometry(mesh, source, width, height, yOffset,
-                                  clone)
+                                  clone, xOffset, center, anchorY)
         if not source then return mesh end
         local vertices = {}
-        local left = 8 - width / 2
+        -- Keep the frame canvas aligned with the same pivot used by the
+        -- provider's billboardMatrix. Gen2 cards use the cell anchor at 8
+        -- even when their authored footprint is wider; the historical Gen1
+        -- card remains centred at 8. For asymmetrical poses, xOffset recenters
+        -- only the silhouette,
+        -- and the mirror matrix flips that offset together with the art.
+        local pivot = center or 8
+        local left = pivot - width / 2 + (xOffset or 0)
         for vertex = 1, 4 do
           local base = source[vertex]
           local right = base[1] > 8
           local top = base[2] > 8
           local x = right and (left + width) or left
-          local y = (top and height or 0) + (yOffset or 0)
+          -- Voxel meshes are feet-up local space.  When a SpriteDef supplies
+          -- a custom anchorY (Wilds true-size followers use 26px in a 28px
+          -- card), preserve that exact 2D foot point instead of assuming the
+          -- card bottom is y=0.
+          local bottomY = anchorY and (anchorY - height) or 0
+          local topY = anchorY or height
+          local y = (top and topY or bottomY) + (yOffset or 0)
           vertices[vertex] = { x, y, base[3], base[4], base[5], base[6] }
         end
         if clone and voxelLib and type(voxelLib.require) == "function" then
@@ -3360,9 +4273,145 @@ return function(mod)
         return mesh
       end
 
+      local function frameVisibleBottom(def, frame)
+        if not (def and def.hgssNativeImage and love.image
+                and love.image.newImageData) then return nil end
+        local fw = tonumber(def.hgssFrameWidth or def.frameWidth)
+        local fh = tonumber(def.hgssFrameHeight or def.frameHeight)
+        if not fw or not fh or fw <= 0 or fh <= 0 then return nil end
+        local key = table.concat({ tostring(def.hgssNativeImage), fw, fh,
+          tostring(frame or 0) }, ":")
+        local cached = voxelFrameBottoms[key]
+        if cached ~= nil then return cached end
+        local okData, data = pcall(love.image.newImageData,
+          def.hgssNativeImage)
+        if not (okData and data and data.getPixel) then
+          voxelFrameBottoms[key] = false
+          return nil
+        end
+        local dataW, dataH = data:getDimensions()
+        local baseY = (frame or 0) * fh
+        local bottom = 0
+        local sampleW = math.min(fw, dataW)
+        for yy = fh - 1, 0, -1 do
+          local dataY = baseY + yy
+          if dataY >= dataH then break end
+          local visible = false
+          for xx = 0, sampleW - 1 do
+            local _, _, _, alpha = data:getPixel(xx, dataY)
+            if (alpha or 0) > 0.01 then
+              visible = true
+              break
+            end
+          end
+          if visible then
+            bottom = yy + 1
+            break
+          end
+        end
+        if data.release then data:release() end
+        voxelFrameBottoms[key] = bottom
+        return bottom
+      end
+
+      local function frameVisibleCenter(def, frame)
+        if not (def and def.hgssNativeImage and love.image
+                and love.image.newImageData) then return nil end
+        local fw = tonumber(def.hgssFrameWidth or def.frameWidth)
+        local fh = tonumber(def.hgssFrameHeight or def.frameHeight)
+        if not fw or not fh or fw <= 0 or fh <= 0 then return nil end
+        local key = table.concat({ tostring(def.hgssNativeImage), fw, fh,
+          tostring(frame or 0) }, ":")
+        local cached = voxelFrameCenters[key]
+        if cached ~= nil then return cached end
+        local okData, data = pcall(love.image.newImageData,
+          def.hgssNativeImage)
+        if not (okData and data and data.getPixel) then
+          voxelFrameCenters[key] = false
+          return nil
+        end
+        local dataW, dataH = data:getDimensions()
+        local baseY = (frame or 0) * fh
+        local sampleW = math.min(fw, dataW)
+        local left, right = sampleW, -1
+        for yy = 0, fh - 1 do
+          local dataY = baseY + yy
+          if dataY >= dataH then break end
+          for xx = 0, sampleW - 1 do
+            local _, _, _, alpha = data:getPixel(xx, dataY)
+            if (alpha or 0) > 0.01 then
+              if xx < left then left = xx end
+              if xx > right then right = xx end
+            end
+          end
+        end
+        if data.release then data:release() end
+        if right < left then
+          voxelFrameCenters[key] = false
+          return nil
+        end
+        local center = (left + right + 1) / 2
+        voxelFrameCenters[key] = center
+        return center
+      end
+
+      local function isGen2SmallObject(def)
+        if not (isGen2() and def and not def.hgssNativeImage) then
+          return false
+        end
+        local id = tostring(def.id or def.name or def.sprite or ""):upper()
+        local image = tostring(def.image or ""):upper()
+        -- Crystal's item-ball record is a 16x16 map object.  Some Battle
+        -- Art Voxel builds advertise the source as a 32px card, which makes
+        -- the ball on tables/floors render at twice its intended size.
+        return id == "SPRITE_POKE_BALL"
+          or id:find("POKE_BALL", 1, true) ~= nil
+          or id:find("POKEBALL", 1, true) ~= nil
+          or image:find("POKE_BALL", 1, true) ~= nil
+          or image:find("POKEBALL", 1, true) ~= nil
+      end
+
       local function nativeMesh(def, frame)
         local mesh = originalMesh(def, frame)
-        if not (mesh and def and def.hgssNativeImage) then return mesh end
+        if not (mesh and def) then return mesh end
+        -- Gen2's flat SpriteRenderer anchors every overworld card at the
+        -- cell's 8px world anchor, even when a custom sheet is 22/25/32px
+        -- wide. Battle Art Voxel otherwise leaves those cards at x=0..width,
+        -- so player and follower acquire different horizontal offsets. Keep
+        -- the authored width, but recenter every non-big Gen2 card at px+8.
+        if isGen2() and not def.hgssNativeImage then
+          local fw = tonumber(def.frameWidth)
+          if isGen2SmallObject(def) then
+            local source = rememberBase(mesh)
+            local stamp = "smallball16y" .. tostring(def.anchorY)
+            local cached = visibleMeshes[mesh]
+            if not cached or cached.stamp ~= stamp then
+              cached = { stamp = stamp,
+                mesh = copyGeometry(mesh, source, 16, 16, 0,
+                  true, 0, 8, tonumber(def.anchorY)) }
+              visibleMeshes[mesh] = cached
+            end
+            return cached.mesh or mesh
+          end
+          if def.big then return mesh end
+          if fw and fw > 16 then
+            local source = rememberBase(mesh)
+            local yOffset = voxelSpriteYOffset()
+            local stamp = "anchor8x" .. tostring(fw) .. "y"
+              .. tostring(def.anchorY) .. "o" .. tostring(yOffset)
+            local cached = visibleMeshes[mesh]
+            if not cached or cached.stamp ~= stamp then
+              cached = { stamp = stamp,
+                mesh = copyGeometry(mesh, source, fw,
+                  tonumber(def.frameHeight) or 16, yOffset, true, 0, 8,
+                  tonumber(def.anchorY)) }
+              visibleMeshes[mesh] = cached
+            end
+            return cached.mesh or mesh
+          end
+          return mesh
+        end
+        if not def.hgssNativeImage then return mesh end
         local source = rememberBase(mesh)
         local size = overworldSpriteScale(def)
         -- Quantize the final billboard dimensions.  Fractional mesh extents
@@ -3373,7 +4422,7 @@ return function(mod)
           or def.hgssVoxelWidth or def.hgssFrameWidth) or 32
         local baseH = tonumber(def.hgssBaseVoxelHeight
           or def.hgssVoxelHeight or def.hgssFrameHeight) or 32
-        -- Potato/Dramatic voxel billboards are authored in a 16px world
+        -- Battle Art Voxel billboards are authored in a 16px world
         -- cell even when the replacement card is 32px wide.  Apply the
         -- logical sprite-size control in that world space; without this
         -- conversion every value >= 0.5 collapses to the engine's minimum
@@ -3390,11 +4439,40 @@ return function(mod)
           width = math.max(1, math.floor(baseW * size * voxelScale + 0.5))
           height = math.max(1, math.floor(baseH * size * voxelScale + 0.5))
         end
-        local stamp = table.concat({ width, height,
-          tostring(def.hgssVoxelEntityYOffset or 0) }, "x")
+        -- Move each frame by the amount of transparent bottom padding so its
+        -- visible footline remains on the same voxel ground plane.
+        local frameYOffset = tonumber(def.hgssVoxelEntityYOffset) or 0
+        -- Only HGSS/Gen2 uses the per-frame alpha grounding.  Gen1 keeps its
+        -- historical billboard offsets and geometry untouched.
+        local frameXOffset = 0
+        -- The Voxel card must share SpriteRenderer's px+8 anchor.  The
+        -- physical width is independent from that pivot (a 32px player card
+        -- extends 16px to each side of the same point).
+        local geometryPivot = 8
+        if isGen2() then
+          local bottom = frameVisibleBottom(def, frame)
+          local fh = tonumber(def.hgssFrameHeight or def.frameHeight)
+          if bottom and fh and fh > 0 then
+            frameYOffset = frameYOffset - (fh - bottom) * height / fh
+          end
+          -- The Gen2 native player cards have a one-to-two pixel transparent
+          -- lip below the authored shoes. Lower only the visible card by two
+          -- local pixels; the shadow caster keeps its unshifted ground mesh.
+          frameYOffset = frameYOffset + voxelSpriteYOffset()
+          local center = frameVisibleCenter(def, frame)
+          local fw = tonumber(def.hgssFrameWidth or def.frameWidth)
+          if center and fw and fw > 0 then
+            -- The billboard matrix mirrors the whole card around its anchor,
+            -- so this one offset corrects both mirrored and unmirrored poses:
+            -- the geometry offset changes sign together with the art.
+            frameXOffset = (fw / 2 - center) * width / fw
+          end
+        end
+        local stamp = table.concat({ width, height, tostring(frameXOffset),
+          tostring(frameYOffset) }, "x")
         if sized[mesh] ~= stamp then
           copyGeometry(mesh, source, width, height,
-            tonumber(def.hgssVoxelEntityYOffset) or 0, false)
+            frameYOffset, false, frameXOffset, geometryPivot)
           sized[mesh] = stamp
         end
         return mesh
@@ -3406,7 +4484,25 @@ return function(mod)
       -- without relying on the debug library.
       local function nativeShadow(def, frame)
         local mesh = originalMesh(def, frame)
-        if not (mesh and def and def.hgssNativeImage) then return mesh end
+        if not (mesh and def) then return mesh end
+        if isGen2() and not def.hgssNativeImage then
+          local fw = tonumber(def.frameWidth)
+          if isGen2SmallObject(def) then
+            local source = rememberBase(mesh)
+            copyGeometry(mesh, source, 16, 16, 0, false, 0, 8,
+              tonumber(def.anchorY))
+            return mesh
+          end
+          if def.big then return mesh end
+          if fw and fw > 16 then
+            local source = rememberBase(mesh)
+            copyGeometry(mesh, source, fw,
+              tonumber(def.frameHeight) or 16, 0, false, 0, 8,
+              tonumber(def.anchorY))
+          end
+          return mesh
+        end
+        if not def.hgssNativeImage then return mesh end
         local source = rememberBase(mesh)
         local size = overworldSpriteScale(def)
         local baseW = tonumber(def.hgssBaseVoxelWidth
@@ -3428,13 +4524,32 @@ return function(mod)
         local cached = shadowMeshes[mesh]
         if not cached or cached.stamp ~= stamp then
           cached = { stamp = stamp,
-            mesh = copyGeometry(mesh, source, width, height, 0, true) }
+            mesh = copyGeometry(mesh, source, width, height, 0, true, 0, 8) }
           shadowMeshes[mesh] = cached
         end
         return cached.mesh or mesh
       end
       billboards.mesh = nativeMesh
       billboards.shadowQuad = nativeShadow
+      local originalHalfWidth = billboards.halfWidth
+      if type(originalHalfWidth) == "function" then
+        billboards.halfWidth = function(def)
+          -- Gen2 SpriteRenderer's visual world anchor is the fixed 8px cell
+          -- centre. Keep the matrix depth pivot fixed as well: using each
+          -- frame's half-width changes py+half for wide cards and makes a
+          -- side-facing card jump vertically in the pitched Voxel camera.
+          if isGen2() and def then
+            if isGen2SmallObject(def) then return 8 end
+            if def.big then return originalHalfWidth(def) end
+            local width = tonumber(def.hgssBaseVoxelWidth
+              or def.hgssVoxelWidth or def.frameWidth)
+            if def.hgssNativeImage or (width and width > 16) then
+              return 8
+            end
+          end
+          return originalHalfWidth(def)
+        end
+      end
       billboards._hgssVariableGeometryWrapped = true
     end
     -- From this point onward the expensive billboard lookup is complete.  The
@@ -3446,7 +4561,7 @@ return function(mod)
       return
     end
     -- Current Gen1Recomp sandboxes do not expose Lua's debug library to mods.
-    -- The public PotatoVoxel export above is sufficient for geometry scaling;
+    -- The public Battle Art Voxel export above is sufficient for geometry scaling;
     -- the optional depth/grounding surgery below is only available on older
     -- desktop builds that still expose debug upvalues.
     if not (debug and debug.getupvalue and debug.setupvalue) then
@@ -3538,7 +4653,9 @@ return function(mod)
           local function wrappedEntity(sprite, px, py, facing, phase, flip, gh, colors, lift)
             local def = sprite and sprite.def
             biasActive = def and def.hgssNativeImage and true or false
-            if biasActive and def.hgssVoxelEntityYOffset then gh = gh + (tonumber(def.hgssVoxelEntityYOffset) or 0) end
+            if biasActive and def.hgssVoxelEntityYOffset then
+              gh = gh + (tonumber(def.hgssVoxelEntityYOffset) or 0)
+            end
             local ok, result = pcall(oldEntity, sprite, px, py, facing, phase, flip, gh, colors, lift)
             biasActive = false
             return ok and result or false
@@ -3630,10 +4747,9 @@ return function(mod)
     voxelBillboardsPatching = false
   end
   local function tryPatchVoxelBillboards()
-    -- Gen 2 currently uses the native flat renderer only. Potato's Gen-2
-    -- bridge does not export its billboard module, so attempting the Gen-1
-    -- adapter here cannot provide a reliable size control.
-    if isGen2() then return end
+    -- The same native-image geometry adapter is used by the Gen2 Battle Art
+    -- Voxel provider. Its billboard module is separate from the Gen1 one, so
+    -- discovery is keyed by provider id and does not alter Gen1 geometry.
     if voxelBillboardsPatched then return end
     patchVoxelBillboards(false)
   end
@@ -3646,10 +4762,10 @@ return function(mod)
 
   SpriteRenderer.new = function(spriteDef, seed)
     if isGen2() then
-      -- Potato owns the Gen-2 world pass, so install the same variable-size
+      -- Battle Art Voxel owns the Gen-2 world pass, so install the same variable-size
       -- billboard adapter before the first actor is rendered. Previously the
       -- Gen-2 early return skipped this hook entirely, leaving every card at
-      -- Potato's fixed minimum size and ignoring the menu option.
+      -- the provider's fixed minimum size and ignoring the menu option.
       tryPatchVoxelBillboards()
       local self = oldNew(spriteDef, seed)
       -- Gen-2 player sheets may be authored at 256x1536 and reduced only at
@@ -4109,6 +5225,208 @@ return function(mod)
     return partyIconImages[resolved] or nil, partyIconQuads[resolved]
   end
 
+  -- These locals are also used by the Gen2 BoxMenu overlay below. Declare
+  -- them before that closure so Lua does not resolve them as globals.
+  local ListFont = require("src.render.Font")
+  local drawPartyName
+  local drawPartyLevel
+  local drawGen2PartyGrid
+  local drawGen2CompactHpBar
+  local gen2NativePartyDrawIcon
+
+  -- Gold/Silver/Crystal use separate PartyMenu and BoxMenu classes.  Their
+  -- native screens still expect a single 16px icon row, so a 32px HGSS cell
+  -- is clipped there.  `scale` is kept optional for the native fallback;
+  -- the two-column party grid below uses the authored 32px frame at 1:1.
+  local function drawGen2MenuIcon(game, mon, x, y, selected, clock, optionKey,
+                                  scale)
+    if not mon or mod.options:get(optionKey or "party_menu") == false then return end
+    local entry = partyIconEntryFor(game, mon)
+    if not entry then return end
+    local image, quads = loadPartyIcon(entry.image)
+    if not image or not quads then return end
+    local frame = math.floor((tonumber(clock) or (love.timer.getTime() * 32)) / 16) % 2
+    local quad = quads[frame] or quads[0]
+    if not quad then return end
+    local drawX = x + (selected and 8 or 0)
+    local drawScale = tonumber(scale) or 0.5
+    local drawSize = 32 * drawScale
+    PartyPaletteFX.markTrueColor(drawX, y, drawSize, drawSize)
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.draw(image, quad, drawX, y, 0, drawScale, drawScale)
+  end
+
+  local okGen2PartyMenu, Gen2PartyMenu =
+    pcall(require, "src.ui.gen2.PartyMenu")
+  if okGen2PartyMenu and type(Gen2PartyMenu) == "table"
+     and type(Gen2PartyMenu.drawPanel) == "function"
+     and not Gen2PartyMenu.__hgssPartyGridHook then
+    -- The replacement is installed at drawPanel rather than as a late
+    -- overlay.  It owns the complete 160x144 Party screen, arranging the six
+    -- rows as two columns by three rows just like Yellow.  Calling the native
+    -- panel first would leave its 16px icon pass underneath (and can clip the
+    -- upper/lower half of the authored 32px frame on different Crystal
+    -- builds).  OFF remains an exact native Gen2 panel.
+    local oldGen2PartyDrawPanel = Gen2PartyMenu.drawPanel
+    gen2NativePartyDrawIcon = Gen2PartyMenu.drawIcon
+    Gen2PartyMenu.drawPanel = function(self, ...)
+      if not isGen2(self and self.game)
+         or mod.options:get("party_menu") == false
+         or not drawGen2PartyGrid then
+        return oldGen2PartyDrawPanel(self, ...)
+      end
+      return drawGen2PartyGrid(self)
+    end
+    -- Match Yellow's two-column controls as well as its visual layout:
+    -- left/right changes columns and up/down changes rows.  The native Gold
+    -- update only knows the old one-column list and would otherwise move from
+    -- the upper-left entry to the upper-right entry on DOWN.  Submenus and
+    -- the second pick of SWITCH keep their native vertical behavior.
+    local oldGen2PartyUpdate = Gen2PartyMenu.update
+    local function gen2GridIndex(index, count, direction)
+      if count < 1 then return nil end
+      local row = math.floor((index - 1) / 2)
+      local col = (index - 1) % 2
+      if direction == "left" or direction == "right" then
+        local other = row * 2 + (1 - col) + 1
+        return other <= count and other or index
+      end
+      local step = direction == "up" and -1
+        or direction == "down" and 1
+      if not step then return nil end
+      local rows = math.ceil(count / 2)
+      for offset = 1, rows do
+        local other = ((row + step * offset) % rows) * 2 + col + 1
+        if other <= count then return other end
+      end
+      return index
+    end
+    Gen2PartyMenu.update = function(self, dt)
+      if isGen2(self and self.game)
+         and mod.options:get("party_menu") ~= false
+         and not self.submenu and not self.switchFrom then
+        local input = self.game and self.game.input
+        local direction = input and (input:wasPressed("left") and "left"
+          or input:wasPressed("right") and "right"
+          or input:wasPressed("up") and "up"
+          or input:wasPressed("down") and "down")
+        local count = math.min(#(self.party or {}), 6)
+        if direction and count > 0 and self.index <= count then
+          self.clock = self.clock + 1
+          self.index = gen2GridIndex(self.index, count, direction)
+          return
+        end
+      end
+      return oldGen2PartyUpdate(self, dt)
+    end
+    Gen2PartyMenu.__hgssPartyGridHook = true
+  end
+
+  local okGen2BoxMenu, Gen2BoxMenu =
+    pcall(require, "src.ui.gen2.BoxMenu")
+  if okGen2BoxMenu and type(Gen2BoxMenu) == "table"
+     and type(Gen2BoxMenu.drawPanel) == "function"
+     and not Gen2BoxMenu.__hgssIconOverlayHook then
+    local oldGen2BoxDrawPanel = Gen2BoxMenu.drawPanel
+    Gen2BoxMenu.drawPanel = function(self, ...)
+      if not isGen2(self and self.game)
+         or mod.options:get("pc_box_icons") == false then
+        return oldGen2BoxDrawPanel(self, ...)
+      end
+
+      local ok, result = xpcall(function()
+      -- Use the same full-screen four-row transfer panel as Yellow.  The
+      -- native Gen2 BoxMenu draws a large selected front picture in its left
+      -- panel and 16px GSC names on the right; leaving that layer underneath
+      -- produced the mixed front-static/icon screen seen in Crystal.  This
+      -- replacement owns the complete panel while BoxMenu continues to own
+      -- cursor movement, submenus and transfer mutations.
+      love.graphics.setColor(1, 1, 1, 1)
+      love.graphics.rectangle("fill", 0, 0, 160, 144)
+      love.graphics.setColor(0, 0, 0, 1)
+      ListFont.drawBox(0, 0, 20, 18)
+      local heading
+      if self.mode == "deposit" then
+        heading = "PARTY (DEPOSIT)"
+      elseif self.mode == "release" then
+        heading = ("BOX %d (RELEASE)"):format(self.boxIndex or 1)
+      else
+        heading = ("BOX %d (WITHDRAW)"):format(self.boxIndex or 1)
+      end
+      ListFont.draw(heading, 8, 8)
+
+      -- Read the live save lists directly. Some Crystal builds expose a
+      -- transient `self:list()` view while the PC screen is opening; that
+      -- view can contain only the first two rows even though the box holds
+      -- more entries. The transfer list itself is authoritative here.
+      local list
+      if self.mode == "deposit" then
+        list = (self.save and self.save.party) or {}
+      else
+        local okBoxes, BoxesGen2 = pcall(require, "src.core.gen2.Boxes")
+        list = (okBoxes and BoxesGen2 and BoxesGen2.box and self.save)
+          and (BoxesGen2.box(self.save, self.boxIndex or 1) or {}) or {}
+      end
+      local first = tonumber(self.scroll) or 0
+      local total = #list + 1
+      for row = 1, 4 do
+        local index = first + row
+        local mon = list[index]
+        local nameY = 32 + (row - 1) * 32
+        local iconY = 16 + (row - 1) * 32
+        if mon then
+          local def = self.game and self.game.data
+            and self.game.data.pokemon and self.game.data.pokemon[mon.species]
+          local name = mon.nickname or mon.name or (def and def.name)
+            or mon.species or "?"
+          -- Crystal's transfer list has enough horizontal room for the
+          -- original fixed-width font. Keep the name on one line and trim
+          -- only when it would reach the level column.
+          local displayName = tostring(name)
+          while #displayName > 1 and ListFont.width(displayName) > 80 do
+            displayName = displayName:sub(1, -2)
+          end
+          ListFont.draw(displayName, 48, nameY)
+          -- Four fixed-width glyphs need 32px; right-align the level inside
+          -- the 160px canvas instead of starting at x=136 and crossing the
+          -- frame.
+          ListFont.draw(":L" .. tostring(mon.level or 1), 120, nameY)
+          local entry = partyIconEntryFor(self and self.game, mon)
+          if entry then
+            local image, quads = loadPartyIcon(entry.image)
+            local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
+            local quad = quads and (quads[frame] or quads[0])
+            if image and quad then
+              PartyPaletteFX.markTrueColor(8, iconY, 32, 32)
+              love.graphics.setColor(1, 1, 1, 1)
+              love.graphics.draw(image, quad, 8, iconY)
+            end
+          end
+        elseif index == total then
+          ListFont.draw("CANCEL", 48, nameY)
+        end
+        if index == self.index then
+          love.graphics.setColor(0, 0, 0, 1)
+          ListFont.drawCode(PartyTheme.cursor, 40, nameY)
+        end
+      end
+      if first + 4 < total then
+        ListFont.drawCode(PartyTheme.moreArrow, 144, 136)
+      end
+      love.graphics.setColor(1, 1, 1, 1)
+      return true
+      end, function(err) return tostring(err) end)
+      if not ok then
+        local trace = io.open((os.getenv("HGSS_PC_ERROR_LOG") or
+          "hgss_pc_error.log"), "wb")
+        if trace then trace:write(tostring(result)); trace:close() end
+        return oldGen2BoxDrawPanel(self, ...)
+      end
+      return result
+    end
+    Gen2BoxMenu.__hgssIconOverlayHook = true
+  end
+
   hgssPartyDrawIcon = function(game, mon, x, y, selected, counter, forceAlt)
     if battleArtPresent then
       return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
@@ -4153,7 +5471,6 @@ return function(mod)
   local oldListMenuDraw = ListMenu.draw
   local oldListMenuNew = ListMenu.new
   local Boxes = require("src.pokemon.Boxes")
-  local ListFont = require("src.render.Font")
 
   -- A native 32px icon needs a 32px row.  Keep the stock seven-row layout
   -- available for OFF, but let the custom PC list use four native rows while
@@ -4198,9 +5515,6 @@ return function(mod)
 
   -- Forward declaration: the compact glyph renderer is defined below the
   -- ListMenu hook but is also used for the PC box level column.
-  local drawPartyName
-  local drawPartyLevel
-
   local function fitPcBoxName(label, maxWidth)
     local text = tostring(label or "")
     if ListFont.width(text) <= maxWidth then return text end
@@ -4309,8 +5623,9 @@ return function(mod)
         if levels[i] then drawPartyLevel(levels[i], 136, nameY) end
 
         local mon = pcBoxListMon(self, row)
-        if mon and partyIconEntries[mon.species] then
-          local path = partyIconEntries[mon.species].image
+        local entry = partyIconEntryFor(self and self.game, mon)
+        if mon and entry then
+          local path = entry.image
           local image, quads = loadPartyIcon(path)
           local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
           local quad = quads and (quads[frame] or quads[0])
@@ -4352,8 +5667,9 @@ return function(mod)
       local item = self.items[i]
       if not item then break end
       local mon = pcBoxListMon(self, row)
-      if mon and partyIconEntries[mon.species] then
-        local path = partyIconEntries[mon.species].image
+      local entry = partyIconEntryFor(self and self.game, mon)
+      if mon and entry then
+        local path = entry.image
         local image, quads = loadPartyIcon(path)
         local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
         local quad = quads and (quads[frame] or quads[0])
@@ -4433,6 +5749,7 @@ return function(mod)
     ["8"]={"0110","1001","1001","0110","1001","1001","0110"},
     ["9"]={"0110","1001","1001","0111","0001","0001","1110"},
     ["."]={"0000","0000","0000","0000","0000","0110","0110"},
+    ["_"]={"0000","0000","0000","0000","0000","0000","1111"},
     [":"]={"0000","0000","0010","0000","0010","0000","0000"},
     [" "]={"0000","0000","0000","0000","0000","0000","0000"},
     ["?"]={"1110","0001","0010","0100","0100","0000","0100"},
@@ -4491,6 +5808,165 @@ return function(mod)
     end
   end
 
+  -- Gen 2 uses the same full-cell party presentation as Yellow when HGSS
+  -- icons are enabled: six 32x32 frames in two columns by three rows.  The
+  -- native Crystal list is one 16px column, which clips a 32px source cell;
+  -- keeping the whole panel here also prevents the native icon layer from
+  -- being composited over the replacement.
+  local function drawGen2PartyEntry(self, mon, index, x, y)
+    local data = self.game and self.game.data or {}
+    local defs = data.pokemon or {}
+    local def = defs[mon.species] or {}
+    local name = mon.nickname or def.name or mon.name or mon.species or "?"
+
+    local entry = partyIconEntryFor(self.game, mon)
+    if entry then
+      drawGen2MenuIcon(self.game, mon, x, y, false, self.clock,
+                       "party_menu", 1)
+    elseif gen2NativePartyDrawIcon then
+      -- Eggs and any future species outside the 251 registry retain the
+      -- native Crystal glyph instead of leaving an empty slot.
+      gen2NativePartyDrawIcon(self, mon, x, y, false, self.clock)
+    end
+
+    local textX = x + 32
+    love.graphics.setColor(0, 0, 0, 1)
+    drawPartyName(name, textX, y)
+    if self.tmhm then
+      local can = false
+      for _, move in ipairs(def.tmhm or {}) do
+        if move == self.tmhm.move then can = true break end
+      end
+      PartyFont.draw(can and "ABLE" or "NO", textX, y + 8)
+    else
+      PartyFont.draw("L" .. tostring(mon.level or 1), textX, y + 8)
+      local shown = mon
+      if self.heal and self.heal.mon == mon then
+        shown = { hp = math.floor(self.heal.shown), stats = mon.stats }
+      end
+      drawGen2CompactHpBar(self, shown, textX / 8, (y + 16) / 8)
+      local condition
+      if (mon.hp or 0) <= 0 then
+        condition = "FNT"
+      elseif mon.status then
+        condition = tostring(mon.status):upper()
+      end
+      if condition then
+        local levelWidth = PartyFont.width("L" .. tostring(mon.level or 1))
+        if levelWidth + PartyFont.width(condition) <= 48 then
+          PartyFont.draw(condition, textX + levelWidth, y + 8)
+        else
+          PartyFont.draw(condition, textX, y + 24)
+        end
+      end
+    end
+
+    -- Keep the cursor immediately before the name, leaving the complete icon
+    -- unobscured.  A hollow marker parks on the source row during switching.
+    if index == self.index then
+      PartyFont.drawCode(PartyTheme.cursor, x + 24, y + 8)
+    elseif index == self.switchFrom then
+      PartyFont.drawCode(PartyTheme.cursorHollow, x + 24, y + 8)
+    end
+  end
+
+  -- The Gen 2 PartyMenu's HUD sheet has the same "HP:" prefix and six-cell
+  -- bar as battle, but a 2-column party cell has only 48px beside its icon.
+  -- Use a compact three-cell version (the Yellow layout's width) while
+  -- retaining Crystal's palette and pixel-fill calculation.  Calling the
+  -- Gen 1 HudTiles helper here silently produces no tiles on a Gen 2 data
+  -- pack because its font pages are not the Gen 2 HUD sheet.
+  drawGen2CompactHpBar = function(self, mon, tx, ty)
+    local hpBar = require("src.battle.gen2.HpBar")
+    local hud = self.hud
+    local hp = mon.hp or 0
+    local maxHp = mon.maxHp or (mon.stats and mon.stats.hp) or 0
+    local pixels = hpBar.pixels(hp, maxHp)
+    local compactPixels = math.floor(pixels * 24 / hpBar.LENGTH_PX + 0.5)
+    local colors = hud and hud.barColors
+      and hud:barColors(hpBar.palette(pixels)) or nil
+    if hud and hud.available and hud:available() then
+      -- BattleHud's tile ids are the extracted Gen 2 FontBattleExtra page.
+      hud:drawTile("hpBar", 0x60, 0x60, tx, ty, colors)
+      hud:drawTile("hpBar", 0x60, 0x61, tx + 1, ty, colors)
+      for cell = 0, 2 do
+        local filled = math.max(0, math.min(8,
+          compactPixels - cell * 8))
+        hud:drawTile("hpBar", 0x60, 0x62 + filled,
+          tx + 2 + cell, ty, colors)
+      end
+      hud:drawTile("hpBar", 0x60, 0x6b, tx + 5, ty, colors)
+      PartyPaletteFX.markTrueColor(tx * 8, ty * 8, 48, 8)
+      return
+    end
+
+    -- Headless/degraded builds can lack the extracted HUD sheet. Keep a
+    -- readable compact bar instead of dropping it altogether.
+    local G = love.graphics
+    local px, py = tx * 8, ty * 8
+    G.setColor(0, 0, 0, 1)
+    drawPartyName("HP:", px, py)
+    local barX, barY = px + 16, py + 2
+    G.rectangle("fill", barX - 1, barY - 1, 26, 5)
+    G.setColor(1, 1, 1, 1)
+    G.rectangle("fill", barX, barY, 24, 3)
+    if compactPixels > 0 then
+      local pal = self.palettes and self.palettes.hpBar
+        and self.palettes.hpBar[hpBar.palette(pixels)]
+      local fill = pal and pal[2]
+      if fill then G.setColor(fill[1] / 255, fill[2] / 255,
+                              fill[3] / 255, 1)
+      else G.setColor(0.1, 0.1, 0.1, 1) end
+      G.rectangle("fill", barX, barY, compactPixels, 3)
+    end
+    G.setColor(0, 0, 0, 1)
+    PartyPaletteFX.markTrueColor(px, py, 48, 8)
+  end
+
+  drawGen2PartyGrid = function(self)
+    local party = self.party or (self.game and self.game.save
+      and self.game.save.party) or {}
+    love.graphics.setColor(1, 1, 1, 1)
+    love.graphics.rectangle("fill", 0, 0, 160, 144)
+    love.graphics.setColor(0, 0, 0, 1)
+    if #party == 0 then
+      PartyFont.draw("No POKéMON!", 16, 64)
+    end
+
+    -- Party size is capped at six by the game.  The bound also keeps a
+    -- malformed save from drawing a seventh cell into the prompt box.
+    for index = 1, math.min(#party, 6) do
+      local slot = index - 1
+      local col = slot % 2
+      local row = math.floor(slot / 2)
+      drawGen2PartyEntry(self, party[index], index, col * 80, row * 32)
+    end
+
+    PartyFont.drawBox(0, 12, 20, 6)
+    love.graphics.setColor(0, 0, 0, 1)
+    local prompt = self.switchFrom and "Move to where?"
+      or self.prompt or "Choose a POKéMON."
+    local ly = 112
+    for line in (prompt .. "\n"):gmatch("([^\n]*)\n") do
+      PartyFont.draw(line, 8, ly)
+      ly = ly + 16
+    end
+
+    local menu = self.submenu
+    local items = menu and menu.items or nil
+    if items and #items > 0 then
+      local count = #items
+      PartyFont.drawBox(9, 17 - count * 2 - 1, 11, count * 2 + 1)
+      local y0 = (17 - count * 2) * 8
+      for row, item in ipairs(items) do
+        PartyFont.draw(item.label, 88, y0 + (row - 1) * 16)
+      end
+      PartyFont.drawCode(PartyTheme.cursor, 80,
+                         y0 + ((menu.index or 1) - 1) * 16)
+    end
+    love.graphics.setColor(1, 1, 1, 1)
+  end
+
   local function drawNativePartyEntry(self, mon, index, x, y)
     local def = self.game.data.pokemon[mon.species]
     PartyMenu.drawIcon(self.game, mon, x, y, index == self.index,
@@ -4510,9 +5986,8 @@ return function(mod)
       if self.heal and self.heal.mon == mon then
         shown = { hp = math.floor(self.heal.shown), stats = mon.stats }
       end
-      -- Three segments fit exactly in the 48px text column.  Marking the
-      -- bar trueColor keeps its green/yellow/red ramp independent from the
-      -- party screen's legacy SGB zone list.
+      -- Keep the Yellow/Gen 1 renderer on its original HP tile path.  The
+      -- compact Gen 2 HUD helper is reserved for Gen2PartyMenu above.
       PartyHudTiles.drawHPBar(self.game.data, textX / 8, (y + 16) / 8,
                               shown, nil, false, 3)
       PartyPaletteFX.markTrueColor(textX, y + 16, 48, 8)
@@ -4952,7 +6427,6 @@ return function(mod)
     if type(mod.find) ~= "function" then return nil end
     local providerIds = {
       "DRAMALESS_SHAPE", "DRAMATIC_SHAPE", "BATTLE_ART_VOXEL_FORK",
-      "potato_voxel",
     }
     for _, providerId in ipairs(providerIds) do
       local okFind, provider = pcall(mod.find, providerId)
@@ -5520,7 +6994,26 @@ return function(mod)
       or (data and (data.gen2Sprites or data.sprites))
     if type(sprites) ~= "table" then return end
 
-    local footFile, bikeFile = gen2PlayerFiles(selectedPlayerOption())
+    -- Crystal's native item-ball art is a single 16x16 still sprite.  Some
+    -- Battle Art Voxel revisions infer a 32px card for this record when no
+    -- explicit frame contract is present, which is especially visible for a
+    -- ball placed on a table.  Normalize only the Gen2 live record; the image
+    -- and object/script identity remain untouched.
+    local pokeBall = sprites.SPRITE_POKE_BALL
+    if type(pokeBall) == "table" then
+      pokeBall.frames = 1
+      pokeBall.frameWidth = 16
+      pokeBall.frameHeight = 16
+      pokeBall.anchorX = 8
+      pokeBall.anchorY = 16
+      pokeBall.big = nil
+      pokeBall.walker = false
+      pokeBall.spriteType = "STILL_SPRITE"
+    end
+
+    local selected, followsGender = gen2PlayerSelection(game)
+    local gender = gen2SaveGender(game)
+    local footFile, bikeFile = gen2PlayerFiles(selected)
     local function ensure(id, file)
       local relative = gen2AssetPath(file)
       if not assetExists(relative) then return nil end
@@ -5540,6 +7033,14 @@ return function(mod)
       local displayMultiplier = 1
       def.hgssGen2DisplayScale = geometry.displayScale * displayMultiplier
       def.hgssGen2NearestFilter = true
+      -- Reapplying PLAYER SELECT also runs when any HGSS option changes.
+      -- Preserve the Voxel card's logical 32px footprint here; otherwise the
+      -- live Gen2 table falls back to the authored 256px sheet and the
+      -- SPRITE SIZE menu is either clamped away or appears ineffective.
+      def.hgssVoxelWidth = 32
+      def.hgssVoxelHeight = 32
+      def.hgssBaseVoxelWidth = 32
+      def.hgssBaseVoxelHeight = 32
       def.walker = true
       def.spriteType = "WALKING_SPRITE"
       def.trueColor = true
@@ -5556,12 +7057,25 @@ return function(mod)
 
     -- Refresh the existing actor without changing its grid position, facing,
     -- bike state or movement timers.  `applyPlayerState` is the Gen 2-native
-    -- seam used by FieldMoves for normal/bike/surf state transitions.
+    -- seam used by FieldMoves for normal/bike/surf state transitions.  When
+    -- PLAYER SELECT is on its RED/auto default, replace the engine's fixed
+    -- Chris id with the save's Boy/Girl slot after the state transition.
+    local activeWalkId = followsGender and gender == "female"
+      and "SPRITE_KRIS" or "SPRITE_CHRIS"
+    local activeBikeId = followsGender and gender == "female"
+      and "SPRITE_KRIS_BIKE" or "SPRITE_CHRIS_BIKE"
     if world and type(world.applyPlayerState) == "function" then
       pcall(function() world:applyPlayerState(world.playerState) end)
+      if world.player and (world.playerState == "normal"
+          or world.playerState == "bike") then
+        local id = world.playerState == "bike"
+          and activeBikeId or activeWalkId
+        local def = sprites[id]
+        if def then pcall(function() world.player:setSprite(def) end) end
+      end
     elseif world and world.player and type(world.player.setSprite) == "function" then
       local id = world.playerState == "bike"
-        and "SPRITE_CHRIS_BIKE" or "SPRITE_CHRIS"
+        and activeBikeId or activeWalkId
       local def = sprites[id]
       if def then pcall(function() world.player:setSprite(def) end) end
     end
@@ -5664,12 +7178,19 @@ return function(mod)
     tryPatchVoxelBillboards()
     applyCrispDisplay(liveGame)
     applyPartyMenuOption(liveGame)
+    if isGen2(liveGame) then
+      syncGen2PlayerOption(liveGame, gen2SaveGender(liveGame))
+    end
     applyGen2PlayerSelection(liveGame)
     applyPlayerSelection(liveGame)
     applyLeaderSprites()
   end)
   mod.events:on("map.entered", function()
     if isGen2() then
+      -- Battle Art creates its VoxelScene/billboard exports after game.ready
+      -- on some installations. Retry at map entry before the first idle frame
+      -- so the Gen2 player cannot be rendered with the oversized stock card.
+      tryPatchVoxelBillboards()
       applyGen2PlayerSelection(liveGame)
       return
     end
@@ -5679,6 +7200,7 @@ return function(mod)
   end)
   mod.events:on("map.reloaded", function()
     if isGen2() then
+      tryPatchVoxelBillboards()
       applyGen2PlayerSelection(liveGame)
       return
     end
@@ -5700,6 +7222,7 @@ return function(mod)
   -- cosmetic policy only after that restore has completed.
   mod.events:on("save.loaded", function()
     if isGen2() then
+      syncGen2PlayerOption(liveGame, gen2SaveGender(liveGame))
       applyGen2PlayerSelection(liveGame)
       return
     end
@@ -5710,6 +7233,7 @@ return function(mod)
   end)
   mod.events:on("save.created", function()
     if isGen2() then
+      syncGen2PlayerOption(liveGame, gen2SaveGender(liveGame))
       applyGen2PlayerSelection(liveGame)
       return
     end
@@ -5721,7 +7245,7 @@ return function(mod)
 
   mod.exports.coverage = {
     pokemon = 151,
-    partyIcons = 151,
+    partyIcons = 251,
     battleTrainers = 46,
     overworldCharacters = 70,
     chromeGlyphs = 9,

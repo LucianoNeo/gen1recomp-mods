@@ -1,5 +1,49 @@
 # Changelog
 
+## 2.0.0
+
+- Completed the Gen2 trainer/person registry: all 76 canonical character slots
+  now resolve to HGSS-quality artwork. Receptionists use the official HGSS
+  `GSWOMAN6` frames; Crystal's shared Pharmacist slot uses the official
+  `SUNGLASSES` character for Cianwood and its civilian placements, while the
+  three actual Burglar trainers are redirected map-locally to HGSS Burglar;
+  Battle Tower attendants use HGSS `BFSW1`; and
+  Trainer House Cal uses the HGSS Ace Trainer. The two inactive compatibility
+  slots no longer expose native GSC sheets.
+- Added the Gen 2 `KRIS` player-select option and generated six-frame walking
+  and bicycle overworld sheets from the supplied Kris sprite pack.
+- Added Kris's animated battle-back atlas from the supplied trainer reference
+  sheet and wired it to `PLAYER SELECT > KRIS`.
+- Enabled the full-color HGSS party and PC icon layouts on Gen2's native
+  PartyMenu and BoxMenu screens. The Box screen now owns the complete panel,
+  so the native front-static preview and GSC icon layer cannot show through.
+  Added all 100 missing Johto icon sheets from Wilds of Kanto's original
+  32x32 overworld cells (two 32x32 frames per 32x64 icon, with no resampling);
+  all 251 National Dex species now resolve to an HGSS icon while Gen1's
+  registry remains untouched.
+- Started the Gen2 release line; Gen1 remains covered by the existing
+  compatibility paths.
+- Kept the Battle Art scope/front/back/trainer selectors visible only on Gen1;
+  Gen2 retains its native battle presentation without dead controls.
+- Added the Gen2 map-audited Pokémon overworld pass: 78 Crystal map objects
+  across 40 species now use six-frame HGSS follow-sprite sheets. Shared generic
+  slots are redirected per map/object index; 64px legendary source cells stay
+  native and are presented on a 32px logical footprint.
+- Completed Crystal's 35 canonical overworld-Pokémon registry slots with HGSS
+  sheets, including the 15 species that previously remained on GSC artwork
+  when scripts or `SPRITE_VARS` resolved them directly. This registry patch is
+  Gen2-only and does not alter Red, Blue or Yellow sprite records.
+- Replaced Gen2's `SPRITE_SURF` with the dedicated HGSS swimming Lapras sheet,
+  including its directional waterline animation for mounted Surf and the Union
+  Cave Lapras encounter.
+- Replaced the `SPRITE_VARS` Sudowoodo encounter with its HGSS overworld sheet
+  so the Route 36 story object no longer falls back to native GSC artwork.
+- Replaced the optional large Onix and Lapras bedroom dolls with complete HGSS
+  frames and bypassed Crystal's native half-sheet mirroring only for those two
+  Gen2 records.
+- Corrected the Cherrygrove `SPRITE_FISHER` mapping to use the dedicated
+  Fisher charset instead of the Fatman asset.
+
 ## 1.0.5
 
 - Refactored the PC withdraw, deposit and release lists into a full-screen

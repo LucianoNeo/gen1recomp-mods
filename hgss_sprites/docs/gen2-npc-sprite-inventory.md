@@ -1,8 +1,8 @@
 # Gen 2 NPC sprite inventory
 
-This is the research inventory for the Gold/Silver/Crystal support branch. It
-does not change the runtime registry yet and it does not claim that the Gen 2
-NPC set is ready for release.
+This is the audited inventory for the Gold/Silver/Crystal support branch. All
+76 trainer/person slots now resolve to HGSS-quality artwork at runtime; the
+remaining canonical records are Pokémon and map objects covered separately.
 
 ## Canonical sprite IDs
 
@@ -129,13 +129,15 @@ HeartGold/SoulSilver overworld artwork.
 | 100 | `raikou.png` |
 | 101 | `standing_youngster.png` |
 
-### Non-NPC sprite records that still need a policy
+### Non-NPC sprite policy
 
 The Gen 2 sprite table continues at `SPRITE_POKEMON` with 35 overworld-mon
 slots (`SPRITE_UNOWN` through `SPRITE_HO_OH`). The event engine also resolves
 day-care monsters and the `SPRITE_VARS` slots (console, dolls, Sudowoodo,
-Copycat, and other map-specific aliases) at runtime. These must not be
-replaced by a generic NPC sheet.
+Copycat, and other map-specific aliases) at runtime. All 35 canonical Pokémon
+slots now use species-matched HGSS sheets. Reused generic aliases are changed
+only through the audited map/object redirect table, so they are never replaced
+by a generic NPC or by the wrong Pokémon species.
 
 ## HGSS source quality and conversion notes
 
@@ -148,19 +150,23 @@ replaced by a generic NPC sheet.
   engine's true-color format (normally 32×192 with six 32×32 frames), preserve
   frame order, and set `spriteType`, `walker`, and anchors per record. Special
   objects must keep their non-walker type.
-- No HGSS NPC source image has been copied into the tracked mod yet. The
-  downloaded sheets remain local until each mapping is visually reviewed.
+- Every selected HGSS NPC source has been converted into the runtime six-frame
+  walker format. `receptionist_gen2.png` uses the extracted official HGSS
+  `SPRITE_GSWOMAN6` frames. Crystal's shared `PHARMACIST` registry slot uses
+  extracted HGSS `SPRITE_SUNGLASSES` frames for Cianwood and the civilian
+  placements in Kanto; only Burglar Corey on the Fast Ship and Burglars Duncan
+  and Eddie in Goldenrod Underground are redirected to HGSS Burglar. Trainer
+  House Cal is redirected from Crystal's placed `SPRITE_CHRIS` object to the
+  HGSS male Ace Trainer. Crystal's four Battle Tower attendant objects are
+  redirected to the extracted HGSS `SPRITE_BFSW1` receptionist.
 
 ## Current mod coverage
 
-The tracked Yellow/HGSS override directory currently has **34 exact filename
-matches out of the 102 canonical Gen 2 overworld IDs**. Examples include
-`SPRITE_OAK`, `SPRITE_RED`, `SPRITE_BLUE`, `SPRITE_ROCKET`, `SPRITE_SCIENTIST`,
-and `SPRITE_BIKER`. Other files are close candidates with a different naming or
-role (`blackbelt` vs `black_belt`, `gym_*` vs a canonical Gym Leader, or a
-generic `swimmer` sheet where Gen 2 has separate male/female IDs), but they
-must be reviewed visually and assigned deliberately. A matching filename is
-not proof that the art, frame order, or dimensions are correct.
+The live registry audit now reports **76/76 trainer/person slots redirected**.
+This includes the three formerly native visible roles (`RECEPTIONIST`, the
+Cianwood pharmacist, and Trainer House Cal) and the two inactive
+compatibility slots (`UNUSED_GUY` and `OLD_LINK_RECEPTIONIST`). Matching is by
+audited role, not merely by filename.
 
 The visual review sheets are local-only:
 
@@ -182,12 +188,9 @@ The reference checkout is local-only and ignored by Git:
 
 `.local/pokecrystal/gfx/sprites/`
 
-## Next implementation slice
+## Remaining visual review
 
-1. Map each canonical Gen 2 ID to a visually matching HGSS sheet.
-2. Convert and visually review the shared trainer/NPC sheets in batches.
-3. Register one canonical ID at a time through the Gen 2 sprite registry.
-4. Validate Gold, Silver, and Crystal separately, including event-variable
-   sprites and the 35 overworld Pokémon slots.
-5. Only after visual and runtime checks should the assets move from `.local`
-   into `hgss_sprites/assets/gen2/` and be considered for a commit.
+The registry is complete. Further character work is now map-by-map visual QA
+of the chosen equivalents rather than filling missing native slots. Gold,
+Silver, and Crystal must continue to be checked separately because map scripts
+can use the same canonical character slot in different roles.
