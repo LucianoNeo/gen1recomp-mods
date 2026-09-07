@@ -2,9 +2,9 @@
 
 Optional opponent/player-front collections are grouped here as `gen1/`
 through `gen5/`. Gen 1 is a single-frame PNG compatibility set; Gen 2–5 are
-animated atlases. Local PNG files are ignored by Git. `ANIM FRONT GEN`
-chooses exactly one folder in ANIMATED mode; missing or malformed art falls
-back to the ROM sprite rather than silently mixing generations.
+animated atlases. Local PNG files are ignored by Git. The current release
+keeps these collections for compatibility but does not expose a generation
+selector; Gen 2 battles use the ROM Pokémon pictures.
 
 GIF decoding is authoring-only. The game reads PNG atlases, extracts every
 cell at its native logical resolution, and uses nearest-neighbour filtering.
@@ -30,6 +30,5 @@ engine names need the following exact filenames:
 
 Filenames are lowercase. The same names apply in every battle-art folder.
 
-Opponent trainer front pictures can never be animated and are not read from this
-folder. Put every opponent trainer PNG in `../front-static/`, including while
-`BATTLE ART` is set to `ANIMATED`.
+Opponent trainer front pictures can never be animated and are not read from
+this folder. Put every opponent trainer PNG in `../front-static/`.

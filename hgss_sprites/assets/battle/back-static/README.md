@@ -7,9 +7,14 @@ opponent. Files may use 96x96 pixel dimensions and require no Lua or metadata.
 These local PNGs are ignored by Git. Missing or invalid files fall back to the
 ROM sprite.
 
-## Generation sets
+## Retained generation assets
 
-`BACK ART SET` selects one of these generation subfolders:
+The generation subfolders below are retained for backwards compatibility with
+older installations and import tooling. The current HGSS_SPRITES menu does
+not expose Battle Art generation selectors: Gen 2 battles keep the game's
+original Pokémon and opponent artwork. Only the player's back portrait is
+resolved from the `PLAYER SELECT` value and the static player files listed
+below.
 
 - `back-static/gen1/<species>.png`
 - `back-static/gen2/<species>.png`
@@ -17,15 +22,10 @@ ROM sprite.
 - `back-static/gen4/<species>.png`
 - `back-static/gen5/<species>.png`
 
-Under `BATTLE ART: STATIC`, all five choices read only these ordinary PNGs.
-Static GEN5 never loads or decodes the similarly named animated GEN5 atlas.
-
-Under `BATTLE ART: ANIMATED`, GEN 3 and GEN 5 use atlases from their
-`back-animated` folders. GEN 1, GEN 2 and GEN 4 use these same single-frame
-PNGs. If the selected file is absent or invalid, the ROM backsprite is used
-instead. An absent `gen1` directory does
-not remove GEN 1 from the menu; it is an intentional empty slot for ROM-hack
-artwork to be dropped or other user-supplied artwork.
+No current option selects these species files. If an older save or an
+engine-side compatibility caller requests one, a missing or invalid file
+falls back to the ROM backsprite. An absent `gen1` directory is therefore
+safe and does not affect the current menu.
 
 For a complete Gen 1 set with prepared transparency, the optional importer
 downloads the 151 Pokemon Yellow Super Game Boy back sprites from
@@ -90,10 +90,17 @@ Professor Oak and Old Man remain static and always resolve here:
 | `PLAYER SELECT: RED` fallback | `player.png` |
 | `PLAYER SELECT: ASH` fallback | `ashplayer.png` |
 | `PLAYER SELECT: ETHAN` fallback | `gen2player.png` |
+| `PLAYER SELECT: LYRA` fallback | `lyraplayer.png` |
+| `PLAYER SELECT: LEAF` fallback | `leafplayer.png` |
+| `PLAYER SELECT: BRENDAN` fallback | `brendanplayer.png` |
 | Professor Oak in Yellow's opening battle | `oak.png` |
-| Old Man catching tutorial | `old-man.png` |
+| Crystal Ace Trainer catching tutorial | `ace-trainer.png` (five Battle Art frames in `../back-animated/ace-trainer.png`) |
 
-These are intro trainer cards, not Pokemon species. A missing selected player strip tries the corresponding static fallback, then retains the ROM trainer backsprite. The player choice is independent of the Pokemon front/back generation selectors. Opponent trainers never read from a back folder.
+These are intro trainer cards, not Pokémon species. A missing selected player
+strip tries the corresponding static fallback, then retains the ROM trainer
+backsprite. The player choice is independent of Pokémon artwork. Opponent
+trainers never read from a back folder, and Gen 2 Pokémon continue to use the
+game's native front/back pictures.
 
 When forced onto `BACK PLACEMENT: OG UI`, supplied player PNGs use their native
 1x logical size at the normal left-side UI slot. Only the ROM player portrait
