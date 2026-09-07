@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.0.1
+
+- Restored the selected walking or bicycle sprite after every Gen2 fishing
+  result, including the callback path that clears Crystal's fishing state
+  before the next fishing update. `PLAYER SELECT` remains live after fishing.
+- Normalized the 2D and Battle Art Voxel fishing geometry for every selectable
+  protagonist. Kris and Kris V2 now match their walking height without
+  resampling or clipping their original fishing artwork.
+- Corrected Crystal's shared trainer slots with map-scoped HGSS Bird Keeper
+  and Hiker replacements. Falkner's Gym and the audited route/cave encounters
+  no longer inherit Little Boy or Pokéfan appearances.
+- Kept Elm's Lab Poké Balls visible when Battle Art Voxel is disabled or the
+  Voxel mod is unloaded by treating the replacement as a one-frame static
+  object and retaining the canonical Gen2 fallback.
+- Verified the affected Gen2 scenes and fishing transitions on g1recomp
+  `0.2.45`, in both 2D and Battle Art Voxel modes.
+
 ## 2.0.0
 
 - Added Gen2 fishing charsets for every `PLAYER SELECT` choice and wired the

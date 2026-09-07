@@ -3295,18 +3295,26 @@ return function(mod)
     -- are intentional: World.fishing, rather than the step clock, advances
     -- the cast animation.
     local geometry = {
-      red = { scale = 1, anchorX = 48, anchorY = 48,
-        voxelW = 96, voxelH = 80 },
-      ash = { scale = 1, anchorX = 24, anchorY = 34,
+      -- These action sheets include the rod and were authored on wider
+      -- canvases than the walk cards.  Their logical presentation must still
+      -- match the 32px Gen-2 player footprint; using the source dimensions as
+      -- the voxel card made Kris/Red appear roughly three times too large.
+      red = { scale = 1 / 3, anchorX = 48, anchorY = 48,
+        voxelW = 32, voxelH = 27 },
+      ash = { scale = 2 / 3, anchorX = 24, anchorY = 34,
+        voxelW = 32, voxelH = 32 },
+      -- The Kris cast poses have a smaller occupied body inside their 96x80
+      -- canvas than the 256x256 walking cards.  Half-scale preserves the
+      -- source aspect ratio and matches the visible walk height; scaling the
+      -- full canvas to 32px made both Kris variants visibly undersized.
+      kris = { scale = 1 / 2, anchorX = 48, anchorY = 48,
         voxelW = 48, voxelH = 40 },
-      kris = { scale = 1, anchorX = 48, anchorY = 48,
-        voxelW = 96, voxelH = 80 },
-      kris_v2 = { scale = 1, anchorX = 48, anchorY = 48,
-        voxelW = 96, voxelH = 80 },
-      leaf = { scale = 1, anchorX = 20, anchorY = 36,
-        voxelW = 40, voxelH = 40 },
-      brendan = { scale = 1, anchorX = 20, anchorY = 36,
-        voxelW = 40, voxelH = 40 },
+      kris_v2 = { scale = 1 / 2, anchorX = 48, anchorY = 48,
+        voxelW = 48, voxelH = 40 },
+      leaf = { scale = 4 / 5, anchorX = 20, anchorY = 36,
+        voxelW = 32, voxelH = 32 },
+      brendan = { scale = 4 / 5, anchorX = 20, anchorY = 36,
+        voxelW = 32, voxelH = 32 },
     }
     for _, selected in ipairs({
       "red", "ash", "ethan", "lyra", "kris", "kris_v2", "leaf", "brendan",
@@ -3345,6 +3353,14 @@ return function(mod)
       local player = world and world.player
       local base = world and world.__hgssFishingBaseDef
       if player then player.__hgssFishingDef = nil end
+      -- The vanilla callback clears these flags at the moment the result box
+      -- closes.  Keep the cleanup here as well: after that callback
+      -- `World.fishing` is already nil, so the normal updateFishing seam is
+      -- no longer called on subsequent frames.
+      if player then
+        player.fishing = nil
+        player.fishingState = nil
+      end
       if player and base and type(player.setSprite) == "function" then
         pcall(function() player:setSprite(base) end)
       end
@@ -3356,6 +3372,7 @@ return function(mod)
         world.__hgssFishingBaseSheet = nil
         world.__hgssFishingStage = nil
         world.__hgssFishingStartTimer = nil
+        world.__hgssFishingActive = nil
       end
     end
     local function applyFishingSprite(world, stage)
@@ -3373,6 +3390,7 @@ return function(mod)
         world.__hgssFishingBaseSheet = player.fishSheet
       end
       player.__hgssFishingDef = def
+      world.__hgssFishingActive = true
       if world.__hgssFishingStage ~= stage
           or not player.sprite or player.sprite.def ~= def then
         pcall(function() player:setSprite(def) end)
@@ -3437,6 +3455,25 @@ return function(mod)
       end
       applyFishingSprite(self, stage)
       return result
+    end
+
+    -- World:stepBody only calls updateFishing while `self.fishing` is truthy.
+    -- The result textbox callback clears that field before the next frame, so
+    -- waiting for another updateFishing call leaves the HGSS action sheet
+    -- latched on the player.  Reconcile once at the end of every logic step;
+    -- this also covers a battle result and a no-bite result uniformly.
+    if type(World.stepBody) == "function" and not World.__hgssFishingStepRestore then
+      local originalStepBody = World.stepBody
+      World.stepBody = function(self, ...)
+        local result = originalStepBody(self, ...)
+        if not self.fishing and (self.__hgssFishingActive
+            or self.__hgssFishingBaseDef
+            or (self.player and self.player.__hgssFishingDef)) then
+          restoreFishingSprite(self)
+        end
+        return result
+      end
+      World.__hgssFishingStepRestore = true
     end
     World.__hgssPlayerFishing = true
   end
@@ -3536,6 +3573,10 @@ return function(mod)
       BIKER = "biker",
       BLACK_BELT = "blackbelt",
       BILL = "bill",
+      -- Crystal stores Bird Keeper map objects in the shared YOUNGSTER
+      -- slots.  Keep a dedicated HGSS walker available so the map-scoped
+      -- redirects below do not turn ordinary Youngsters into this trainer.
+      BIRD_KEEPER = "bird_keeper_gen2",
       BLAINE = "blaine_gen2",
       BLUE = "blue_gen2",
       BROCK = "brock_gen2",
@@ -3562,6 +3603,10 @@ return function(mod)
       GRAMPS = "gramps",
       GRANNY = "granny",
       GYM_GUIDE = "gym_guide",
+      -- Crystal stores Hiker map objects in the shared POKEFAN_M slot.
+      -- Resolve only the concrete Hiker objects below so real PokéFans keep
+      -- their own HGSS appearance.
+      HIKER = "hiker_gen2",
       JANINE = "janine_gen2",
       JASMINE = "jasmine_gen2",
       KAREN = "karen",
@@ -3637,7 +3682,37 @@ return function(mod)
     World.pooledNpc = function(self, mapId, obj)
       local index = type(obj) == "table" and tonumber(obj.index) or nil
       local replacement
-      if mapId == "TRAINER_HOUSE_B1F" and index == 2 then
+      -- Crystal's Bird Keeper trainers deliberately reuse the Youngster
+      -- overworld ids.  Resolve by map/object index (the stable identity
+      -- exposed by the 0.2.45 map loader), leaving every unrelated Youngster
+      -- untouched.  Route 38 uses the standing variant, but the same HGSS
+      -- walker is valid for both source ids.
+      if (mapId == "OLIVINE_LIGHTHOUSE_3F" and index == 3)
+          or (mapId == "OLIVINE_LIGHTHOUSE_5F" and index == 2)
+          or (mapId == "ROUTE_13" and (index == 1 or index == 2))
+          or (mapId == "ROUTE_14" and index == 2)
+          or (mapId == "ROUTE_18" and (index == 1 or index == 2))
+          or (mapId == "ROUTE_27" and index == 6)
+          or (mapId == "ROUTE_32" and index == 9)
+          or (mapId == "ROUTE_35" and index == 5)
+          or (mapId == "ROUTE_38" and index == 3)
+          or (mapId == "ROUTE_4" and index == 1)
+          or (mapId == "ROUTE_44" and index == 5)
+          or (mapId == "VIOLET_GYM" and (index == 2 or index == 3)) then
+        replacement = "SPRITE_BIRD_KEEPER"
+      elseif (mapId == "FAST_SHIP_CABINS_NNW_NNE_NE" and index == 4)
+          or (mapId == "ROUTE_10_SOUTH" and index == 1)
+          or (mapId == "ROUTE_13" and index == 4)
+          or (mapId == "ROUTE_33" and index == 1)
+          or (mapId == "ROUTE_42" and index == 2)
+          or (mapId == "ROUTE_45"
+              and (index == 1 or index == 2 or index == 3 or index == 4))
+          or (mapId == "ROUTE_46" and index == 1)
+          or (mapId == "ROUTE_9" and (index == 5 or index == 6))
+          or (mapId == "UNION_CAVE_1F" and (index == 1 or index == 3))
+          or (mapId == "UNION_CAVE_B1F" and (index == 1 or index == 2)) then
+        replacement = "SPRITE_HIKER"
+      elseif mapId == "TRAINER_HOUSE_B1F" and index == 2 then
         replacement = "SPRITE_CAL"
       elseif (mapId == "FAST_SHIP_CABINS_NNW_NNE_NE" and index == 7)
           or (mapId == "GOLDENROD_UNDERGROUND_SWITCH_ROOM_ENTRANCES"
@@ -3691,6 +3766,12 @@ return function(mod)
         hgssVoxelHeight = 16,
         hgssBaseVoxelWidth = 16,
         hgssBaseVoxelHeight = 16,
+        -- This is a single 32x32 object, not a walking charset.  Marking it
+        -- static keeps the flat renderer on frame 0 when the voxel pipeline
+        -- is switched off (otherwise a stale direction frame can resolve to
+        -- an empty quad and make the balls disappear).
+        walker = false,
+        spriteType = "STILL_SPRITE",
       })
 
     local originalPooledNpc = World.pooledNpc
@@ -3715,6 +3796,15 @@ return function(mod)
       local ok, npc = pcall(originalPooledNpc, self, mapId, obj)
       obj.sprite = originalSprite
       if not ok then error(npc, 0) end
+      -- A renderer/content backend may reject a late-created custom record
+      -- while the voxel provider is being unloaded.  Do not let that turn a
+      -- real map object into an invisible one: resolve the canonical Gen-2
+      -- ball as a safe flat-mode fallback.
+      if not npc then
+        local okFallback, fallback = pcall(originalPooledNpc, self, mapId, obj)
+        if not okFallback then error(fallback, 0) end
+        return fallback
+      end
       return npc
     end
     World.__hgssElmObjectBall = true
@@ -7181,6 +7271,21 @@ return function(mod)
       pokeBall.big = nil
       pokeBall.walker = false
       pokeBall.spriteType = "STILL_SPRITE"
+    end
+    -- Keep Elm's HGSS replacement on the same one-frame contract as the
+    -- canonical Gen-2 object.  The patch is created before the live Gen-2
+    -- registry is rebuilt, so normalize the live record as well; this is
+    -- especially important when Battle Art/Voxel is disabled after a map
+    -- has already been streamed.
+    local elmBall = sprites.SPRITE_ELM_POKE_BALL
+    if type(elmBall) == "table" then
+      elmBall.frames = 1
+      elmBall.frameWidth = tonumber(elmBall.frameWidth) or 32
+      elmBall.frameHeight = tonumber(elmBall.frameHeight) or 32
+      elmBall.anchorX = elmBall.frameWidth / 2
+      elmBall.anchorY = elmBall.frameHeight
+      elmBall.walker = false
+      elmBall.spriteType = "STILL_SPRITE"
     end
 
     local selected, followsGender = gen2PlayerSelection(game)

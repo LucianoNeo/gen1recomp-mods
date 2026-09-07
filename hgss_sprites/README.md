@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.0.0
+# HGSS_SPRITES 2.0.1
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -58,7 +58,7 @@ are in the [repository README](../README.md).
 
 ## Gen 2 support
 
-Gold, Silver and Crystal are first-class targets in the `2.0.0` Gen 2 branch.
+Gold, Silver and Crystal are first-class targets in the `2.0.x` Gen 2 release line.
 The Gen 2 path is gated separately from the Red/Blue/Yellow hooks, so enabling
 this mod does not replace Gen 1 battle, menu, map or sprite behavior. The
 following Gen 2 features are included:
