@@ -986,7 +986,7 @@ return function(mod)
       type = "choice",
       default = "gen3",
       choices = {
-        { "GEN 3", "gen3" },
+        { "HGSS + GEN 3", "gen3" },
         { "ROM", "rom" },
       },
     }
@@ -2357,6 +2357,16 @@ return function(mod)
     end
     return frames[state.frame]
   end
+  mod.__hgssGen2MajorTrainers = {
+    -- Johto Gym Leaders
+    falkner = true, whitney = true, bugsy = true, morty = true,
+    chuck = true, jasmine = true, pryce = true, clair = true,
+    -- Indigo Plateau Elite Four and Champion
+    will = true, koga = true, bruno = true, karen = true, lance = true,
+    -- Kanto Gym Leaders in Gold/Silver/Crystal
+    brock = true, misty = true, ["lt-surge"] = true, erika = true,
+    janine = true, sabrina = true, blaine = true, blue = true,
+  }
   local function selectedBattleTrainerImage(name, partyIndex)
     local gen = battleOption("battle_trainer_gen") or "rom"
     if gen == "rom" then return nil end
@@ -2381,7 +2391,8 @@ return function(mod)
     -- while Crystal adds Johto-only leaders and trainer classes. Map those
     -- classes to their closest Gen 3 presentation so selecting GEN 3 never
     -- silently leaves major Johto battles on their ROM portrait.
-    if isGen2() and gen == "gen3" then
+    if isGen2() and gen == "gen3"
+       and not mod.__hgssGen2MajorTrainers[slug] then
       local aliases = {
         falkner = "bird-keeper", whitney = "beauty",
         bugsy = "bug-catcher", morty = "psychic-tr",
@@ -2405,8 +2416,13 @@ return function(mod)
       }
       slug = aliases[slug] or slug
     end
-    local rel = ("assets/battle/front-static/%s/%s.png"):format(
-      gen, slug)
+    local rel
+    if isGen2() and gen ~= "rom"
+       and mod.__hgssGen2MajorTrainers[slug] then
+      rel = ("assets/battle/front-static/hgss/%s.png"):format(slug)
+    else
+      rel = ("assets/battle/front-static/%s/%s.png"):format(gen, slug)
+    end
     local path = mod.assets:path(rel)
     if not assetExists(rel) then return nil end
     if trainerImageCache[path] == nil then

@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.3
+
+- Added original-resolution Pokémon HeartGold/SoulSilver battle portraits for
+  all eight Johto Gym Leaders, all eight Kanto Gym Leaders, Will, Koga, Bruno,
+  Karen and Champion Lance.
+- Changed Gen2 `TRAINER ART` to `HGSS + GEN 3`: the 21 major trainers always
+  use their dedicated HGSS portrait, while ordinary opponents retain the
+  bundled Gen 3 collection. `ROM` still restores every cartridge portrait.
+- Removed the approximate Gen 3 class substitutions for major Johto trainers;
+  Bugsy, Falkner and the other leaders no longer appear as generic classes.
+- Preserved each HGSS source PNG at its authored dimensions and documented its
+  source revision from the Smogon / Pokémon Showdown sprite repository.
+- Visually verified Bugsy, Falkner, Will and Blue in Battle Art Voxel, verified
+  the Bugsy `ROM` fallback, and reran the Gen1 regression on g1recomp `0.2.45`.
+
 ## 2.0.2
 
 - Added the Gen2-only `TRAINER ART` option. `GEN 3` is the default and uses
