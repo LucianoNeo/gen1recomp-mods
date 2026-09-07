@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.2
+
+- Added the Gen2-only `TRAINER ART` option. `GEN 3` is the default and uses
+  the bundled full-color trainer portraits; `ROM` restores the original
+  Gold/Silver/Crystal opponent portraits.
+- Added Johto-to-Gen3 presentation aliases for Gen2-only trainer classes so
+  Gym Leaders and other Crystal classes do not silently remain on ROM art
+  when `GEN 3` is selected.
+- Kept Gen2 Pokémon battle artwork native and preserved all existing Gen1
+  battle-art selectors and behavior.
+- Verified `GEN 3`, `ROM` and the unchanged Gen1 battle path visually on
+  g1recomp `0.2.45`, including Battle Art Voxel rendering.
+
 ## 2.0.1
 
 - Restored the selected walking or bicycle sprite after every Gen2 fishing

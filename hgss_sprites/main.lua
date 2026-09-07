@@ -975,11 +975,22 @@ return function(mod)
     }
   end
 
-  -- Battle Art generation/scope selectors are a Gen 1 presentation feature.
-  -- Keep their stored values and resolver compatibility intact, but do not
-  -- expose dead controls on Gold/Silver/Crystal's Gen 2 options screen.
+  -- Pokemon battle-art generation/scope selectors remain a Gen 1 feature.
+  -- Gen 2 exposes only opponent TRAINER ART: its default is the bundled
+  -- Gen 3 collection and ROM restores the cartridge portrait.
   local optionRows = {}
-  if not isGen2() then
+  if isGen2() then
+    optionRows[#optionRows + 1] = {
+      key = "battle_trainer_gen",
+      label = "TRAINER ART",
+      type = "choice",
+      default = "gen3",
+      choices = {
+        { "GEN 3", "gen3" },
+        { "ROM", "rom" },
+      },
+    }
+  else
     optionRows[#optionRows + 1] = {
       key = "battle_scope",
       label = "BATTLE ART SCOPE",
@@ -1140,9 +1151,8 @@ return function(mod)
     end
   end
 
-  -- Battle Art selectors remain active for Gen 1. Gen 2 keeps its Pokémon and
-  -- opponent battle artwork native, so the resolver pins those values to ROM
-  -- whenever a Gen 2 game is active.
+  -- Battle Art selectors remain active for Gen 1. Gen 2 keeps Pokemon battle
+  -- art native, but permits the dedicated opponent TRAINER ART selector.
   local battleOptionValues = {}
   local BATTLE_OPTION_KEYS = {
     battle_scope = true,
@@ -1177,7 +1187,13 @@ return function(mod)
   local function battleOption(key)
     local value
     if isGen2() then
-      value = key == "battle_scope" and "trainers" or "rom"
+      if key == "battle_scope" then
+        value = "trainers"
+      elseif key == "battle_trainer_gen" then
+        value = battleOptionValues[key] or mod.options:get(key) or "gen3"
+      else
+        value = "rom"
+      end
     else
       value = battleOptionValues[key] or mod.options:get(key)
     end
@@ -2361,6 +2377,34 @@ return function(mod)
       or rawName:lower():find("jessie", 1, true)
       or (rawName:upper() == "OPP_ROCKET" and rocketParty >= 42))
     local slug = isJessieJames and "jessie-james" or battleSlug(className)
+    -- The bundled Gen 3 set follows FireRed/LeafGreen's Kanto class names,
+    -- while Crystal adds Johto-only leaders and trainer classes. Map those
+    -- classes to their closest Gen 3 presentation so selecting GEN 3 never
+    -- silently leaves major Johto battles on their ROM portrait.
+    if isGen2() and gen == "gen3" then
+      local aliases = {
+        falkner = "bird-keeper", whitney = "beauty",
+        bugsy = "bug-catcher", morty = "psychic-tr",
+        pryce = "gentleman", jasmine = "cooltrainer-f",
+        chuck = "blackbelt", clair = "cooltrainer-f",
+        ["pokemon-prof"] = "prof-oak", will = "psychic-tr",
+        cal = "cooltrainer-m", karen = "cooltrainer-f",
+        champion = "lance", schoolboy = "super-nerd",
+        janine = "koga", gruntm = "rocket", ["grunt-f"] = "rocket",
+        skier = "beauty", teacher = "jr-trainer-f",
+        swimmerm = "swimmer", swimmerf = "swimmer",
+        guitarist = "rocker", firebreather = "juggler",
+        ["blackbelt-t"] = "blackbelt", executivem = "rocket",
+        executivef = "rocket", picnicker = "jr-trainer-f",
+        camper = "jr-trainer-m", sage = "channeler",
+        medium = "channeler", boarder = "cooltrainer-m",
+        pokefanm = "pokemaniac", pokefanf = "pokemaniac",
+        ["kimono-girl"] = "beauty", twins = "lass", red = "rival1",
+        blue = "rival2", officer = "gentleman",
+        mysticalman = "psychic-tr",
+      }
+      slug = aliases[slug] or slug
+    end
     local rel = ("assets/battle/front-static/%s/%s.png"):format(
       gen, slug)
     local path = mod.assets:path(rel)
@@ -2678,9 +2722,24 @@ return function(mod)
         end
       end
 
-      -- Gen 2 Battle Art is deliberately left untouched.  In particular, do
-      -- not replace the opponent trainer portrait here: this mod owns only
-      -- the selected player's back portrait in Crystal/Gold/Silver.
+      -- Gen 2 keeps cartridge artwork when TRAINER ART is ROM. With GEN 3,
+      -- replace only the opponent intro portrait; player backs and Pokemon
+      -- continue through their existing, independent paths.
+      if not (opts and opts.tutorial) then
+        local enemyTrainer = battle.battle and battle.battle.trainer
+        local enemyClass = enemyTrainer
+          and (enemyTrainer.classId or enemyTrainer.class)
+        local enemyImage, enemyPath =
+          selectedBattleTrainerImage(enemyClass)
+        if enemyImage and enemyPath then
+          battle.enemyTrainerImage = enemyImage
+          battle.enemyTrainerPath = enemyPath
+          battle.enemyTrainerTrueColor = true
+          battle.showEnemyTrainer = true
+          registerGen2BattleScale(battle.game and battle.game.data,
+            enemyPath, enemyImage, 56)
+        end
+      end
 
       -- The player back is resolved by Sprites.playerPic while the original
       -- constructor runs.  Keep this explicit assignment as a fallback for

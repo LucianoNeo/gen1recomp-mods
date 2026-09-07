@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.0.1
+# HGSS_SPRITES 2.0.2
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -24,7 +24,9 @@ are in the [repository README](../README.md).
   [`assets/gen2/pokemon-overworld/README.md`](assets/gen2/pokemon-overworld/README.md).
 - Grounding and lighting behavior for both the 2D and Voxel renderers.
 - Battle front/back/trainer artwork for Gen 1, with animated/native resolution
-  assets and transparent backgrounds; Gen 2 battle Pokémon remain native.
+  assets and transparent backgrounds. Gen 2 battle Pokémon remain native,
+  while the Gen2-only `TRAINER ART` selector defaults opponent portraits to
+  the bundled `GEN 3` set and offers `ROM` as the original-art option.
 - Leaf's and Brendan's animated full-color battle back sprites are selected by
   `PLAYER SELECT > LEAF` and `PLAYER SELECT > BRENDAN`; both player sprite sets
   are credited to `setogabes` (Discord).
