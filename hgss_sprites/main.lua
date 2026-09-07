@@ -404,9 +404,10 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- 256x1536 HD atlases.  The 256x1536 sheets remain enabled for the HD
   -- player choices and bike variants that actually use that layout.
   local playerSheet = file == "ash" or file == "ethan"
-    or file == "lyra" or file == "kris"
+    or file == "lyra" or file == "kris" or file == "kris_v2"
   local playerBikeSheet = file == "ash_bike" or file == "ethan_bike"
     or file == "lyra_bike" or file == "kris_bike"
+    or file == "kris_v2_bike"
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
@@ -1031,6 +1032,7 @@ return function(mod)
         { "ETHAN", "ethan" },
         { "LYRA", "lyra" },
         { "KRIS", "kris" },
+        { "KRIS V2", "kris_v2" },
         { "LEAF", "leaf" },
         { "BRENDAN", "brendan" },
         { "OFF", "off" },
@@ -2166,6 +2168,8 @@ return function(mod)
     lyra = "lyraplayer.png",
     -- Kris's animated back strip is extracted from the supplied trainer sheet.
     kris = "krisplayer.png",
+    -- Kris V2 changes only the overworld artwork and shares Kris's battle back.
+    kris_v2 = "krisplayer.png",
     -- Leaf and Brendan use dedicated full-color animated back sheets when
     -- present.  Static portraits remain the defensive fallback for older
     -- installations that do not yet contain those atlases.
@@ -2180,11 +2184,13 @@ return function(mod)
     -- Keep Lyra as a defensive static fallback if an older install lacks the
     -- new Kris atlas.
     kris = "lyraplayer.png",
+    kris_v2 = "lyraplayer.png",
     leaf = "leafplayer.png",
     brendan = "brendanplayer.png",
   }
   local PLAYER_BATTLE_KEYS = {
     red = true, ash = true, ethan = true, lyra = true, kris = true,
+    kris_v2 = true,
     leaf = true, brendan = true,
   }
 
@@ -3085,6 +3091,7 @@ return function(mod)
     ethan = "SPRITE_ETHAN",
     lyra = "SPRITE_LYRA",
     kris = "SPRITE_KRIS",
+    kris_v2 = "SPRITE_KRIS_V2",
     leaf = "SPRITE_LEAF",
     brendan = "SPRITE_BRENDAN",
   }
@@ -3095,6 +3102,7 @@ return function(mod)
     ethan = "SPRITE_ETHAN_BIKE",
     lyra = "SPRITE_LYRA_BIKE",
     kris = "SPRITE_KRIS_BIKE",
+    kris_v2 = "SPRITE_KRIS_V2_BIKE",
     leaf = "SPRITE_LEAF_BIKE",
     brendan = "SPRITE_BRENDAN_BIKE",
   }
@@ -3246,6 +3254,7 @@ return function(mod)
       ethan = { "overrides/sprites/ethan", "ethan_bike" },
       lyra = { "overrides/sprites/lyra", "lyra_bike" },
       kris = { "overrides/sprites/kris", "kris_bike" },
+      kris_v2 = { "overrides/sprites/kris_v2", "kris_v2_bike" },
       leaf = { "overrides/sprites/leaf", "leaf_bike" },
       brendan = { "overrides/sprites/brendan", "brendan_bike" },
     }
@@ -3271,6 +3280,165 @@ return function(mod)
       return gender == "female" and "lyra" or "ethan", true
     end
     return selected, false
+  end
+
+  gen2SpriteGeometryCache.fishingSpriteId = function(selected, stage)
+    selected = tostring(selected or "ethan"):lower()
+    stage = math.max(0, math.min(3, math.floor(tonumber(stage) or 0)))
+    return "SPRITE_HGSS_FISH_" .. selected:upper() .. "_" .. stage
+  end
+
+  gen2SpriteGeometryCache.patchFishingSprites = function()
+    -- Fishing is a distinct four-pose HGSS action, not a walking frame. Keep
+    -- four ordinary six-facing records so the 2D renderer and Battle Art
+    -- Voxel consume the exact same active definition. The repeated walk rows
+    -- are intentional: World.fishing, rather than the step clock, advances
+    -- the cast animation.
+    local geometry = {
+      red = { scale = 1, anchorX = 48, anchorY = 48,
+        voxelW = 96, voxelH = 80 },
+      ash = { scale = 1, anchorX = 24, anchorY = 34,
+        voxelW = 48, voxelH = 40 },
+      kris = { scale = 1, anchorX = 48, anchorY = 48,
+        voxelW = 96, voxelH = 80 },
+      kris_v2 = { scale = 1, anchorX = 48, anchorY = 48,
+        voxelW = 96, voxelH = 80 },
+      leaf = { scale = 1, anchorX = 20, anchorY = 36,
+        voxelW = 40, voxelH = 40 },
+      brendan = { scale = 1, anchorX = 20, anchorY = 36,
+        voxelW = 40, voxelH = 40 },
+    }
+    for _, selected in ipairs({
+      "red", "ash", "ethan", "lyra", "kris", "kris_v2", "leaf", "brendan",
+    }) do
+      for stage = 0, 3 do
+        local extra = { walker = false }
+        local custom = geometry[selected]
+        if custom then
+          extra.hgssGen2DisplayScale = custom.scale
+          extra.anchorX = custom.anchorX
+          extra.anchorY = custom.anchorY
+          extra.hgssVoxelWidth = custom.voxelW
+          extra.hgssVoxelHeight = custom.voxelH
+          extra.hgssBaseVoxelWidth = custom.voxelW
+          extra.hgssBaseVoxelHeight = custom.voxelH
+        end
+        patchGen2Sprite("HGSS_FISH_" .. selected:upper() .. "_" .. stage,
+          selected .. "_fish_" .. stage, extra)
+      end
+    end
+  end
+
+  gen2SpriteGeometryCache.patchFishingState = function()
+    local okWorld, World = pcall(require, "src.world.gen2.World")
+    local okPlayer, Player = pcall(require, "src.world.gen2.Player")
+    if not okWorld or type(World) ~= "table"
+        or type(World.beginFishing) ~= "function"
+        or type(World.updateFishing) ~= "function"
+        or World.__hgssPlayerFishing then
+      return
+    end
+
+    local originalBeginFishing = World.beginFishing
+    local originalUpdateFishing = World.updateFishing
+    local function restoreFishingSprite(world)
+      local player = world and world.player
+      local base = world and world.__hgssFishingBaseDef
+      if player then player.__hgssFishingDef = nil end
+      if player and base and type(player.setSprite) == "function" then
+        pcall(function() player:setSprite(base) end)
+      end
+      if player and world and world.__hgssFishingBaseSheet ~= nil then
+        player.fishSheet = world.__hgssFishingBaseSheet
+      end
+      if world then
+        world.__hgssFishingBaseDef = nil
+        world.__hgssFishingBaseSheet = nil
+        world.__hgssFishingStage = nil
+        world.__hgssFishingStartTimer = nil
+      end
+    end
+    local function applyFishingSprite(world, stage)
+      local player = world and world.player
+      local sprites = world and (world.sprites
+        or (world.game and world.game.data
+          and (world.game.data.gen2Sprites or world.game.data.sprites)))
+      if not player or type(sprites) ~= "table" then return end
+      local selected = gen2PlayerSelection(world.game)
+      local def = sprites[gen2SpriteGeometryCache.fishingSpriteId(selected, stage)]
+      if not def then return end
+      if not world.__hgssFishingBaseDef then
+        world.__hgssFishingBaseDef = player.spriteDef
+          or (player.sprite and player.sprite.def)
+        world.__hgssFishingBaseSheet = player.fishSheet
+      end
+      player.__hgssFishingDef = def
+      if world.__hgssFishingStage ~= stage
+          or not player.sprite or player.sprite.def ~= def then
+        pcall(function() player:setSprite(def) end)
+        world.__hgssFishingStage = stage
+      end
+      -- Gen 2's native fishing renderer replaces the lower half of the
+      -- standing 16px charset and draws a separate ROM rod tile. Our HGSS
+      -- action sheets already contain the complete pose and rod, so letting
+      -- that path run hides the authored frame and produces stray pixels.
+      player.fishSheet = nil
+      player.__hgssFishingDef = def
+    end
+
+    -- World state transitions may refresh SPRITE_CHRIS between updateFishing
+    -- and the render pass. Reassert the complete HGSS fishing sheet at the
+    -- final player draw seam, after those transitions but before either the
+    -- flat renderer or a voxel pipeline samples the sprite.
+    if okPlayer and type(Player) == "table" and type(Player.draw) == "function"
+        and not Player.__hgssFishingDraw then
+      local originalSetSprite = Player.setSprite
+      Player.setSprite = function(self, def)
+        return originalSetSprite(self, self.__hgssFishingDef or def)
+      end
+      local originalPlayerDraw = Player.draw
+      Player.draw = function(self, ...)
+        local def = self.__hgssFishingDef
+        if def and (not self.sprite or self.sprite.def ~= def) then
+          pcall(function() self:setSprite(def) end)
+        end
+        if def then self.fishSheet = nil end
+        return originalPlayerDraw(self, ...)
+      end
+      Player.__hgssFishingDraw = true
+    end
+
+    World.beginFishing = function(self, outcome, wild)
+      restoreFishingSprite(self)
+      local result = originalBeginFishing(self, outcome, wild)
+      local st = self.fishing
+      self.__hgssFishingStartTimer = st and math.max(1,
+        tonumber(st.timer) or 1)
+      applyFishingSprite(self, 0)
+      return result
+    end
+    World.updateFishing = function(self, ...)
+      local hadFishing = self.fishing ~= nil
+      local result = originalUpdateFishing(self, ...)
+      local st = self.fishing
+      if not st then
+        if hadFishing or self.__hgssFishingBaseDef then
+          restoreFishingSprite(self)
+        end
+        return result
+      end
+      local stage = 3
+      if st.phase == "cast" then
+        local total = math.max(1, tonumber(self.__hgssFishingStartTimer)
+          or tonumber(st.timer) or 1)
+        local elapsed = math.max(0, total - (tonumber(st.timer) or 0))
+        stage = math.max(0, math.min(3,
+          math.floor(elapsed * 4 / total)))
+      end
+      applyFishingSprite(self, stage)
+      return result
+    end
+    World.__hgssPlayerFishing = true
   end
 
   local function patchGen2PlayerSprites()
@@ -3352,6 +3520,8 @@ return function(mod)
     -- Crystal's rival is Silver; use the verified HGSS Silver charset.
     patchGen2Sprite("RIVAL", "overrides/sprites/silver",
       { hgssGen2ScaleMultiplier = 1.0 })
+    gen2SpriteGeometryCache.patchFishingSprites()
+    gen2SpriteGeometryCache.patchFishingState()
   end
 
   -- Crystal has a separate NPC registry from Yellow.  Redirect only the
@@ -3980,6 +4150,8 @@ return function(mod)
   patchOverworld(mod, "LYRA_BIKE", 6, true, "lyra_bike")
   patchOverworld(mod, "KRIS", 6, true, "kris")
   patchOverworld(mod, "KRIS_BIKE", 6, true, "kris_bike")
+  patchOverworld(mod, "KRIS_V2", 6, true, "kris_v2")
+  patchOverworld(mod, "KRIS_V2_BIKE", 6, true, "kris_v2_bike")
   patchOverworld(mod, "MAY", 6, true, "may")
   patchOverworld(mod, "MAY_BIKE", 6, true, "may_bike")
   patchOverworld(mod, "BRENDAN", 6, true, "brendan")

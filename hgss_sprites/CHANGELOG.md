@@ -2,6 +2,13 @@
 
 ## 2.0.0
 
+- Added Gen2 fishing charsets for every `PLAYER SELECT` choice and wired the
+  four cast stages to Crystal's native fishing state. The active player now
+  changes to the matching directional fishing pose in both 2D and Battle Art
+  Voxel, then restores the exact walking/bicycle definition when fishing ends.
+- Added `KRIS V2` as a separate player-select option using the supplied
+  six-frame walking and bicycle sheets. Its battle presentation deliberately
+  shares Kris's existing animated back atlas.
 - Completed the Gen2 trainer/person registry: all 76 canonical character slots
   now resolve to HGSS-quality artwork. Receptionists use the official HGSS
   `GSWOMAN6` frames; Crystal's shared Pharmacist slot uses the official

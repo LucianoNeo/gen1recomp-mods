@@ -8,7 +8,7 @@ are in the [repository README](../README.md).
 
 - HGSS-style full-color overworld charsets with six-frame movement for Red,
   Ash, Ethan, NPCs, Gym Leaders, Elite Four, Team Rocket and named map objects.
-- Player selection (`RED`, `ASH`, `ETHAN`, `LYRA`, `KRIS`, `LEAF`, `BRENDAN`) with an `OFF`
+- Player selection (`RED`, `ASH`, `ETHAN`, `LYRA`, `KRIS`, `KRIS V2`, `LEAF`, `BRENDAN`) with an `OFF`
   option that preserves the game's original player, dedicated walking and
   bicycle sheets, follower Pikachu, forced Surfing Pikachu and
   species-specific overworld objects.
@@ -32,6 +32,15 @@ are in the [repository README](../README.md).
   `sprite_pack___kris_by_diegowt_dlrukne` pack.
 - Kris's animated battle-back atlas was extracted from the supplied trainer
   reference sheet and is used by `PLAYER SELECT > KRIS`.
+- `PLAYER SELECT > KRIS V2` uses the alternate supplied walking and bicycle
+  sprites while retaining Kris's animated battle-back atlas.
+- Gen2 fishing switches supported selectable protagonists to a matching directional
+  fishing charset for the complete cast/bite sequence in both 2D and Voxel.
+  Leaf uses her native HGSS standing poses with Ethan's fishing rod added.
+  Ethan and Lyra use the extracted HGSS frames; Red uses the public Red pack,
+  Ash uses PKMNTrainerRick's full HGSS/DPP pack, Brendan uses hyo's HGSS
+  trainer sheet, Leaf keeps her supplied HGSS standing art with the Ethan rod
+  pixels added, and both Kris variants use the supplied Kris pack.
 - `TRAINERS ONLY` as the default battle scope, with an optional `COMPLETE`
   scope for bundled Pokémon battle art.
 - Optional HGSS party menu, animated party icons and PC box icons, with
@@ -47,13 +56,74 @@ are in the [repository README](../README.md).
 - Intro, catch-summary, evolution, Pokédex and Hall of Fame artwork paths use
   the bundled assets with safe fallback to the game originals.
 
+## Gen 2 support
+
+Gold, Silver and Crystal are first-class targets in the `2.0.0` Gen 2 branch.
+The Gen 2 path is gated separately from the Red/Blue/Yellow hooks, so enabling
+this mod does not replace Gen 1 battle, menu, map or sprite behavior. The
+following Gen 2 features are included:
+
+- Native Gold/Silver/Crystal player slots with `ETHAN`, `LYRA`, `KRIS`, `KRIS
+  V2`, `LEAF` and `BRENDAN` choices, plus a live `PLAYER SELECT` switch after
+  the save has started. New Gen 2 saves use Ethan or Lyra for the initial
+  boy/girl choice; the menu can then change to any supported character.
+- HGSS walking, bicycle, fishing and animated battle-back sheets for the
+  selectable protagonists, with shared grounding, mirror and Voxel pivot
+  handling. `KRIS V2` is an additional option and does not replace the
+  original Kris entry.
+- Gen 2 NPC/person and map-object redirects, including Elm's Lab, the Route 30
+  objects, the tutorial fisherman, the legendary dogs, Sudowoodo, the Lake of
+  Rage Red Gyarados, Ho-Oh, Lugia and the mounted Surf Lapras object.
+- HGSS true-colour follow sprites and two-frame party/PC icons for the complete
+  251-species National Dex. The Gen 2 party and PC layouts use the same
+  two-column icon treatment as Yellow and suppress the native front-static/GSC
+  layers when the icon option is enabled.
+- Gen 2-native battle presentation remains available. The Gen 1-only battle
+  front/back/trainer selectors stay hidden on Gold/Silver/Crystal, while the
+  optional Gen 2 animated assets are resolved through the compatible Battle
+  Art bridge.
+
+### Recommended Voxel combination
+
+[Battle Art Voxel](https://github.com/absol89/DramaticShapeVoxelMod) is the
+recommended Voxel renderer for Gen 2. It supplies the 3D map/battle
+presentation; HGSS_SPRITES supplies the character, Pokémon-object and menu
+redirects. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod) can be enabled
+at the same time: Wilds provides its 251-species follow/overworld collection,
+while this mod installs only the audited Crystal object slots and HGSS menu
+icons. The two mods therefore complement each other and do not require
+PotatoVoxel or a Gen 1 fallback.
+
+The screenshots below were captured in g1recomp `0.2.45` with Crystal,
+HGSS_SPRITES enabled, Battle Art Voxel enabled and Wilds of Kanto enabled.
+The legendary-object captures use the production Gen 2 sprite registry and a
+camera-isolated QA placement so the Voxel geometry does not hide the subject.
+
+### Gen 2 Voxel scenes
+
+**Legendary dogs — HGSS Gen2 sprite registry (Raikou, Entei and Suicune):**
+
+![Raikou, Entei and Suicune in Battle Art Voxel](docs/screenshots/gen2-legendary-dogs-voxel.png)
+
+**Lake of Rage — scripted shiny Gyarados:**
+
+![Shiny Lake of Rage Gyarados in Battle Art Voxel](docs/screenshots/gen2-lake-of-rage-gyarados-voxel.png)
+
+**Lugia — water scene using the HGSS Lugia object:**
+
+![Lugia in Battle Art Voxel](docs/screenshots/gen2-lugia-voxel.png)
+
+**Ho-Oh — Tin Tower roof object:**
+
+![Ho-Oh in Battle Art Voxel](docs/screenshots/gen2-ho-oh-voxel.png)
+
 ## Mod options
 
 The options are exposed by the g1recomp Mods menu:
 
 | Option | Values | Default |
 | --- | --- | --- |
-| Player Select | `RED`, `ASH`, `ETHAN`, `LYRA`, `KRIS`, `LEAF`, `BRENDAN`, `OFF` | `RED` |
+| Player Select | `RED`, `ASH`, `ETHAN`, `LYRA`, `KRIS`, `KRIS V2`, `LEAF`, `BRENDAN`, `OFF` | `RED` |
 | Battle Art Scope (Gen 1) | `TRAINERS ONLY`, `COMPLETE` | `TRAINERS ONLY` |
 | Battle Front/Back/Trainer Gen (Gen 1) | `GEN 1`–`GEN 5` | `GEN 5` / `GEN 3` |
 | Party Menu | `ON`, `OFF` | `ON` |

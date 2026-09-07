@@ -39,11 +39,13 @@ screen's timing, text, layout, or animation code:
 | Male player (Ethan) | `assets/gen2/intro/ethan.png` | HGSS true-colour trainer |
 | Female player (Lyra) | `assets/gen2/intro/lyra.png` | HGSS true-colour trainer |
 | Kris player option | `overrides/sprites/kris.png`, `kris_bike.png` | Six-frame overworld/bicycle sheets generated from the supplied Kris pack |
+| Kris V2 player option | `overrides/sprites/kris_v2.png`, `kris_v2_bike.png` | Alternate six-frame walking/bicycle sheets supplied as references; shares Kris's animated battle back |
 
 The native female slot is named `SPRITE_KRIS` in Crystal and uses the matching
 female player slot in the other Gen 2 builds, but the intro artwork is always
 the HeartGold/SoulSilver Lyra equivalent. The optional `PLAYER SELECT > KRIS`
-choice uses the supplied Kris overworld sheets for the active player. The four PNGs use transparency, nearest filtering, and
+choice uses the supplied Kris overworld sheets for the active player. `KRIS V2`
+selects the alternate pair without replacing the original Kris option. The six PNGs use transparency, nearest filtering, and
 the intro's 7×7-cell logical canvas (56 pixels high); the Oak image keeps its
 narrower aspect ratio so the coat is not stretched.
 
@@ -160,6 +162,31 @@ The downloaded HGSS references remain local-only while mappings are reviewed:
 - `.local/bulbagarden-hgss/` — individually named HGSS overworld candidates.
 
 ## Validation
+
+### Player fishing
+
+Gen2's native port only bobs the ordinary walking charset while fishing. The
+mod registers four cast-stage definitions for each selectable protagonist and
+temporarily assigns those definitions through `World.beginFishing` and
+`World.updateFishing`. Because the live `Player.spriteDef` is shared by the
+flat and Voxel pipelines, both renderers show the same character and facing;
+the saved pre-cast definition is restored after no-bite text or battle entry.
+This hook is installed only inside the Gen2 gate and does not alter Gen1's
+native fishing-tile path.
+
+Asset sources: the official extracted HGSS Ethan/Lyra field frames; the Red
+character pack by `tebited15`; the Ash HGSS/DPP full pack by
+`PKMNTrainerRick` (with its listed contributors `PkmnTrainerSpriterC` and
+`LordIndy`); hyo's ORAS Brendan DPPt/HGSS Gen IV sprite sheet; and the
+locally supplied Kris pack. Kris v2 is a palette-only adaptation of that Kris
+fishing atlas so its white hat and blue hair remain consistent with the
+selected v2 overworld.
+
+Brendan source: https://www.deviantart.com/hyo-oppa/art/Pokemon-ORAS-Brendan-DPPt-HGSS-Gen-IV-Sprite-Sheet-681502142
+The four Brendan stages preserve the source pixels in 40px transparent cells.
+Leaf uses her existing HGSS standing frames with the rod pixels extracted
+from Ethan's HGSS waiting pose. Her body remains unchanged; the four fishing
+stage records intentionally reuse this standing pose, as requested.
 
 ### Standard overworld-sheet conversion
 
