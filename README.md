@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 2.0.6](https://img.shields.io/badge/version-2.0.6-gold)
+![Version 2.0.7](https://img.shields.io/badge/version-2.0.7-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow%20%7C%20Gold%20%7C%20Silver%20%7C%20Crystal-red)
 
 HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue, Yellow, Gold, Silver and Crystal while preserving each game's logic and map geometry.
 
-## What version 2.0.6 provides
+## What version 2.0.7 provides
 
 ### Overworld
 
@@ -64,9 +64,10 @@ adds:
 - Native Gen 2 battle presentation remains available; the Gen1-only battle
   Pokémon-generation controls stay hidden on Gold/Silver/Crystal. The
   Gen2-only `TRAINER ART` control defaults to `HGSS + GEN 3`: the 16 Gym
-  Leaders, Elite Four and Champion Lance use dedicated HGSS portraits, while
-  ordinary opponents use the bundled Gen 3 set. `ROM` switches every trainer
-  back to the original cartridge portrait.
+  Leaders, Elite Four, Champion Lance and the Route 34 Youngster, Camper,
+  Picnicker, Pokéfan♂ and Officer classes use dedicated HGSS portraits, while
+  other opponents use the bundled Gen 3 set. `ROM` switches every trainer back
+  to the original cartridge portrait.
 
 ### Recommended Voxel combination
 
@@ -131,7 +132,8 @@ player centered below them.
 
 Download the matching release package, then import the `HGSS_SPRITES` folder
 from the g1recomp Mods screen. Version `1.0.5` is the Gen1 release line;
-version `2.0.5` adds the Gold/Silver/Crystal support and fixes described above. Enable
+version `2.0.7` is the current Gold/Silver/Crystal release with the fixes
+described above. Enable
 the mod for the target game and restart after changing presentation options.
 
 The package targets g1recomp Mod API 2 and supports the Red/Blue/Yellow and

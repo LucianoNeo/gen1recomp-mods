@@ -23,7 +23,7 @@ front-animated/<gen1|gen2|gen3|gen4|gen5>/shiny/<pokemon>.png
 back-static/<gen1|gen2|gen3|gen4|gen5>/shiny/<pokemon>.png
 back-animated/<gen3|gen5>/shiny/<pokemon>.png
 front-static/<gen1|gen2|gen3>/<trainer>.png
-front-static/hgss/<gym-leader|elite-four|champion>.png
+front-static/hgss/<trainer-class>.png
 ```
 
 The generation Pokémon collections are retained for compatibility with older
@@ -45,9 +45,10 @@ The player battle trainer is selected by the HGSS mod's `PLAYER SELECT` option:
 strips are bundled and do not require Battle Art Voxel Fork.
 
 When Gen2 `TRAINER ART` is enabled, Gym Leaders from Johto and Kanto, the
-Indigo Plateau Elite Four and Champion Lance use their dedicated, unscaled
-HGSS source PNGs from `front-static/hgss`. Other opponent classes continue to
-use the selected Gen 3 collection. `ROM` bypasses both collections.
+Indigo Plateau Elite Four, Champion Lance and the regular Youngster, Camper,
+Picnicker, Pokéfan♂ and Officer classes use their dedicated HGSS source PNGs
+from `front-static/hgss`. Other opponent classes continue to use the selected
+Gen 3 collection. `ROM` bypasses both collections.
 
 ## Source and attribution notes
 

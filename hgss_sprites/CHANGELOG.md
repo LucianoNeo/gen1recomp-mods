@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.7
+
+- Added original-resolution HGSS battle portraits for the Route 34 Youngster,
+  Camper, Picnicker, Pokéfan♂ and Officer classes so Gen2 `TRAINER ART` now
+  matches the corresponding overworld identities.
+- Corrected Crystal Route 34 object redirects for Camper Todd and Picnicker
+  Gina while preserving Gen1 and unrelated Gen2 map assignments.
+- Cross-checked the Route 34 trainer identities against Bulbapedia and the
+  bundled visual audit, and validated the package structure and runtime asset
+  mappings for g1recomp `0.2.45`.
+
 ## 2.0.6
 
 - Corrected the Gen2 rival battle-art resolver: Crystal/Gold/Silver

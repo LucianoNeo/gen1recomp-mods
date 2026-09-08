@@ -302,6 +302,57 @@ local function patchGen2PokemonObjectRedirects(patchSprite)
   World.__hgssGen2PokemonObjects = true
 end
 
+-- Route 34's Day-Care does not refer to a fixed sprite id.  Gen 2 builds a
+-- temporary definition from the deposited species' native menu icon, so it
+-- bypasses the ordinary Pokémon registry above and used to leave the GSC icon
+-- visible beside an otherwise HGSS overworld.  Replace only that generated
+-- definition with this mod's full-colour HGSS icon sheet.  The original
+-- Day-Care state, object flags and species resolution remain engine-owned.
+local function patchGen2DayCarePokemonSprites(mod)
+  local okWorld, World = pcall(require, "src.world.gen2.World")
+  if not okWorld or type(World) ~= "table"
+      or type(World.breedmonSpriteDef) ~= "function"
+      or World.__hgssGen2DayCareSprites then
+    return
+  end
+
+  local originalBreedmonSpriteDef = World.breedmonSpriteDef
+  World.breedmonSpriteDef = function(self, species)
+    local def = originalBreedmonSpriteDef(self, species)
+    if type(def) ~= "table" or type(species) ~= "string" then return def end
+
+    -- `assets/icons` contains every National Dex species as an untouched
+    -- two-cell 32px HGSS sheet.  The Day-Care object is static, so advertise
+    -- only its first cell while preserving the original source asset.
+    -- This helper is declared before the main entry chunk's general
+    -- `assetName` helper, so keep the two exceptional filenames explicit.
+    local iconName = species:lower()
+    if species == "NIDORAN_F" then iconName = "nidoranf"
+    elseif species == "NIDORAN_M" then iconName = "nidoranm"
+    elseif species == "MR_MIME" then iconName = "mr.mime" end
+    local relative = "assets/icons/" .. iconName .. ".png"
+    local path = mod.assets:path(relative)
+    def.image = path
+    def.hgssNativeImage = path
+    def.frames = 1
+    def.frameWidth = 32
+    def.frameHeight = 32
+    def.anchorX = 16
+    def.anchorY = 32
+    def.hgssGen2DisplayScale = 1.0
+    def.hgssGen2NearestFilter = true
+    def.hgssVoxelWidth = 32
+    def.hgssVoxelHeight = 32
+    def.hgssBaseVoxelWidth = 32
+    def.hgssBaseVoxelHeight = 32
+    def.walker = false
+    def.trueColor = true
+    self.breedmonSprites[species] = def
+    return def
+  end
+  World.__hgssGen2DayCareSprites = true
+end
+
 local WALKERS = [[
 AGATHA ASH BEAUTY BIKER BIRD BLUE BRUNETTE_GIRL BRUNO CHANNELER COOK
 COOLTRAINER_F COOLTRAINER_M DAISY FAIRY FISHER GAMBLER GENTLEMAN GIOVANNI
@@ -2369,6 +2420,11 @@ return function(mod)
     return frames[state.frame]
   end
   mod.__hgssGen2MajorTrainers = {
+    -- Regular classes with dedicated HGSS battle portraits.  These are kept
+    -- here with the major trainers so the GEN2 `HGSS + GEN3` option resolves
+    -- one consistent character identity for both the field and the battle.
+    youngster = true, camper = true, picnicker = true,
+    pokefanm = true, ["pokefan-m"] = true, officer = true,
     -- Johto Gym Leaders
     falkner = true, whitney = true, bugsy = true, morty = true,
     chuck = true, jasmine = true, pryce = true, clair = true,
@@ -2439,7 +2495,10 @@ return function(mod)
     local rel
     if isGen2() and gen ~= "rom"
        and mod.__hgssGen2MajorTrainers[slug] then
-      rel = ("assets/battle/front-static/hgss/%s.png"):format(slug)
+      -- Crystal exposes Pokéfan♂ both as POKEFANM and POKEFAN_M depending on
+      -- the battle entry.  Keep one canonical HGSS filename for both forms.
+      local hgssSlug = slug == "pokefanm" and "pokefan-m" or slug
+      rel = ("assets/battle/front-static/hgss/%s.png"):format(hgssSlug)
     else
       rel = ("assets/battle/front-static/%s/%s.png"):format(gen, slug)
     end
@@ -3821,6 +3880,7 @@ return function(mod)
     patchGen2PokemonSprites(Gen2Player.patchSprite)
     patchGen2BigDollRenderer()
     patchGen2PokemonObjectRedirects(Gen2Player.patchSprite)
+    patchGen2DayCarePokemonSprites(mod)
     patchGen2ElmObjectBall()
     patchGen2Route30Rattata()
     patchGen2ElmStarterPokePics()

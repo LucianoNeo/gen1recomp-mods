@@ -8,6 +8,12 @@ trainer battle sprites for:
 - Will, Koga, Bruno and Karen of the Indigo Plateau Elite Four;
 - Champion Lance.
 
+The same directory also contains the five regular HGSS class portraits used
+by Gen 2 so the battle and overworld identities stay consistent on ordinary
+routes: `youngster.png`, `camper.png`, `picnicker.png`, `pokefan-m.png` and
+`officer.png`.  They are the original 80×80 HGSS class sprites for Youngster,
+Camper, Picnicker, Pokéfan♂ and Policeman/Officer respectively.
+
 The source files are used at their original dimensions without resampling.
 They were imported from the Smogon / Pokémon Showdown sprite repository,
 directory `src/_uncategorized/canonical/trainers/gen4/heartgold-soulsilver`,

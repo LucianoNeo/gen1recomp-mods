@@ -24,6 +24,7 @@ return function(ctx)
       OAK = "oak_gen2", OFFICER = "officer",
       OLD_LINK_RECEPTIONIST = "link_receptionist", UNUSED_GUY = "gramps",
       PHARMACIST = "pharmacist_gen2", POKEFAN_M = "pokefan_m",
+      PICNICKER = "picnicker",
       PRYCE = "pryce_gen2", RECEPTIONIST = "receptionist_gen2",
       RED = "red", REDS_MOM = "mom_johto", ROCKER = "rocker",
       ROCKET = "rocket_gen2", ROCKET_GIRL = "rocket_girl_gen2",
@@ -90,6 +91,15 @@ return function(ctx)
           or (mapId == "BATTLE_TOWER_ELEVATOR" and index == 1)
           or (mapId == "BATTLE_TOWER_HALLWAY" and index == 1) then
         replacement = "SPRITE_BATTLE_TOWER_RECEPTIONIST"
+      -- Crystal gives Todd, Samuel and Ian the same native Youngster object
+      -- id, and uses Lass for Gina.  That is correct for the two Youngsters,
+      -- but it loses Todd's Camper and Gina's Picnicker identities once HGSS
+      -- overworlds are active.  Keep this redirect local to Route 34 so
+      -- Gen 1 and all unrelated Gen 2 maps retain their normal assignments.
+      elseif mapId == "ROUTE_34" and index == 1 then
+        replacement = "SPRITE_CAMPER"
+      elseif mapId == "ROUTE_34" and index == 4 then
+        replacement = "SPRITE_PICNICKER"
       end
       if not replacement then
         return originalPooledNpc(self, mapId, obj)

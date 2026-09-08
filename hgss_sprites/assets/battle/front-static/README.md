@@ -27,10 +27,11 @@ Filenames are lowercase. The same names apply in every battle-art folder.
 ## Static opponent trainer fronts
 
 Opponent trainer pictures are never animated. The generation folders are
-retained for compatibility with older packages; the current release does not
-expose a trainer-art selector and Gen 2 keeps the engine's native opponent
-portrait. The filename is the engine trainer class in lowercase with
-underscores changed to hyphens:
+retained for compatibility with older packages. Gen 1 uses the selected
+generation folder; Gen 2's `TRAINER ART` option uses the dedicated HGSS
+portraits for supported classes and falls back to the selected collection (or
+the ROM portrait) when a class has no replacement. The filename is the engine
+trainer class in lowercase with underscores changed to hyphens:
 
 youngster.png       bug-catcher.png     lass.png
 sailor.png          jr-trainer-m.png    jr-trainer-f.png
@@ -54,3 +55,7 @@ trainer picture. The runtime does not borrow it from either of the other sets.
 
 The front static sprites work differently than animated, to allow mix & match.
 Basically put any rightsized sprite named in here, and it will be in the game.
+
+The Gen 2 HGSS class portraits are in `hgss/`: `youngster.png`, `camper.png`,
+`picnicker.png`, `pokefan-m.png` and `officer.png` cover the regular HGSS
+classes whose overworld counterparts are also supplied by this mod.
