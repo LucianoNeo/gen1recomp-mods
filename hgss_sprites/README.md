@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.0.3
+# HGSS_SPRITES 2.0.4
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -70,7 +70,9 @@ following Gen 2 features are included:
 - Native Gold/Silver/Crystal player slots with `ETHAN`, `LYRA`, `KRIS`, `KRIS
   V2`, `LEAF` and `BRENDAN` choices, plus a live `PLAYER SELECT` switch after
   the save has started. New Gen 2 saves use Ethan or Lyra for the initial
-  boy/girl choice; the menu can then change to any supported character.
+  boy/girl choice; the menu can then change to any supported character. Girl
+  saves keep that explicit selection after reload, and Gen 1/Gen 2 retain
+  independent player choices when switching games.
 - HGSS walking, bicycle, fishing and animated battle-back sheets for the
   selectable protagonists, with shared grounding, mirror and Voxel pivot
   handling. `KRIS V2` is an additional option and does not replace the

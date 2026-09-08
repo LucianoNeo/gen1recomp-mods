@@ -617,6 +617,12 @@ return function(mod)
   local gen2PlayerSelectSynced = false
   local gen2PlayerSelectSyncing = false
   local syncGen2PlayerOption
+  -- PLAYER SELECT is exposed by the manager as one shared option, although
+  -- Gen 1 and Gen 2 are separate games. Remember each game's last concrete
+  -- choice so opening Crystal cannot leak Ethan/Lyra/Kris back into RBY (or
+  -- overwrite the Gen 2 choice when returning in the other direction).
+  mod.__hgssPlayerSelectionByGeneration =
+    mod.__hgssPlayerSelectionByGeneration or {}
   local activeGeneration = detectGeneration()
   local function isGen2(game)
     local value = detectGeneration(game or liveGame)
@@ -892,7 +898,7 @@ return function(mod)
             and "female" or "male"
           local save = self.game and self.game.save
           if save and save.player then save.player.gender = gender end
-          syncGen2PlayerOption(self.game, gender)
+          syncGen2PlayerOption(self.game, gender, true)
 
           -- Keep the rest of the intro (including NamePick and the shrink)
           -- on the same gendered artwork chosen for the future overworld.
@@ -1217,6 +1223,19 @@ return function(mod)
       if key == "player_select" and value ~= nil then
         playerSelectionValue = tostring(value):lower()
         playerSelectionEventSeen = true
+        local generation = isGen2() and 2 or 1
+        mod.__hgssPlayerSelectionByGeneration[generation] =
+          playerSelectionValue
+        local save = liveGame and liveGame.save
+        local rows = save and save.options and save.options.modOptions
+        local row = rows and rows[mod.id]
+        if type(row) == "table" then
+          row[generation == 2 and "player_select_gen2"
+            or "player_select_gen1"] = playerSelectionValue
+          if liveGame and liveGame.writeOptions then
+            pcall(function() liveGame:writeOptions() end)
+          end
+        end
         if not gen2PlayerSelectSyncing then
           gen2PlayerSelectSynced = false
         end
@@ -1260,16 +1279,73 @@ return function(mod)
     return tostring(value or "red"):lower()
   end
 
+  mod.__hgssRestorePlayerSelection = function(game, generation)
+    generation = tonumber(generation) == 2 and 2 or 1
+    local storageKey = generation == 2
+      and "player_select_gen2" or "player_select_gen1"
+    local save = game and game.save
+    if save then
+      save.options = save.options or {}
+      save.options.modOptions = save.options.modOptions or {}
+      save.options.modOptions[mod.id] =
+        save.options.modOptions[mod.id] or {}
+    end
+    local rows = save and save.options and save.options.modOptions
+    local row = rows and rows[mod.id]
+    local value = type(row) == "table" and row[storageKey]
+      or mod.__hgssPlayerSelectionByGeneration[generation]
+
+    if value == nil then
+      value = selectedPlayerOption()
+      -- Upgrade an installation that predates the per-generation keys. A
+      -- Johto-only protagonist left in the shared option must not become the
+      -- first Gen-1 choice merely because RBY was opened second.
+      if generation == 1 and (value == "ethan" or value == "lyra"
+          or value == "kris" or value == "kris_v2") then
+        value = "red"
+      else
+        mod.__hgssPlayerSelectionByGeneration[generation] = value
+        if type(row) == "table" then row[storageKey] = value end
+        if game and game.writeOptions then
+          pcall(function() game:writeOptions() end)
+        end
+        return value
+      end
+    end
+
+    value = tostring(value):lower()
+    mod.__hgssPlayerSelectionByGeneration[generation] = value
+    playerSelectionValue = value
+    playerSelectionEventSeen = true
+    local mods = game and game.mods
+    if mods then
+      mods.modOptions = mods.modOptions or {}
+      mods.modOptions[mod.id] = mods.modOptions[mod.id] or {}
+      mods.modOptions[mod.id].player_select = value
+    end
+    if type(row) == "table" then
+      row.player_select = value
+      row[storageKey] = value
+    end
+    if game and game.writeOptions then
+      pcall(function() game:writeOptions() end)
+    end
+    return value
+  end
+
   -- Keep the visible shared option in step with the Gen2 save.  The manager
   -- exposes its live option table through `game.mods.modOptions`; mirroring
   -- both that table and save.options makes the value visible immediately and
   -- keeps it after restarting the game. Explicit non-player values (Leaf,
   -- Brendan, etc.) are left alone so those custom overrides remain usable.
-  syncGen2PlayerOption = function(game, gender)
+  syncGen2PlayerOption = function(game, gender, force)
     if not game or not isGen2(game) then return false end
     local current = selectedPlayerOption()
-    if current ~= "red" and current ~= "off"
-       and current ~= "ethan" and current ~= "lyra" then
+    if not force
+       and not (not playerSelectionEventSeen
+         and (current == "red" or current == "off"))
+       and not (gen2PlayerSelectSynced
+         and (current == "ethan" or current == "lyra")) then
       return false
     end
     local value = gender == "female" and "lyra" or "ethan"
@@ -3344,15 +3420,18 @@ return function(mod)
     return (value == "female" or value == "girl") and "female" or "male"
   end
 
-  -- Keep the shared PLAYER SELECT menu useful for Gen 2 custom protagonists,
-  -- but let its existing RED default mean "use the Boy/Girl answer".  This
-  -- preserves explicit Ethan/Lyra/Leaf/etc. selections while a fresh Gen 2
-  -- save follows its own gender choice automatically.
+  -- Keep the shared PLAYER SELECT menu useful for Gen 2 custom protagonists.
+  -- The intro synchronization latch marks the automatic Ethan/Lyra choice;
+  -- once the user changes the row, every value (including RED) is explicit.
   local function gen2PlayerSelection(game)
     local selected = tostring(selectedPlayerOption() or "red"):lower()
-    if selected == "red" or selected == "off" or gen2PlayerSelectSynced then
-      local gender = gen2SaveGender(game)
-      return gender == "female" and "lyra" or "ethan", true
+    -- An intro-synchronized Ethan/Lyra still follows the Boy/Girl answer,
+    -- but that latch must never override a different concrete menu choice.
+    -- Some Mod API builds persist the new option before emitting its event,
+    -- so correctness cannot depend on the event clearing the latch first.
+    if gen2PlayerSelectSynced and selected ==
+       (gen2SaveGender(game) == "female" and "lyra" or "ethan") then
+      return selected, true
     end
     return selected, false
   end
@@ -7402,10 +7481,12 @@ return function(mod)
 
     ensure("SPRITE_CHRIS", footFile)
     ensure("SPRITE_CHRIS_BIKE", bikeFile)
-    -- Crystal's female slot is always the HGSS Lyra equivalent, independent
-    -- of the active male PLAYER SELECT value.
-    ensure("SPRITE_KRIS", "overrides/sprites/lyra")
-    ensure("SPRITE_KRIS_BIKE", "lyra_bike")
+    -- The engine reapplies the gender-specific KRIS slot after field-state
+    -- changes. When PLAYER SELECT is explicit, patch both gender slots to the
+    -- selected character so GIRL saves cannot snap back to Lyra later.
+    ensure("SPRITE_KRIS", followsGender and "overrides/sprites/lyra"
+      or footFile)
+    ensure("SPRITE_KRIS_BIKE", followsGender and "lyra_bike" or bikeFile)
 
     -- Refresh the existing actor without changing its grid position, facing,
     -- bike state or movement timers.  `applyPlayerState` is the Gen 2-native
@@ -7527,6 +7608,7 @@ return function(mod)
   mod.events:on("game.ready", function(ev)
     liveGame = ev and ev.game
     activeGeneration = detectGeneration(liveGame)
+    mod.__hgssRestorePlayerSelection(liveGame, activeGeneration)
     tryPatchVoxelBillboards()
     applyCrispDisplay(liveGame)
     applyPartyMenuOption(liveGame)
@@ -7574,10 +7656,12 @@ return function(mod)
   -- cosmetic policy only after that restore has completed.
   mod.events:on("save.loaded", function()
     if isGen2() then
+      mod.__hgssRestorePlayerSelection(liveGame, 2)
       syncGen2PlayerOption(liveGame, gen2SaveGender(liveGame))
       applyGen2PlayerSelection(liveGame)
       return
     end
+    mod.__hgssRestorePlayerSelection(liveGame, 1)
     applyCrispDisplay(liveGame)
     applyPartyMenuOption(liveGame)
     applyPlayerSelection(liveGame)
@@ -7585,10 +7669,12 @@ return function(mod)
   end)
   mod.events:on("save.created", function()
     if isGen2() then
+      mod.__hgssRestorePlayerSelection(liveGame, 2)
       syncGen2PlayerOption(liveGame, gen2SaveGender(liveGame))
       applyGen2PlayerSelection(liveGame)
       return
     end
+    mod.__hgssRestorePlayerSelection(liveGame, 1)
     applyCrispDisplay(liveGame)
     applyPartyMenuOption(liveGame)
     applyPlayerSelection(liveGame)

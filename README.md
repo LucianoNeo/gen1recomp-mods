@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 2.0.3](https://img.shields.io/badge/version-2.0.3-gold)
+![Version 2.0.4](https://img.shields.io/badge/version-2.0.4-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow%20%7C%20Gold%20%7C%20Silver%20%7C%20Crystal-red)
 
 HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue, Yellow, Gold, Silver and Crystal while preserving each game's logic and map geometry.
 
-## What version 2.0.3 provides
+## What version 2.0.4 provides
 
 ### Overworld
 
@@ -49,6 +49,10 @@ adds:
 - Ethan/Lyra as the new-save boy/girl defaults, plus live `PLAYER SELECT`
   switching to Ethan, Lyra, Kris, Kris V2, Leaf or Brendan after the save is
   running.
+- Manual player changes now remain authoritative after choosing Girl: the
+  female engine slot follows every menu choice, including RED, across save
+  reloads. Gen 1 and Gen 2 also remember separate player selections, so a
+  Johto protagonist no longer leaks into Red/Blue/Yellow when changing games.
 - HGSS walking, bicycle, fishing and animated battle-back sheets with the
   same Voxel grounding, mirror and pivot corrections used by the overworld.
 - HGSS redirects for the Gen 2 trainer/person registry and map objects,
@@ -127,7 +131,7 @@ player centered below them.
 
 Download the matching release package, then import the `HGSS_SPRITES` folder
 from the g1recomp Mods screen. Version `1.0.5` is the Gen1 release line;
-version `2.0.3` adds the Gold/Silver/Crystal support and fixes described above. Enable
+version `2.0.4` adds the Gold/Silver/Crystal support and fixes described above. Enable
 the mod for the target game and restart after changing presentation options.
 
 The package targets g1recomp Mod API 2 and supports the Red/Blue/Yellow and
