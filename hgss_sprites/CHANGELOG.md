@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.6
+
+- Corrected the Gen2 rival battle-art resolver: Crystal/Gold/Silver
+  `RIVAL1` and `RIVAL2` now use the canonical HGSS Silver portrait instead
+  of inheriting Gen1 Blue's Gen3 `rival1` card. The Yellow rival continues
+  to use Blue's portrait.
+- Restricted Yellow's map-object Blue redirect to Yellow, preserving
+  Silver's separate Gen2 overworld sprite registration.
+- Visually verified rival battles in Yellow and Crystal on g1recomp `0.2.45`.
+
 ## 2.0.5
 
 - Fixed Yellow voxel billboard UVs for standing NPC sheets whose physical

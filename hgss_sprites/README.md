@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.0.5
+# HGSS_SPRITES 2.0.6
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -29,6 +29,8 @@ are in the [repository README](../README.md).
   all 16 Gym Leaders, the Elite Four and Lance use their dedicated HGSS art,
   ordinary opponents use the bundled Gen 3 set, and `ROM` restores the
   original cartridge portraits.
+- Gen2 rival battles resolve `RIVAL1` and `RIVAL2` to the canonical HGSS
+  Silver portrait; Yellow keeps its separate Blue rival portrait.
 - Leaf's and Brendan's animated full-color battle back sprites are selected by
   `PLAYER SELECT > LEAF` and `PLAYER SELECT > BRENDAN`; both player sprite sets
   are credited to `setogabes` (Discord).

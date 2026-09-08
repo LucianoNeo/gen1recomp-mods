@@ -2377,6 +2377,9 @@ return function(mod)
     -- Kanto Gym Leaders in Gold/Silver/Crystal
     brock = true, misty = true, ["lt-surge"] = true, erika = true,
     janine = true, sabrina = true, blaine = true, blue = true,
+    -- The Gen 2 rival classes are RIVAL1/RIVAL2.  They are Silver, not
+    -- Gen 1's Blue, so they deliberately resolve to the bundled HGSS card.
+    silver = true,
   }
   local function selectedBattleTrainerImage(name, partyIndex)
     local gen = battleOption("battle_trainer_gen") or "rom"
@@ -2398,6 +2401,12 @@ return function(mod)
       or rawName:lower():find("jessie", 1, true)
       or (rawName:upper() == "OPP_ROCKET" and rocketParty >= 42))
     local slug = isJessieJames and "jessie-james" or battleSlug(className)
+    -- Both Johto rival trainer classes use Silver's battle portrait.  This
+    -- must happen before the GEN 3 fallback selection below: `rival1.png`
+    -- there is Blue/Gary's Kanto card and was leaking into Gen 2 battles.
+    if isGen2() and (slug == "rival1" or slug == "rival2") then
+      slug = "silver"
+    end
     -- The bundled Gen 3 set follows FireRed/LeafGreen's Kanto class names,
     -- while Crystal adds Johto-only leaders and trainer classes. Map those
     -- classes to their closest Gen 3 presentation so selecting GEN 3 never
@@ -6555,9 +6564,13 @@ return function(mod)
       target = "SPRITE_LINK_RECEPTIONIST"
     end
 
-    -- Yellow calls Gary/Blue simply RIVAL in every map object. These names
-    -- are specific enough that this does not collide with generic NPCs.
-    if not target and objectName:find("RIVAL", 1, true) then
+    -- Yellow calls Gary/Blue simply RIVAL in every map object.  This is a
+    -- Yellow-only object redirect: Gold/Silver/Crystal use the same generic
+    -- name for Silver, whose Gen 2 registry entry is patched separately in
+    -- Gen2Player.  Applying it across generations made Silver inherit
+    -- Blue's charset.
+    if not target and isYellowGame(liveGame)
+        and objectName:find("RIVAL", 1, true) then
       target = "SPRITE_HGSS_BLUE"
     elseif not target and OAK_OBJECTS[objectName] then
       target = "SPRITE_HGSS_OAK"

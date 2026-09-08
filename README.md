@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 2.0.5](https://img.shields.io/badge/version-2.0.5-gold)
+![Version 2.0.6](https://img.shields.io/badge/version-2.0.6-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow%20%7C%20Gold%20%7C%20Silver%20%7C%20Crystal-red)
 
 HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue, Yellow, Gold, Silver and Crystal while preserving each game's logic and map geometry.
 
-## What version 2.0.5 provides
+## What version 2.0.6 provides
 
 ### Overworld
 
