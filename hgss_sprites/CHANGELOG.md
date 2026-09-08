@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.5
+
+- Fixed Yellow voxel billboard UVs for standing NPC sheets whose physical
+  frame count differs from their logical pose count. Professor Oak, Mom and
+  other NPCs no longer show combined frames or disappear after scripted
+  capture and rival-battle scenes.
+- Corrected the Yellow gate Guard's voxel billboard proportions without
+  changing its 2D sprite, and visually audited all 15 Guard objects across
+  the Kanto gate maps and Route 23.
+- Verified the Pallet capture return and Oak's Lab rival-battle return on
+  g1recomp `0.2.45` with the Battle Art Voxel Gen1 compatibility provider.
+
 ## 2.0.3
 
 - Added original-resolution Pokémon HeartGold/SoulSilver battle portraits for

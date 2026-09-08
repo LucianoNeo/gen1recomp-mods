@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.0.4
+# HGSS_SPRITES 2.0.5
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -59,6 +59,17 @@ are in the [repository README](../README.md).
   and hides those Gen1-only selectors.
 - Intro, catch-summary, evolution, Pokédex and Hall of Fame artwork paths use
   the bundled assets with safe fallback to the game originals.
+
+## Runtime module layout
+
+`main.lua` remains the compatibility entry point, but its feature seams are
+now loaded through the mod-local sandbox loader. `lib/Options.lua` owns the
+generation-aware menu schema, and `lib/Gen2Npc.lua` owns Crystal's trainer
+registry plus map/object identity redirects. `lib/Gen2Player.lua` owns Gen 2
+player selection, HGSS sheet geometry, fishing-state seams and player/NPC
+sprite registration. Keeping those seams outside the entry chunk makes future
+Gen 2 map audits independent from the Gen 1 battle and menu hooks while
+preserving the same Mod API 2 package entry point.
 
 ## Gen 2 support
 
