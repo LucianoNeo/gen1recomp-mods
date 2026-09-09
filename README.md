@@ -86,8 +86,8 @@ Voxel renderer alongside Battle Art.
 
 #### Gen 2 — Gold, Silver and Crystal
 
-Use the Gen 2-compatible Battle Art package (`BATTLE_ART_VOXEL_GEN2`) with
-`HGSS_SPRITES`. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+Use the [Gen 2-compatible Battle Art package 2.1.1](https://github.com/absol89/Gen2Recomped-DramaticShapes/releases/tag/2.1.1)
+(`BATTLE_ART_VOXEL_GEN2`) with `HGSS_SPRITES`. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
 is the recommended companion for its 251-species follow/overworld collection;
 HGSS Visual Overhaul supplies the audited Crystal object, character and menu
 redirects. The Gen 1 `BATTLE_ART_VOXEL_FORK` package is not a substitute for
@@ -165,19 +165,18 @@ load. The Voxel recommendation is generation-specific:
 - [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) — `BATTLE_ART_VOXEL_FORK` for Red, Blue and Yellow.
 - [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod) — optional expanded overworld/follow sprites and encounters.
 - [Shiny Mod](https://github.com/masterwebx/gen1recomp-shiny-pokemon/releases) — optional shiny encounter/party states.
+- [All Pokémon Catchable](https://github.com/wowabox/All_Pokemon_Catchable_151_Mod/releases) — makes all 151 Pokémon obtainable.
+- [EXP Share Modes](https://github.com/ShaneMcGovernIE/exp_share/releases) — configurable EXP Share behavior.
 
 ### Gen 2 companions
 
-- `BATTLE_ART_VOXEL_GEN2` — the Gen 2-compatible Battle Art package for Gold, Silver and Crystal.
+- [`BATTLE_ART_VOXEL_GEN2` 2.1.1](https://github.com/absol89/Gen2Recomped-DramaticShapes/releases/tag/2.1.1) — the Gen 2-compatible Battle Art package for Gold, Silver and Crystal.
 - [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod) — recommended 251-species follow/overworld collection.
-- [Shiny Mod](https://github.com/masterwebx/gen1recomp-shiny-pokemon/releases) — optional shiny encounter/party states.
 
 ### Shared optional mods
 
 - [Colosseum UI](https://github.com/HighDrexler/Colosseum-Inspired-UI-Overhaul-V.1.0.0/releases) — optional battle interface overhaul.
 - [Pokéball Colors](https://github.com/mistermiracle3036/Pokeball-Colors/releases/) — alternate Pokéball palettes.
-- [All Pokémon Catchable](https://github.com/wowabox/All_Pokemon_Catchable_151_Mod/releases) — makes all 151 Pokémon obtainable.
-- [EXP Share Modes](https://github.com/ShaneMcGovernIE/exp_share/releases) — configurable EXP Share behavior.
 
 ## Credits and scope
 

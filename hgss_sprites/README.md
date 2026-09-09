@@ -120,8 +120,8 @@ Voxel renderer alongside Battle Art.
 
 #### Gen 2 — Gold, Silver and Crystal
 
-Use the Gen 2-compatible Battle Art package (`BATTLE_ART_VOXEL_GEN2`) with
-`HGSS_SPRITES`. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+Use the [Gen 2-compatible Battle Art package 2.1.1](https://github.com/absol89/Gen2Recomped-DramaticShapes/releases/tag/2.1.1)
+(`BATTLE_ART_VOXEL_GEN2`) with `HGSS_SPRITES`. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
 is the recommended companion for its 251-species follow/overworld collection;
 HGSS Visual Overhaul supplies the audited Crystal object, character and menu
 redirects. The Gen 1 `BATTLE_ART_VOXEL_FORK` package is not a substitute for
