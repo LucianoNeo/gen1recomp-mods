@@ -492,10 +492,10 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   -- Keep every overworld character at the same native display scale as Red.
   -- Jessie and James use their full-resolution sheets, but are not enlarged
   -- through code.
-  -- Ash and Ethan use their 28px logical cells. Red's restored 0.3.1 sheet
-  -- and all bike sheets retain the original 32px logical height.
-  local displaySize = (file == "ash" or file == "ethan"
-      or file == "ash_bike" or file == "ethan_bike") and 28 or 32
+  -- Ash keeps its compact 28px logical cell. Ethan's current sheet has the
+  -- same visible footprint as Leaf and Brendan, so present it at the shared
+  -- 32px size instead of making that selectable character look smaller.
+  local displaySize = (file == "ash" or file == "ash_bike") and 28 or 32
   local displayHeight = displaySize
   -- The authored sheets have different transparent padding below the shoes.
   -- Keep the logical cell unchanged, but move the complete bitmap by the

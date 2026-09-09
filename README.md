@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 2.0.8](https://img.shields.io/badge/version-2.0.8-gold)
+![Version 2.0.9](https://img.shields.io/badge/version-2.0.9-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow%20%7C%20Gold%20%7C%20Silver%20%7C%20Crystal-red)
 
 HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue, Yellow, Gold, Silver and Crystal while preserving each game's logic and map geometry.
 
-## What version 2.0.8 provides
+## What version 2.0.9 provides
 
 ### Overworld
 
@@ -108,13 +108,14 @@ placements so Voxel geometry does not occlude the subjects.
 
 ## Screenshots (Voxel enabled)
 
-These captures were taken in-game with the Voxel renderer active and show the shipped assets rather than mockups.
+These captures were taken in-game with the Voxel renderer active and show the
+current shipped character assets rather than the superseded showcase sprites.
 
 ![Red and Pikachu outdoors with full Voxel](hgss_sprites/docs/media/readme-voxel-outdoor-pikachu.png)
 
 ![Ash with full Voxel](hgss_sprites/docs/media/readme-voxel-ash.png)
 
-![Ethan with full Voxel](hgss_sprites/docs/media/readme-voxel-ethan.png)
+![Current Ethan and companion with full Voxel](hgss_sprites/docs/media/readme-voxel-ethan.png)
 
 ![Brock's Gym with full Voxel](hgss_sprites/docs/media/readme-voxel-gym-brock.png)
 
@@ -122,18 +123,18 @@ These captures were taken in-game with the Voxel renderer active and show the sh
 
 ![HGSS party icons](hgss_sprites/docs/media/party-icons-hgss.png)
 
-The following additional captures were taken with Voxel enabled and the
+The following additional captures were regenerated with Voxel enabled and the
 global overworld size set to `0.8x`. The Pallet Town scenes use daylight so the
-ground shadows remain visible. Each scene contains only the requested
-characters: Leaf or Brendan with Pikachu, then Red separated from Jessie and
-James in Mt. Moon.
+ground shadows remain visible. Ethan, Leaf and Brendan use the current sheets,
+face down, and are positioned to the right of the active companion so neither
+sprite is hidden.
 
-![Leaf and Pikachu in Pallet Town with full Voxel](hgss_sprites/docs/media/readme-voxel-leaf-pallet.png)
+![Current Leaf and companion in Pallet Town with full Voxel](hgss_sprites/docs/media/readme-voxel-leaf-pallet.png)
 
 Leaf is available from `MOD > PLAYER SELECT > LEAF`; her dedicated walking,
 bicycle and animated battle sprites are included in the package.
 
-![Brendan and Pikachu in Pallet Town with full Voxel](hgss_sprites/docs/media/readme-voxel-brendan-pallet.png)
+![Current Brendan and companion in Pallet Town with full Voxel](hgss_sprites/docs/media/readme-voxel-brendan-pallet.png)
 
 Brendan is available from `MOD > PLAYER SELECT > BRENDAN`; his dedicated
 walking and bicycle sprites are included in the package.
@@ -147,7 +148,7 @@ player centered below them.
 
 Download the matching release package, then import the `HGSS_SPRITES` folder
 from the g1recomp Mods screen. Version `1.0.5` is the Gen1 release line;
-version `2.0.8` is the current Gold/Silver/Crystal release with the fixes
+version `2.0.9` is the current Gold/Silver/Crystal release with the fixes
 described above. Enable
 the mod for the target game and restart after changing presentation options.
 

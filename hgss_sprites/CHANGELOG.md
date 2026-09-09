@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.9
+
+- Refreshed the README Voxel captures with the current Ethan, Leaf and Brendan
+  overworld sheets, facing down beside the active companion.
+- Matched Gen1 Ethan's selectable overworld presentation footprint to Leaf and
+  Brendan by using the shared 32px display size; Gen2 scaling remains unchanged.
+
 ## 2.0.8
 
 - Added identity-matched HGSS battle portraits for the audited Crystal trainer
