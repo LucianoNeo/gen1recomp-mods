@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.0.10
+
+- Restored the Gen2 PC transfer action menu after selecting a Pokémon in the
+  HGSS icon panel.
+- Matched withdraw, deposit and release scrolling to the panel's four 32px icon
+  rows so boxes with more than four Pokémon remain navigable.
+- Verified withdraw and deposit actions on the latest g1recomp `0.2.57`.
+
 ## 2.0.9
 
 - Refreshed the README Voxel captures with the current Ethan, Leaf and Brendan

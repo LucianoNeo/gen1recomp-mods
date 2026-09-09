@@ -5171,6 +5171,33 @@ return function(mod)
      and type(Gen2BoxMenu.drawPanel) == "function"
      and not Gen2BoxMenu.__hgssIconOverlayHook then
     local oldGen2BoxDrawPanel = Gen2BoxMenu.drawPanel
+    local oldGen2BoxEnsureVisible = Gen2BoxMenu.ensureVisible
+
+    -- The native Crystal list reserves five 16px rows.  The HGSS replacement
+    -- uses four 32px icon rows, so the native visibility calculation leaves
+    -- the fifth selection below the custom panel instead of advancing the
+    -- scroll window. Keep MOVE on its native five-row path; only the
+    -- withdraw/deposit/release lists use the four-row presentation.
+    if type(oldGen2BoxEnsureVisible) == "function" then
+      Gen2BoxMenu.ensureVisible = function(self, ...)
+        if isGen2(self and self.game)
+           and mod.options:get("pc_box_icons") ~= false
+           and self.mode ~= "move" then
+          local visibleRows = 4
+          local total = self:total()
+          if self.index <= self.scroll then
+            self.scroll = self.index - 1
+          elseif self.index > self.scroll + visibleRows then
+            self.scroll = self.index - visibleRows
+          end
+          self.scroll = math.max(0, math.min(self.scroll,
+            math.max(0, total - visibleRows)))
+          return
+        end
+        return oldGen2BoxEnsureVisible(self, ...)
+      end
+    end
+
     Gen2BoxMenu.drawPanel = function(self, ...)
       if not isGen2(self and self.game)
          or mod.options:get("pc_box_icons") == false then
@@ -5255,6 +5282,31 @@ return function(mod)
       end
       if first + 4 < total then
         ListFont.drawCode(PartyTheme.moreArrow, 144, 136)
+      end
+
+      -- The native renderer draws the action menu after the list.  Replacing
+      -- drawPanel used to leave the phase state intact but dropped this
+      -- layer, making A appear to do nothing after selecting a Pokémon.
+      -- Keep the Crystal submenu (WITHDRAW/DEPOSIT, STATS, RELEASE, CANCEL)
+      -- visible and navigable while preserving BoxMenu:update's behavior.
+      if self.phase == "submenu" then
+        ListFont.drawBox(0, 15, 20, 3)
+        ListFont.draw("WHAT'S UP?", 8, 128)
+        local submenu = type(self.submenuRows) == "function"
+          and self:submenuRows() or nil
+        local count = submenu and #submenu or 0
+        if count > 0 then
+          local boxY = 17 - count * 2 - 1
+          ListFont.drawBox(9, boxY, 11, count * 2 + 1)
+          local y0 = (boxY + 1) * 8
+          for itemIndex, label in ipairs(submenu) do
+            ListFont.draw(label, 88, y0 + (itemIndex - 1) * 16)
+          end
+          local selected = math.max(1, math.min(count,
+            tonumber(self.submenuIndex) or 1))
+          ListFont.drawCode(PartyTheme.cursor, 80,
+            y0 + (selected - 1) * 16)
+        end
       end
       love.graphics.setColor(1, 1, 1, 1)
       return true
