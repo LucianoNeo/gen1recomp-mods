@@ -56,6 +56,8 @@ trainer picture. The runtime does not borrow it from either of the other sets.
 The front static sprites work differently than animated, to allow mix & match.
 Basically put any rightsized sprite named in here, and it will be in the game.
 
-The Gen 2 HGSS class portraits are in `hgss/`: `youngster.png`, `camper.png`,
-`picnicker.png`, `pokefan-m.png` and `officer.png` cover the regular HGSS
-classes whose overworld counterparts are also supplied by this mod.
+The Gen 2 HGSS class portraits are in `hgss/`.  In addition to the named Gym
+Leaders and Elite Four, this directory covers every regular Crystal trainer
+class whose overworld identity is redirected by `lib/Gen2Npc.lua`; battle
+portraits therefore no longer inherit a different class's card when Battle
+Art is enabled.

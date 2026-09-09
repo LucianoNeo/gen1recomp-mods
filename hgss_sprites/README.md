@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.0.7
+# HGSS_SPRITES 2.0.8
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -103,18 +103,31 @@ following Gen 2 features are included:
   optional Gen 2 animated assets are resolved through the compatible Battle
   Art bridge.
 
-### Recommended Voxel combination
+### Recommended Voxel combinations by generation
 
-[Battle Art Voxel](https://github.com/absol89/DramaticShapeVoxelMod) is the
-recommended Voxel renderer for Gen 2. It supplies the 3D map/battle
-presentation; HGSS_SPRITES supplies the character, Pokémon-object and menu
-redirects. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod) can be enabled
-at the same time: Wilds provides its 251-species follow/overworld collection,
-while this mod installs only the audited Crystal object slots and HGSS menu
-icons. The two mods therefore complement each other and do not require
-PotatoVoxel or a Gen 1 fallback.
+The Voxel companion must match the game generation. Enable only one Voxel
+renderer for a game at a time; the Gen 1 and Gen 2 Battle Art packages are
+different mods and are not interchangeable.
 
-The screenshots below were captured in g1recomp `0.2.45` with Crystal,
+#### Gen 1 — Red, Blue and Yellow
+
+Use [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod)
+(`BATTLE_ART_VOXEL_FORK`, the Gen 1 package) with `HGSS_SPRITES`. It owns the
+Gen 1 Voxel overworld and battle presentation. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+and the Shiny mod are optional companions. Do not enable
+`BATTLE_ART_VOXEL_GEN2` for a Gen 1 game, and do not run PotatoVoxel or another
+Voxel renderer alongside Battle Art.
+
+#### Gen 2 — Gold, Silver and Crystal
+
+Use the Gen 2-compatible Battle Art package (`BATTLE_ART_VOXEL_GEN2`) with
+`HGSS_SPRITES`. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+is the recommended companion for its 251-species follow/overworld collection;
+HGSS Visual Overhaul supplies the audited Crystal object, character and menu
+redirects. The Gen 1 `BATTLE_ART_VOXEL_FORK` package is not a substitute for
+the Gen 2 package. PotatoVoxel is not required.
+
+The screenshots below were captured in the latest g1recomp build with Crystal,
 HGSS_SPRITES enabled, Battle Art Voxel enabled and Wilds of Kanto enabled.
 The legendary-object captures use the production Gen 2 sprite registry and a
 camera-isolated QA placement so the Voxel geometry does not hide the subject.

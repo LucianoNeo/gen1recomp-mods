@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.8
+
+- Added identity-matched HGSS battle portraits for the audited Crystal trainer
+  classes, including Bird Keeper, Bug Catcher, Boarder, Executive, Firebreather,
+  Guitarist, Hiker, Juggler, Medium, PokéManiac, Psychic, Schoolboy, Skier,
+  Swimmer and Twin.
+- Expanded the Gen2 map-scoped trainer redirects so overworld and battle art
+  now resolve to the same trainer identity without changing Gen1 behavior.
+- Documented separate Gen1 and Gen2 Voxel companion recommendations and kept
+  the package guidance aligned with the two Battle Art compatibility paths.
+
 ## 2.0.7
 
 - Added original-resolution HGSS battle portraits for the Route 34 Youngster,

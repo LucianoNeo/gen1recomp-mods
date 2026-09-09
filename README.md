@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 2.0.7](https://img.shields.io/badge/version-2.0.7-gold)
+![Version 2.0.8](https://img.shields.io/badge/version-2.0.8-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow%20%7C%20Gold%20%7C%20Silver%20%7C%20Crystal-red)
 
 HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue, Yellow, Gold, Silver and Crystal while preserving each game's logic and map geometry.
 
-## What version 2.0.7 provides
+## What version 2.0.8 provides
 
 ### Overworld
 
@@ -69,17 +69,32 @@ adds:
   other opponents use the bundled Gen 3 set. `ROM` switches every trainer back
   to the original cartridge portrait.
 
-### Recommended Voxel combination
+### Recommended Voxel combinations by generation
 
-[Battle Art Voxel](https://github.com/absol89/DramaticShapeVoxelMod) is the
-recommended Voxel renderer for Gen 2. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
-can run alongside it and this mod: Wilds supplies its 251-species
-follow/overworld collection, Battle Art supplies the Voxel/battle presentation,
-and HGSS Visual Overhaul supplies the audited Gen 2 object, character and menu
-redirects. PotatoVoxel is not required.
+The Voxel companion must match the game generation. Enable only one Voxel
+renderer for a game at a time; the Gen 1 and Gen 2 Battle Art packages are
+different mods and are not interchangeable.
 
-The following captures were taken in g1recomp `0.2.45` with Crystal,
-HGSS_SPRITES, Battle Art Voxel and Wilds of Kanto enabled. The dog and mascot
+#### Gen 1 — Red, Blue and Yellow
+
+Use [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod)
+(`BATTLE_ART_VOXEL_FORK`, the Gen 1 package) with `HGSS_SPRITES`. It owns the
+Gen 1 Voxel overworld and battle presentation. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+and the Shiny mod are optional companions. Do not enable
+`BATTLE_ART_VOXEL_GEN2` for a Gen 1 game, and do not run PotatoVoxel or another
+Voxel renderer alongside Battle Art.
+
+#### Gen 2 — Gold, Silver and Crystal
+
+Use the Gen 2-compatible Battle Art package (`BATTLE_ART_VOXEL_GEN2`) with
+`HGSS_SPRITES`. [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod)
+is the recommended companion for its 251-species follow/overworld collection;
+HGSS Visual Overhaul supplies the audited Crystal object, character and menu
+redirects. The Gen 1 `BATTLE_ART_VOXEL_FORK` package is not a substitute for
+the Gen 2 package. PotatoVoxel is not required.
+
+The following captures were taken in g1recomp with Crystal, HGSS_SPRITES,
+Battle Art Voxel and Wilds of Kanto enabled. The dog and mascot
 shots use the production Gen 2 sprite registry with camera-isolated QA
 placements so Voxel geometry does not occlude the subjects.
 
@@ -132,22 +147,34 @@ player centered below them.
 
 Download the matching release package, then import the `HGSS_SPRITES` folder
 from the g1recomp Mods screen. Version `1.0.5` is the Gen1 release line;
-version `2.0.7` is the current Gold/Silver/Crystal release with the fixes
+version `2.0.8` is the current Gold/Silver/Crystal release with the fixes
 described above. Enable
 the mod for the target game and restart after changing presentation options.
 
 The package targets g1recomp Mod API 2 and supports the Red/Blue/Yellow and
-Gold/Silver/Crystal runtimes. Battle Art Voxel is recommended for the Gen2
-Voxel presentation; 2D mode remains fully supported.
+Gold/Silver/Crystal runtimes. Choose the Voxel companion for the target
+generation as described above; 2D mode remains fully supported.
 
 ## Recommended companion mods
 
-These projects are optional recommendations for a more complete playthrough. HGSS Visual Overhaul does not require them to load:
+These projects are optional; HGSS Visual Overhaul does not require them to
+load. The Voxel recommendation is generation-specific:
 
-- [Shiny Mod](https://github.com/masterwebx/gen1recomp-shiny-pokemon/releases) — enables shiny encounter/party states.
-- [Battle Art Voxel](https://github.com/absol89/DramaticShapeVoxelMod) — recommended Gen2 Voxel/battle presentation and battle-art tooling.
+### Gen 1 companions
+
+- [Battle Art Voxel Fork](https://github.com/absol89/DramaticShapeVoxelMod) — `BATTLE_ART_VOXEL_FORK` for Red, Blue and Yellow.
+- [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod) — optional expanded overworld/follow sprites and encounters.
+- [Shiny Mod](https://github.com/masterwebx/gen1recomp-shiny-pokemon/releases) — optional shiny encounter/party states.
+
+### Gen 2 companions
+
+- `BATTLE_ART_VOXEL_GEN2` — the Gen 2-compatible Battle Art package for Gold, Silver and Crystal.
+- [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod) — recommended 251-species follow/overworld collection.
+- [Shiny Mod](https://github.com/masterwebx/gen1recomp-shiny-pokemon/releases) — optional shiny encounter/party states.
+
+### Shared optional mods
+
 - [Colosseum UI](https://github.com/HighDrexler/Colosseum-Inspired-UI-Overhaul-V.1.0.0/releases) — optional battle interface overhaul.
-- [Wilds of Kanto](https://github.com/YoDrehDenSwagAuf/overworld-spawn-mod) — expanded overworld/follow sprites and encounters; compatible with the Gen2 path.
 - [Pokéball Colors](https://github.com/mistermiracle3036/Pokeball-Colors/releases/) — alternate Pokéball palettes.
 - [All Pokémon Catchable](https://github.com/wowabox/All_Pokemon_Catchable_151_Mod/releases) — makes all 151 Pokémon obtainable.
 - [EXP Share Modes](https://github.com/ShaneMcGovernIE/exp_share/releases) — configurable EXP Share behavior.

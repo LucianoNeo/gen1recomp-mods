@@ -2419,24 +2419,52 @@ return function(mod)
     end
     return frames[state.frame]
   end
-  mod.__hgssGen2MajorTrainers = {
-    -- Regular classes with dedicated HGSS battle portraits.  These are kept
-    -- here with the major trainers so the GEN2 `HGSS + GEN3` option resolves
-    -- one consistent character identity for both the field and the battle.
-    youngster = true, camper = true, picnicker = true,
-    pokefanm = true, ["pokefan-m"] = true, officer = true,
+  -- Battle Art exposes one shared `GEN 3` selector for Gen 2, but the
+  -- Crystal world uses many class names that do not exist in FireRed/Leaf
+  -- Green.  Keep a class-to-file table instead of aliasing those classes to
+  -- unrelated portraits (for example SCHOOLBOY -> SUPER NERD or
+  -- FIREBREATHER -> JUGGLER).  The table includes the exact HGSS class name
+  -- and the spelling used by Crystal's trainer records where they differ.
+  -- Every file is an authored HGSS/Gen-IV portrait; the renderer only scales
+  -- it to the battle box and never resamples or mutates the source PNG.
+  local hgssGen2TrainerFiles = {
+    -- Regular classes shared by the existing Route 34 audit.
+    youngster = "youngster", camper = "camper", picnicker = "picnicker",
+    pokefanm = "pokefan-m", ["pokefan-m"] = "pokefan-m", officer = "officer",
+
+    -- Crystal's map-scoped classes corrected by Gen2Npc.lua.
+    ["bird-keeper"] = "bird-keeper", birdkeeper = "bird-keeper",
+    ["bug-catcher"] = "bug-catcher", bugcatcher = "bug-catcher",
+    boarder = "boarder",
+    burglar = "burglar",
+    ["cooltrainer-m"] = "cooltrainer-m", cooltrainerm = "cooltrainer-m",
+    ["executive-m"] = "executive-m", executivem = "executive-m",
+    ["executive-f"] = "executive-f", executivef = "executive-f",
+    firebreather = "firebreather", guitarist = "guitarist", hiker = "hiker",
+    juggler = "juggler", medium = "medium",
+    pokemaniac = "pokemaniac", psychic = "psychic",
+    ["psychic-t"] = "psychic", psychict = "psychic",
+    schoolboy = "schoolboy",
+    skier = "skier", swimmerm = "swimmer", ["swimmer-m"] = "swimmer",
+    ["swimmer-guy"] = "swimmer", twin = "twin", twins = "twin",
+
     -- Johto Gym Leaders
-    falkner = true, whitney = true, bugsy = true, morty = true,
-    chuck = true, jasmine = true, pryce = true, clair = true,
+    falkner = "falkner", whitney = "whitney", bugsy = "bugsy", morty = "morty",
+    chuck = "chuck", jasmine = "jasmine", pryce = "pryce", clair = "clair",
     -- Indigo Plateau Elite Four and Champion
-    will = true, koga = true, bruno = true, karen = true, lance = true,
+    will = "will", koga = "koga", bruno = "bruno", karen = "karen", lance = "lance",
     -- Kanto Gym Leaders in Gold/Silver/Crystal
-    brock = true, misty = true, ["lt-surge"] = true, erika = true,
-    janine = true, sabrina = true, blaine = true, blue = true,
+    brock = "brock", misty = "misty", ["lt-surge"] = "lt-surge", erika = "erika",
+    janine = "janine", sabrina = "sabrina", blaine = "blaine", blue = "blue",
     -- The Gen 2 rival classes are RIVAL1/RIVAL2.  They are Silver, not
     -- Gen 1's Blue, so they deliberately resolve to the bundled HGSS card.
-    silver = true,
+    silver = "silver",
   }
+  mod.__hgssGen2TrainerFiles = hgssGen2TrainerFiles
+  mod.__hgssGen2MajorTrainers = {}
+  for slug in pairs(hgssGen2TrainerFiles) do
+    mod.__hgssGen2MajorTrainers[slug] = true
+  end
   local function selectedBattleTrainerImage(name, partyIndex)
     local gen = battleOption("battle_trainer_gen") or "rom"
     if gen == "rom" then return nil end
@@ -2495,9 +2523,10 @@ return function(mod)
     local rel
     if isGen2() and gen ~= "rom"
        and mod.__hgssGen2MajorTrainers[slug] then
-      -- Crystal exposes Pokéfan♂ both as POKEFANM and POKEFAN_M depending on
-      -- the battle entry.  Keep one canonical HGSS filename for both forms.
-      local hgssSlug = slug == "pokefanm" and "pokefan-m" or slug
+      -- Crystal exposes several classes with compact spellings (for example
+      -- POKEFANM, EXECUTIVEM and SWIMMERM).  Resolve those spellings to one
+      -- canonical filename while retaining the authored image dimensions.
+      local hgssSlug = hgssGen2TrainerFiles[slug]
       rel = ("assets/battle/front-static/hgss/%s.png"):format(hgssSlug)
     else
       rel = ("assets/battle/front-static/%s/%s.png"):format(gen, slug)
