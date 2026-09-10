@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.1.0
+
+- Corrected Gen1 follower placement when the player walks vertically: looking
+  up now places the follower one cell behind the player instead of in front.
+- Kept Gen2 follower movement unchanged; the vertical compatibility correction
+  is gated to the Gen1 control path.
+- Unified Wilds follower cards with the HGSS Gen1 depth-sorted presentation so
+  overlapping player and Pokémon sprites respect their ground Y order in flat
+  mode and Battle Art Voxel.
+- Added the Gen1 Town Map marker assets and preserved the selected PLAYER
+  SELECT character and Pidgey marker at native colour and resolution.
+
 ## 2.0.10
 
 - Restored the Gen2 PC transfer action menu after selecting a Pokémon in the

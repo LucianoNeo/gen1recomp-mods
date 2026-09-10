@@ -443,6 +443,26 @@ end
 
 local function patchOverworld(mod, shortId, frames, walker, file)
   file = file or shortId:lower()
+  -- TownMap's Gen 1 marker renderer reads `def.image` directly and crops a
+  -- 16x16 cell from it. HGSS/Voxel intentionally replaces that field with a
+  -- transparent frame-layout proxy, which is correct for billboard UVs but
+  -- makes the player and FLY bird markers disappear. Keep a private vanilla
+  -- marker sheet on the definitions that can be used by the map adapter
+  -- below; the gameplay renderer continues using the HGSS texture.
+  local townMapMarkerImage
+  if shortId == "BIRD" then
+    -- TownMap's FLY cursor is the small Pidgey icon in the HGSS icon pack,
+    -- rather than the Gen 1 bird charset used by the flight animation.
+    townMapMarkerImage = mod.assets:path("assets/townmap/pidgey.png")
+  elseif file == "red" or file == "ash" or file == "ethan"
+      or file == "lyra" or file == "kris" or file == "kris_v2"
+      or file == "leaf" or file == "brendan" then
+    -- PLAYER SELECT entries get a 16x96 marker sheet derived from the same
+    -- HGSS charset as the selected overworld player. The map still crops its
+    -- normal 16x16 first/standing frame, so no proxy or native 32px sheet is
+    -- exposed to TownMap.
+    townMapMarkerImage = mod.assets:path("assets/townmap/" .. file .. ".png")
+  end
   -- Overworld sheets use Red's six-frame layout. Scientist remains 32x192;
   -- keeping its old 48px frame height samples adjacent cells and produces
   -- oversized/garbled sprites. Jessie and James carry the same layout at 4x.
@@ -608,6 +628,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
     hgssBaseVoxelWidth = voxelWidth,
     hgssBaseVoxelHeight = voxelHeight,
     hgssVoxelEntityYOffset = voxelEntityYOffset,
+    hgssTownMapMarkerImage = townMapMarkerImage,
   })
 end
 
@@ -3922,6 +3943,182 @@ return function(mod)
   local SpriteRenderer = require("src.render.SpriteRenderer")
   local SpriteAssets = require("src.render.Assets")
   local PaletteFX = require("src.render.PaletteFX")
+
+  -- The Gen 1 TownMap/Fly screen bypasses SpriteRenderer.new: it calls
+  -- SpriteRenderer.obpImage(def.image) and crops a 16x16 marker itself.
+  -- HGSS overworld records point `image` at a transparent voxel UV proxy, so
+  -- those two markers vanish while map sprites still render correctly.
+  -- Temporarily substitute the private native-size 32px HGSS marker sheets only while
+  -- TownMap.new builds its marker images, then restore the HGSS fields.
+  -- This adapter is Gen 1-only; Crystal's TownMap/data path is untouched.
+  local townMapMarkerMasks = {}
+  local function patchGen1TownMapMarkers()
+    local okTownMap, TownMap = pcall(require, "src.ui.TownMap")
+    if not okTownMap or type(TownMap) ~= "table"
+        or type(TownMap.new) ~= "function"
+        or TownMap.__hgssGen1MarkerAdapter then
+      return
+    end
+    local originalNew = TownMap.new
+    TownMap.new = function(game, opts)
+      if isGen2(game) then return originalNew(game, opts) end
+      local sprites = game and game.data and game.data.sprites
+      local field = game and game.data and game.data.field
+      local playerSprites = field and field.playerSprites or {}
+      local touched = {}
+      local function useVanillaMarker(id, fallback, forcedMarker)
+        local def = sprites and sprites[id]
+        local marker = forcedMarker or (def and def.hgssTownMapMarkerImage)
+        if not marker and fallback then
+          def = sprites and sprites[fallback]
+          marker = def and def.hgssTownMapMarkerImage
+        end
+        if not (def and marker) then return end
+        touched[#touched + 1] = { def = def, image = def.image }
+        def.image = marker
+        return marker
+      end
+      -- Resolve the marker from the shared PLAYER SELECT value, not from the
+      -- mutable field walk slot: companion mods can rewrite that slot while
+      -- the menu still shows Ethan/Lyra/etc. The image therefore always
+      -- matches the character selected by the user.
+      local selected = selectedPlayerOption()
+      local selectedKey = selected ~= "off" and selected or "red"
+      local selectedId = PLAYER_SPRITE_IDS[selectedKey] or "SPRITE_RED"
+      local playerMarkerPath = useVanillaMarker(selectedId, "SPRITE_RED",
+        mod.assets:path("assets/townmap/" .. selectedKey .. ".png"))
+      local birdMarkerPath
+      if opts and opts.fly then
+        -- The field registry's `fly` slot may be rewritten by a player
+        -- selector or a companion mod, but TownMap's Fly cursor is always
+        -- the bird/Pidgey marker. Resolve that slot explicitly so the two
+        -- images can never be swapped.
+        birdMarkerPath = useVanillaMarker("SPRITE_BIRD", "SPRITE_BIRD")
+      end
+      local ok, result = pcall(originalNew, game, opts)
+      for i = #touched, 1, -1 do
+        touched[i].def.image = touched[i].image
+      end
+      if not ok then error(result, 0) end
+      -- Keep the authored HGSS marker frame at its original 32x32 logical
+      -- size. TownMap creates a 16x16 quad unconditionally, which would
+      -- resample the selected player and Pidgey icon into a visibly warped
+      -- miniature. Rebuild only these two quads and offset their draw origin
+      -- by half a frame so their feet/center stay on the vanilla map anchor.
+      if result and love.graphics and love.graphics.newQuad then
+        local function loadNativeMarker(path)
+          if not path then return nil end
+          local loaded, image = pcall(love.graphics.newImage, path)
+          if not loaded or not image then return nil end
+          if image.setFilter then image:setFilter("nearest", "nearest") end
+          if not townMapMarkerMasks[path] and love.image
+              and love.image.newImageData then
+            local okData, data = pcall(love.image.newImageData, path)
+            if okData and data and data.getPixel then
+              local mask = {}
+              for yy = 0, 31 do
+                local runs, start
+                for xx = 0, 31 do
+                  local _, _, _, alpha = data:getPixel(xx, yy)
+                  local opaque = (alpha or 0) > 0.01
+                  if opaque and not start then start = xx end
+                  if start and (not opaque or xx == 31) then
+                    local finish = opaque and xx or (xx - 1)
+                    runs = runs or {}
+                    runs[#runs + 1] = { start, finish }
+                    start = nil
+                  end
+                end
+                mask[yy] = runs
+              end
+              townMapMarkerMasks[path] = mask
+              if data.release then data:release() end
+            end
+          end
+          return image
+        end
+        local playerImage = loadNativeMarker(playerMarkerPath)
+        local birdImage = loadNativeMarker(birdMarkerPath)
+        if playerImage then result.playerSheet = playerImage end
+        if birdImage then result.birdSheet = birdImage end
+        local function useNativeQuad(sheet)
+          if not (sheet and sheet.getDimensions) then return nil end
+          local width, height = sheet:getDimensions()
+          return love.graphics.newQuad(0, 0, 32, 32, width, height)
+        end
+        local playerQuad = useNativeQuad(result.playerSheet)
+        local birdQuad = useNativeQuad(result.birdSheet)
+        if playerQuad then result.playerQuad = playerQuad end
+        if birdQuad then result.birdQuad = birdQuad end
+        if playerQuad or birdQuad then
+          local originalDraw = result.draw
+          result.draw = function(self, ...)
+            local oldDraw = love.graphics.draw
+            local oldMark = PaletteFX.markUiSpriteRedraw
+            love.graphics.draw = function(image, quad, x, y, ...)
+              local isMarker = (image == self.playerSheet
+                  and quad == self.playerQuad)
+                  or (image == self.birdSheet and quad == self.birdQuad)
+              if isMarker then
+                -- The native 32px HGSS frame carries four extra transparent
+                -- rows below its town-map anchor. Lift both markers by 4px
+                -- so their feet align with the city square instead of
+                -- sitting visibly below it. This is deliberately a fixed
+                -- Town Map adjustment: the configurable VOXEL Y OFFSET is
+                -- consumed only by voxel billboard geometry and must never
+                -- affect the flat 2D Town Map.
+                x, y = (x or 0) - 8, (y or 0) - 12
+                local mask = townMapMarkerMasks[
+                  image == self.playerSheet and playerMarkerPath
+                    or birdMarkerPath]
+                if mask and PaletteFX.markTrueColor then
+                  -- Replay only opaque sprite runs, not the whole 32x32
+                  -- square. Replaying the full rectangle copies the map
+                  -- background into a dark block behind the marker.
+                  for yy = 0, 31 do
+                    for _, run in ipairs(mask[yy] or {}) do
+                      PaletteFX.markTrueColor(x + run[1], y + yy,
+                        run[2] - run[1] + 1, 1)
+                    end
+                  end
+                end
+              end
+              if isMarker and love.graphics.setShader then
+                -- TownMap runs in Yellow's palette-remapped UI pass. Draw
+                -- these true-colour HGSS images with that shader temporarily
+                -- disabled; a true-colour replay rectangle would re-blit the
+                -- map background as a dark square behind the marker.
+                local previousShader = love.graphics.getShader
+                  and love.graphics.getShader() or nil
+                love.graphics.setShader()
+                local drawResult = oldDraw(image, quad, x, y, ...)
+                love.graphics.setShader(previousShader)
+                return drawResult
+              end
+              return oldDraw(image, quad, x, y, ...)
+            end
+            -- These marker images are already true-colour HGSS art. Do not
+            -- enqueue a second OBJ-palette replay, which both duplicated the
+            -- marker and recoloured it with the map's GBC ramp.
+            PaletteFX.markUiSpriteRedraw = function(image, quad, x, y, ...)
+              if image == self.playerSheet or image == self.birdSheet then
+                return
+              end
+              return oldMark(image, quad, x, y, ...)
+            end
+            local drawOk, drawResult = pcall(originalDraw, self, ...)
+            love.graphics.draw = oldDraw
+            PaletteFX.markUiSpriteRedraw = oldMark
+            if not drawOk then error(drawResult, 0) end
+            return drawResult
+          end
+        end
+      end
+      return result
+    end
+    TownMap.__hgssGen1MarkerAdapter = true
+  end
+  if not isGen2() then patchGen1TownMapMarkers() end
   local oldNew = SpriteRenderer.new
   local oldDraw = SpriteRenderer.draw
   local overworldHdDraws = {}
@@ -4644,6 +4841,48 @@ return function(mod)
       end
       return self
     end
+    -- Wilds of Kanto owns the party follower entity and supplies its sprite
+    -- definition outside HGSS_SPRITES.  In the flat Gen 1 renderer that meant
+    -- the follower stayed on the native world canvas while the selected player
+    -- was repainted in the HD post-present pass; whenever their cards
+    -- overlapped, the player therefore always appeared in front regardless of
+    -- the entity's Y position.  Promote only Wilds' follower definitions to
+    -- the same native-sheet path so they participate in the normal ground-Y
+    -- depth sort (and keep their authored True Size geometry).
+    local followerId = spriteDef and tostring(spriteDef.id or ""):upper()
+    local isWildsFollower = followerId == "SPRITE_WILDS_FOLLOWER_MON"
+      or (spriteDef and spriteDef.wildsFollower == true)
+    if isWildsFollower and spriteDef and not spriteDef.hgssNativeImage
+       and type(spriteDef.image) == "string" then
+      local fw = tonumber(spriteDef.frameWidth)
+      local fh = tonumber(spriteDef.frameHeight)
+      local frames = tonumber(spriteDef.frames) or 6
+      -- True Size providers expose frame geometry.  Do not guess dimensions
+      -- for a legacy/fallback definition: leaving it on the stock renderer is
+      -- safer than treating an unknown sheet as a one-cell HGSS charset.
+      if fw and fh and fw > 0 and fh > 0 then
+        local adapted = {}
+        for key, value in pairs(spriteDef) do adapted[key] = value end
+        adapted.hgssNativeImage = spriteDef.image
+        adapted.hgssFrameWidth = fw
+        adapted.hgssFrameHeight = fh
+        adapted.hgssDrawWidth = fw
+        adapted.hgssDrawHeight = fh
+        adapted.hgssBaseDrawWidth = fw
+        adapted.hgssBaseDrawHeight = fh
+        adapted.hgssPreserveAspect = true
+        adapted.hgssPostPresent = true
+        adapted.hgssFollower = true
+        -- Wilds already resolves its own True Size presentation.  Keep the
+        -- external follower at that authored size while still allowing the
+        -- depth/ordering adapter to run; otherwise the global HGSS SPRITE SIZE
+        -- option would silently shrink a Wilds asset that was not authored by
+        -- this mod.
+        adapted.hgssScaleOverride = 1
+        adapted.frames = frames
+        spriteDef = adapted
+      end
+    end
     tryPatchVoxelBillboards()
     local self = oldNew(spriteDef, seed)
     if self and spriteDef and spriteDef.hgssNativeImage then
@@ -4823,12 +5062,11 @@ return function(mod)
       -- correction scales together with SPRITE SIZE.
       anchor = drawH - visibleBottom * drawH / fh
     end
-    local y = math.floor(py - camY) - drawH + 16 + anchor
-    -- DS charsets are authored with a taller visual canvas than the native
-    -- 16px map cell. Their logical feet sit at the bottom of the draw box;
-    -- the stock renderer's +16 anchor therefore needs the same extra cell
-    -- offset for every replacement sheet. Red is the reference silhouette;
-    -- this only moves the complete frame and never rescales or crops it.
+    -- Gen1 SpriteRenderer's world anchor is py + 12 (the same anchor used by
+    -- Wilds' follower sprites). Keep the HGSS replacement on that exact
+    -- ground point; using +16 here lowered the player by four pixels in flat
+    -- mode and made it overlap a follower that occupied the next cell.
+    local y = math.floor(py - camY) - drawH + 12 + anchor
     local quad = self.hgssFrames[frame] or self.hgssFrames[0]
     if topHalf then
       self.hgssHalfFrames = self.hgssHalfFrames or {}
@@ -4869,7 +5107,9 @@ return function(mod)
         -- authoritative footline even when the source sheet has transparent
         -- padding below the shoes. Keep it separate from the top-left `y`
         -- used for drawing the image.
-        groundY = math.floor(py - camY) + 16,
+        -- Match SpriteRenderer's native py + 12 ground anchor so HD player
+        -- cards sort with external follower sprites in the same 2D pass.
+        groundY = math.floor(py - camY) + 12,
         isPlayer = self.hgssIsPlayer,
         order = overworldHdOrder,
         frameWidth = fw, frameHeight = topHalf and math.floor(fh / 2) or fh,
@@ -7091,6 +7331,7 @@ return function(mod)
   mod.events:on("game.ready", function(ev)
     liveGame = ev and ev.game
     activeGeneration = detectGeneration(liveGame)
+    if not isGen2(liveGame) then patchGen1TownMapMarkers() end
     mod.__hgssRestorePlayerSelection(liveGame, activeGeneration)
     tryPatchVoxelBillboards()
     applyCrispDisplay(liveGame)
