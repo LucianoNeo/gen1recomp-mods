@@ -3828,6 +3828,42 @@ return function(mod)
     end
   end
 
+  -- Wilds of Kanto exposes its follower control object through the mod API.
+  -- Its shared Gen2/Gen1 control engine historically used the Gold vertical
+  -- convention for both games, which puts a Yellow follower in front when
+  -- the player faces up.  Wrap only the Gen1 fallback seam here so the HGSS
+  -- mod remains self-contained and Crystal's follower logic is untouched.
+  local wildsGen1BehindPatchInstalled = false
+  local function patchGen1WildsFollowerBehind(game)
+    if isGen2(game) or wildsGen1BehindPatchInstalled
+       or type(mod.find) ~= "function" then return end
+    local okFind, wilds = pcall(function()
+      return mod:find("overworld_wild_spawns")
+    end)
+    local follower = okFind and wilds and wilds.exports
+      and wilds.exports.follower
+    local control = follower and follower.control
+    if not (control and type(control._walkableBehind) == "function") then
+      return
+    end
+    local originalBehind = control._walkableBehind
+    control._walkableBehind = function(self, ow, px, py, facing, steps,
+                                       entity, targetGame, role, occupied)
+      -- The original function is correct for Gen2.  Swap only the vertical
+      -- facing passed to its geometric seed on Gen1; horizontal behavior and
+      -- all real trail-history goals remain unchanged.
+      local g = targetGame or game
+      if not isGen2(g) then
+        if facing == "up" then facing = "down"
+        elseif facing == "down" then facing = "up" end
+      end
+      return originalBehind(self, ow, px, py, facing, steps, entity,
+                            targetGame, role, occupied)
+    end
+    control.__hgssGen1BehindPatch = true
+    wildsGen1BehindPatchInstalled = true
+  end
+
   if not isGen2() then
   for shortId in words(WALKERS) do
     patchOverworld(mod, shortId, 6, true)
@@ -7331,6 +7367,7 @@ return function(mod)
   mod.events:on("game.ready", function(ev)
     liveGame = ev and ev.game
     activeGeneration = detectGeneration(liveGame)
+    patchGen1WildsFollowerBehind(liveGame)
     if not isGen2(liveGame) then patchGen1TownMapMarkers() end
     mod.__hgssRestorePlayerSelection(liveGame, activeGeneration)
     tryPatchVoxelBillboards()
@@ -7352,6 +7389,7 @@ return function(mod)
       applyGen2PlayerSelection(liveGame)
       return
     end
+    patchGen1WildsFollowerBehind(liveGame)
     tryPatchVoxelBillboards()
     applyPlayerSelection(liveGame)
     applyLeaderSprites()
@@ -7362,6 +7400,7 @@ return function(mod)
       applyGen2PlayerSelection(liveGame)
       return
     end
+    patchGen1WildsFollowerBehind(liveGame)
     tryPatchVoxelBillboards()
     applyPlayerSelection(liveGame)
     applyLeaderSprites()
