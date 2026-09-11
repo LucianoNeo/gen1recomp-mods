@@ -3988,6 +3988,12 @@ return function(mod)
   -- TownMap.new builds its marker images, then restore the HGSS fields.
   -- This adapter is Gen 1-only; Crystal's TownMap/data path is untouched.
   local townMapMarkerMasks = {}
+  -- Android GLES drivers can sample a neighboring row when a quad ends
+  -- exactly on a texture boundary.  The Town Map markers point at the first
+  -- cell of a six-frame 32x192 sheet, so that precision issue appears as
+  -- horizontal strips from the next frame.  Cache an isolated 32x32 copy of
+  -- the first cell for the map only; the gameplay sheets remain untouched.
+  local townMapMarkerImages = {}
   local function patchGen1TownMapMarkers()
     local okTownMap, TownMap = pcall(require, "src.ui.TownMap")
     if not okTownMap or type(TownMap) ~= "table"
@@ -4044,13 +4050,38 @@ return function(mod)
       if result and love.graphics and love.graphics.newQuad then
         local function loadNativeMarker(path)
           if not path then return nil end
-          local loaded, image = pcall(love.graphics.newImage, path)
-          if not loaded or not image then return nil end
-          if image.setFilter then image:setFilter("nearest", "nearest") end
-          if not townMapMarkerMasks[path] and love.image
-              and love.image.newImageData then
-            local okData, data = pcall(love.image.newImageData, path)
-            if okData and data and data.getPixel then
+          local cachedImage = townMapMarkerImages[path]
+          if cachedImage then return cachedImage end
+          local loaded, sourceImage = pcall(love.graphics.newImage, path)
+          if not loaded or not sourceImage then return nil end
+          local image = sourceImage
+          local okData, data
+          if love.image and love.image.newImageData then
+            okData, data = pcall(love.image.newImageData, path)
+          end
+          if okData and data and data.getPixel then
+            local width, height = data:getDimensions()
+            -- Build a standalone first-frame texture.  Unlike a quad whose
+            -- UV ends at y=32/192, this texture has no adjacent frame for
+            -- GLES to bleed into, even if the final canvas is scaled.
+            if width >= 32 and height >= 32 and love.graphics.newImage then
+              local okFrameData, frameData = pcall(
+                love.image.newImageData, 32, 32)
+              if okFrameData and frameData and frameData.paste then
+                local pasted = pcall(function()
+                  frameData:paste(data, 0, 0, 0, 0, 32, 32)
+                end)
+                if pasted then
+                  local okFrame, frameImage = pcall(love.graphics.newImage,
+                    frameData)
+                  if okFrame and frameImage then
+                    image = frameImage
+                  end
+                end
+                if frameData.release then frameData:release() end
+              end
+            end
+            if not townMapMarkerMasks[path] then
               local mask = {}
               for yy = 0, 31 do
                 local runs, start
@@ -4068,9 +4099,14 @@ return function(mod)
                 mask[yy] = runs
               end
               townMapMarkerMasks[path] = mask
-              if data.release then data:release() end
             end
+            if data.release then data:release() end
           end
+          if image.setFilter then image:setFilter("nearest", "nearest") end
+          if image ~= sourceImage and sourceImage.release then
+            sourceImage:release()
+          end
+          townMapMarkerImages[path] = image
           return image
         end
         local playerImage = loadNativeMarker(playerMarkerPath)
@@ -4080,7 +4116,12 @@ return function(mod)
         local function useNativeQuad(sheet)
           if not (sheet and sheet.getDimensions) then return nil end
           local width, height = sheet:getDimensions()
-          return love.graphics.newQuad(0, 0, 32, 32, width, height)
+          -- Isolated marker textures are exactly one frame.  Keep the
+          -- fallback quad for older builds that could not crop ImageData.
+          local frameWidth = math.min(32, width)
+          local frameHeight = math.min(32, height)
+          return love.graphics.newQuad(0, 0, frameWidth, frameHeight,
+            width, height)
         end
         local playerQuad = useNativeQuad(result.playerSheet)
         local birdQuad = useNativeQuad(result.birdSheet)

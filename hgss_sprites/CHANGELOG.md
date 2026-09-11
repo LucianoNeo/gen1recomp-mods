@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.1
+
+- Fixed Android Town Map/Fly marker artifacts caused by texture bleeding at
+  the boundary between vertical HGSS player frames.
+- Isolated the player and Pidgey map markers into standalone 32×32 textures
+  and forced nearest-neighbour filtering without changing gameplay sheets.
+- Corrected the HGSS overworld sheets for PokéManiac, Skier, Guitarist and
+  both Executive roles, including Archer for `EXECUTIVE_M`.
+
 ## 2.1.0
 
 - Corrected Gen1 follower placement when the player walks vertically: looking
