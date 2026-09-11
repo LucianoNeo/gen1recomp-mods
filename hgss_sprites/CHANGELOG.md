@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.2
+
+- Added the original HGSS Kimono Girl battle portrait for Crystal trainer art.
+- Removed the incorrect Kimono Girl to Beauty fallback; `KIMONO_GIRL` now
+  resolves to the dedicated `kimono-girl.png` portrait.
+
 ## 2.1.1
 
 - Fixed Android Town Map/Fly marker artifacts caused by texture bleeding at

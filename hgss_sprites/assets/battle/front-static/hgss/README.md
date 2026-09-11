@@ -3,10 +3,10 @@
 This directory contains the 21 named HGSS major-trainer portraits plus the
 class-specific portraits used by every Crystal map/object identity corrected
 by `lib/Gen2Npc.lua`.  The regular classes include Bird Keeper, Boarder, Bug
-Catcher, Burglar, Camper, Cooltrainer (the HGSS Ace Trainer equivalent), both
-Rocket Executive roles, Firebreather, Guitarist, Hiker, Juggler, Medium,
-Picnicker, Poké Maniac, Psychic, School Kid, Skier, Swimmer♂ and Twins, in
-addition to Youngster, Pokéfan♂ and Officer.
+Catcher, Burglar, Camper, Cooltrainer (the HGSS Ace Trainer equivalent),
+Kimono Girl, both Rocket Executive roles, Firebreather, Guitarist, Hiker,
+Juggler, Medium, Picnicker, Poké Maniac, Psychic, School Kid, Skier,
+Swimmer♂ and Twins, in addition to Youngster, Pokéfan♂ and Officer.
 
 The compact Crystal class spellings are normalized at runtime.  `EXECUTIVEM`
 uses the HGSS Archer portrait and `EXECUTIVEF` uses Ariana, matching the

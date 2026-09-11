@@ -479,13 +479,18 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   local playerBikeSheet = file == "ash_bike" or file == "ethan_bike"
     or file == "lyra_bike" or file == "kris_bike"
     or file == "kris_v2_bike"
+  -- Psychic now uses the full-resolution Gen4-OWs-v1.5 NPC 81 sheet;
+  -- keeping it on the HD path preserves its authored pixels and four-way
+  -- directional frames instead of shrinking it into the old 32px placeholder.
   local hdSheet = file == "gym_sabrina" or file == "gym_erika"
     or file == "agatha" or file == "officer_jenny"
     or file == "jessie" or file == "james" or file == "lorelei"
+    or file == "psychic"
     or playerSheet or playerBikeSheet
   local highDensity = file == "jessie" or file == "james" or hdSheet
   local nativeWide = file == "jessie" or file == "james"
-    or file == "lorelei" or playerSheet or playerBikeSheet
+    or file == "lorelei" or file == "psychic"
+    or playerSheet or playerBikeSheet
   -- Jessie/James, Ash, Ethan and Lyra use 256px-wide authored frames; match the
   -- source cell so the renderer samples each complete frame instead of
   -- shrinking it or cutting off the head and feet.
@@ -496,6 +501,7 @@ local function patchOverworld(mod, shortId, frames, walker, file)
   local frameSize = (file == "jessie" or file == "james"
       or file == "agatha" or file == "lorelei"
       or file == "officer_jenny"
+      or file == "psychic"
       or playerSheet or playerBikeSheet) and 256
     or (nativeWide and 394
     or (hdSheet and 288 or (highDensity and 128 or 32)))
@@ -2463,6 +2469,8 @@ return function(mod)
     ["executive-f"] = "executive-f", executivef = "executive-f",
     firebreather = "firebreather", guitarist = "guitarist", hiker = "hiker",
     juggler = "juggler", medium = "medium",
+    -- Kimono Girl is a distinct HGSS trainer class; do not fall back to Beauty.
+    ["kimono-girl"] = "kimono-girl", kimono_girl = "kimono-girl",
     pokemaniac = "pokemaniac", psychic = "psychic",
     ["psychic-t"] = "psychic", psychict = "psychic",
     schoolboy = "schoolboy",
@@ -2535,7 +2543,7 @@ return function(mod)
         camper = "jr-trainer-m", sage = "channeler",
         medium = "channeler", boarder = "cooltrainer-m",
         pokefanm = "pokemaniac", pokefanf = "pokemaniac",
-        ["kimono-girl"] = "beauty", twins = "lass", red = "rival1",
+        twins = "lass", red = "rival1",
         blue = "rival2", officer = "gentleman",
         mysticalman = "psychic-tr",
       }

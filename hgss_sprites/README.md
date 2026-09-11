@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.1.1
+# HGSS_SPRITES 2.1.2
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
