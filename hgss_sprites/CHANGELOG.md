@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.3
+
+- Replaced the Medium Grace overworld placeholder with the complete HGSS
+  `trchar060` charset, restoring distinct down, up, side and walking frames.
+- Added the dedicated HGSS Sage battle portrait instead of reusing Channeler
+  artwork for the Sage trainer class.
+
 ## 2.1.2
 
 - Added the original HGSS Kimono Girl battle portrait for Crystal trainer art.

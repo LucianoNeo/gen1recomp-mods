@@ -59,5 +59,5 @@ Basically put any rightsized sprite named in here, and it will be in the game.
 The Gen 2 HGSS class portraits are in `hgss/`.  In addition to the named Gym
 Leaders and Elite Four, this directory covers every regular Crystal trainer
 class whose overworld identity is redirected by `lib/Gen2Npc.lua`, including
-`kimono-girl.png`; battle portraits therefore no longer inherit a different
-class's card when Battle Art is enabled.
+`kimono-girl.png` and `sage.png`; battle portraits therefore no longer inherit
+a different class's card when Battle Art is enabled.

@@ -2473,7 +2473,7 @@ return function(mod)
     ["kimono-girl"] = "kimono-girl", kimono_girl = "kimono-girl",
     pokemaniac = "pokemaniac", psychic = "psychic",
     ["psychic-t"] = "psychic", psychict = "psychic",
-    schoolboy = "schoolboy",
+    schoolboy = "schoolboy", sage = "sage",
     skier = "skier", swimmerm = "swimmer", ["swimmer-m"] = "swimmer",
     ["swimmer-guy"] = "swimmer", twin = "twin", twins = "twin",
 
@@ -2540,7 +2540,7 @@ return function(mod)
         guitarist = "rocker", firebreather = "juggler",
         ["blackbelt-t"] = "blackbelt", executivem = "rocket",
         executivef = "rocket", picnicker = "jr-trainer-f",
-        camper = "jr-trainer-m", sage = "channeler",
+        camper = "jr-trainer-m",
         medium = "channeler", boarder = "cooltrainer-m",
         pokefanm = "pokemaniac", pokefanf = "pokemaniac",
         twins = "lass", red = "rival1",
