@@ -4260,7 +4260,8 @@ return function(mod)
     local billboards
     local voxelLib
     local voxelProviderIds = { "BATTLE_ART_VOXEL_GEN2",
-      "BATTLE_ART_VOXEL_FORK", "DRAMALESS_SHAPE", "DRAMATIC_SHAPE" }
+      "BATTLE_ART_VOXEL_FORK", "DRAMALESS_SHAPE", "DRAMATIC_SHAPE",
+      "TERRARIUM" }
     for _, providerId in ipairs(voxelProviderIds) do
       if not billboards and type(mod.find) == "function" then
         -- Gen2's provider lookup uses the namespace method form; the Gen1
