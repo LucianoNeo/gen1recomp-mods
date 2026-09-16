@@ -4260,7 +4260,7 @@ return function(mod)
     local billboards
     local voxelLib
     local voxelProviderIds = { "BATTLE_ART_VOXEL_GEN2",
-      "BATTLE_ART_VOXEL_FORK", "DRAMALESS_SHAPE", "DRAMATIC_SHAPE" }
+      "BATTLE_ART_VOXEL_FORK", "DRAMALESS_SHAPE", "DRAMATIC_SHAPE", "TERRARIUM" }
     for _, providerId in ipairs(voxelProviderIds) do
       if not billboards and type(mod.find) == "function" then
         -- Gen2's provider lookup uses the namespace method form; the Gen1
@@ -4955,6 +4955,20 @@ return function(mod)
         adapted.hgssDrawHeight = fh
         adapted.hgssBaseDrawWidth = fw
         adapted.hgssBaseDrawHeight = fh
+        -- The Voxel billboard path (nativeMeshImpl / patchVoxelBillboards)
+        -- is a separate size computation from hgssDrawWidth/hgssBaseDrawWidth
+        -- above (that pair only feeds the flat HD post-present path) and
+        -- falls back to hgssFrameWidth/Height when hgssVoxelWidth/Height are
+        -- unset. Wilds' own Voxel-only display-size scale (displayWidth /
+        -- displayHeight, distinct from its True Size frameWidth/frameHeight)
+        -- would otherwise be silently discarded here: the Voxel path would
+        -- rebuild the billboard mesh at authored True Size instead, and
+        -- since that rebuild mutates the mesh Wilds' own adapter cached
+        -- in place, it would permanently overwrite Wilds' scaled geometry.
+        adapted.hgssVoxelWidth = tonumber(spriteDef.displayWidth) or fw
+        adapted.hgssVoxelHeight = tonumber(spriteDef.displayHeight) or fh
+        adapted.hgssBaseVoxelWidth = tonumber(spriteDef.displayWidth) or fw
+        adapted.hgssBaseVoxelHeight = tonumber(spriteDef.displayHeight) or fh
         adapted.hgssPreserveAspect = true
         adapted.hgssPostPresent = true
         adapted.hgssFollower = true
@@ -6646,7 +6660,7 @@ return function(mod)
   local function externalWorldLightingTint(renderer)
     if type(mod.find) ~= "function" then return nil end
     local providerIds = {
-      "DRAMALESS_SHAPE", "DRAMATIC_SHAPE", "BATTLE_ART_VOXEL_FORK",
+      "DRAMALESS_SHAPE", "DRAMATIC_SHAPE", "BATTLE_ART_VOXEL_FORK", "TERRARIUM",
     }
     for _, providerId in ipairs(providerIds) do
       local okFind, provider = pcall(mod.find, providerId)
