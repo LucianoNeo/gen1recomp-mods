@@ -27,10 +27,10 @@ Filenames are lowercase. The same names apply in every battle-art folder.
 ## Static opponent trainer fronts
 
 Opponent trainer pictures are never animated. The generation folders are
-retained for compatibility with older packages. Gen 1 uses the selected
-generation folder; Gen 2's `TRAINER ART` option uses the dedicated HGSS
-portraits for supported classes and falls back to the selected collection (or
-the ROM portrait) when a class has no replacement. The filename is the engine
+retained for compatibility with older packages. Both Gen 1 and Gen 2's
+`TRAINER ART` option use the dedicated HGSS portraits for supported classes and
+fall back to the ROM portrait when a class has no replacement. The filename is
+the engine
 trainer class in lowercase with underscores changed to hyphens:
 
 youngster.png       bug-catcher.png     lass.png
@@ -50,8 +50,9 @@ sabrina.png         gentleman.png       rival2.png
 rival3.png          lorelei.png         channeler.png
 
 Yellow's special Rocket pair uses `jessie-james.png`; other Rocket trainers
-use `rocket.png`. A missing file in the selected generation retains the ROM
-trainer picture. The runtime does not borrow it from either of the other sets.
+use `rocket.png`. A missing file in the selected set retains the ROM trainer
+picture. The runtime does not borrow it from either of the retired generation
+sets.
 
 The front static sprites work differently than animated, to allow mix & match.
 Basically put any rightsized sprite named in here, and it will be in the game.

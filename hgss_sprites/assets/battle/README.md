@@ -16,21 +16,20 @@ Art is not a manifest dependency; it is an optional companion only for users
 who want its separate Voxel renderer.
 
 ```text
-front-animated/<gen1|gen2|gen3|gen4|gen5>/<pokemon>.png
-back-static/<gen1|gen2|gen3|gen4|gen5>/<pokemon>.png
-back-animated/<gen3|gen5>/<pokemon>.png
-front-animated/<gen1|gen2|gen3|gen4|gen5>/shiny/<pokemon>.png
-back-static/<gen1|gen2|gen3|gen4|gen5>/shiny/<pokemon>.png
-back-animated/<gen3|gen5>/shiny/<pokemon>.png
-front-static/<gen1|gen2|gen3>/<trainer>.png
-front-static/hgss/<trainer-class>.png
+front-animated/gen5/<pokemon>.png
+front-animated/gen5/shiny/<pokemon>.png
+back-animated/gen5/<pokemon>.png
+back-animated/gen5/shiny/<pokemon>.png
 ```
 
-The generation Pokémon collections are retained for compatibility with older
-packages and import tools. The current release does not expose Battle Art
-generation options and leaves Pokémon (including shiny Pokémon) on the
-engine's native artwork in Gen 2. Missing or unsupported assets therefore
-fall back to the ROM sprite.
+Only the Gen 5 animated Pokémon atlases are exposed by the current menu. The
+engine's native artwork remains the `ROM` option (and is used automatically
+when a Gen 5 species is missing). Static trainer art is separate: `TRAINER
+ART` can select the bundled HGSS portrait collection for both Gen1 and Gen2,
+or `ROM` to restore the original portraits. The HGSS collection now includes
+a file for every legacy Gen1 trainer class; its identity-specific additions
+and their sources are listed in
+[`front-static/hgss/README.md`](front-static/hgss/README.md).
 
 The corresponding `animated_battle_sprites_gen2_shiny.lua` through
 `animated_battle_sprites_gen5_shiny.lua` files contain the atlas dimensions,
@@ -44,17 +43,17 @@ The player battle trainer is selected by the HGSS mod's `PLAYER SELECT` option:
 (battle, overworld and bicycle) is credited to `setogabes` on Discord. These
 strips are bundled and do not require Battle Art Voxel Fork.
 
-When Gen2 `TRAINER ART` is enabled, Gym Leaders from Johto and Kanto, the
-Indigo Plateau Elite Four, Champion Lance and every audited Crystal trainer
-class use an identity-matched portrait from `front-static/hgss`. Classes
-without a Crystal map redirect continue to use the selected Gen 3 collection.
-`ROM` bypasses both collections.
+`TRAINER ART` offers `HGSS` (the credited `front-static/hgss` collection) or
+`ROM` for both Gen1 and Gen2. Every legacy Gen1 trainer class has a bundled
+HGSS-compatible portrait; still-unsupported Gen2 classes fall back to the
+original game portrait.
 
 ## Source and attribution notes
 
-The adapted Battle Art asset-library/layout convention is credited above. The image collections
-themselves retain their separate source credits in each generation directory;
-these include Bulbagarden Archives, Pokémon Database, PKMN.NET and Blue Moon
-Falls where indicated by the corresponding `README.md` files. The included
-files are used as authored and are not claimed as original artwork by this
-project.
+The adapted Battle Art asset-library/layout convention is credited above. The
+image collections themselves retain their separate source credits in each
+generation directory. Trainer alternatives in `front-static/hgss/` include
+the public Pokémon Showdown trainer collection and the Ody-chan Jessie/James
+sheet; the exact variants are listed in that directory's `README.md`. The
+included files are used as authored and are not claimed as original artwork by
+this project.

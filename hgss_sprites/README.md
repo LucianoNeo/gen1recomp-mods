@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.1.4
+# HGSS_SPRITES 2.1.5
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -23,18 +23,18 @@ are in the [repository README](../README.md).
   the `OW_WILD_*` resolver and all Gen 1 records remain untouched. See
   [`assets/gen2/pokemon-overworld/README.md`](assets/gen2/pokemon-overworld/README.md).
 - Grounding and lighting behavior for both the 2D and Voxel renderers.
-- Battle front/back/trainer artwork for Gen 1, with animated/native resolution
-  assets and transparent backgrounds. Gen 2 battle Pokémon remain native,
-  while the Gen2-only `TRAINER ART` selector defaults to `HGSS + GEN 3`:
-  all 16 Gym Leaders, the Elite Four, Lance and the Route 34 Youngster,
-  Camper, Picnicker, Pokéfan♂ and Officer classes use dedicated HGSS art;
-  other opponents use the bundled Gen 3 set, and `ROM` restores the original
-  cartridge portraits.
+- The only bundled Pokémon battle-art option is the Gen 5 animated atlas
+  (`GEN 5 ANIMATED`). `ROM` restores the engine's original front/back art;
+  missing species or unsupported legacy settings fall back automatically.
+  `TRAINER ART` exposes the credited HGSS portrait set or `ROM` on both Gen1
+  and Gen2. The HGSS directory includes compatibility portraits for every
+  legacy Gen1 trainer class; any still-unsupported Gen2 class falls back
+  automatically to the game's original portrait.
 - Gen2 rival battles resolve `RIVAL1` and `RIVAL2` to the canonical HGSS
   Silver portrait; Yellow keeps its separate Blue rival portrait.
-- Leaf's and Brendan's animated full-color battle back sprites are selected by
-  `PLAYER SELECT > LEAF` and `PLAYER SELECT > BRENDAN`; both player sprite sets
-  are credited to `setogabes` (Discord).
+- Hall of Fame portraits use the corresponding Pokémon player sprites for
+  Red, Ethan, Lyra, Kris, Leaf and Brendan; sources and fair-use notices are
+  documented in `assets/graphics/hall_front/SOURCES.md`.
 - Kris's overworld and bicycle sheets were generated from the supplied
   `sprite_pack___kris_by_diegowt_dlrukne` pack.
 - Kris's animated battle-back atlas was extracted from the supplied trainer
@@ -57,9 +57,9 @@ are in the [repository README](../README.md).
   layers. The package contains all 251 two-frame HGSS icon sheets: the 151
   Kanto sheets already shipped with the mod plus 100 Johto sheets generated
   from Wilds of Kanto's original 32x32 overworld cells, with no resampling.
-- Configurable Gen1 battle generations, player battle intro and overworld size
-  (`0.5x`–`1.0x`, default `0.8x`); Gen2 keeps its native battle presentation
-  and hides those Gen1-only selectors.
+- Configurable Gen1 Gen-5 animated battle art/ROM selection, player battle
+  intro and overworld size (`0.5x`–`1.0x`, default `0.8x`); Gen2 keeps its
+  native battle presentation and hides those Gen1-only selectors.
 - Intro, catch-summary, evolution, Pokédex and Hall of Fame artwork paths use
   the bundled assets with safe fallback to the game originals.
 
@@ -98,10 +98,10 @@ following Gen 2 features are included:
   251-species National Dex. The Gen 2 party and PC layouts use the same
   two-column icon treatment as Yellow and suppress the native front-static/GSC
   layers when the icon option is enabled.
-- Gen 2-native battle presentation remains available. The Gen 1-only battle
-  front/back/trainer selectors stay hidden on Gold/Silver/Crystal, while the
-  optional Gen 2 animated assets are resolved through the compatible Battle
-  Art bridge.
+- Gen 2-native Pokémon battle presentation remains available. `TRAINER ART`
+  can use the dedicated HGSS portraits or `ROM`; unsupported classes fall back
+  to the original cartridge portrait. The Gen 1-only Pokémon front/back
+  selectors stay hidden on Gold/Silver/Crystal.
 
 ### Recommended Voxel combinations by generation
 
@@ -158,7 +158,8 @@ The options are exposed by the g1recomp Mods menu:
 | --- | --- | --- |
 | Player Select | `RED`, `ASH`, `ETHAN`, `LYRA`, `KRIS`, `KRIS V2`, `LEAF`, `BRENDAN`, `OFF` | `RED` |
 | Battle Art Scope (Gen 1) | `TRAINERS ONLY`, `COMPLETE` | `TRAINERS ONLY` |
-| Battle Front/Back/Trainer Gen (Gen 1) | `GEN 1`–`GEN 5` | `GEN 5` / `GEN 3` |
+| Battle Front/Back Gen (Gen 1) | `ROM`, `GEN 5 ANIMATED` | `GEN 5 ANIMATED` |
+| Battle Trainer Gen | `ROM` | `ROM` |
 | Party Menu | `ON`, `OFF` | `ON` |
 | PC Box Icons | `ON`, `OFF` | `ON` |
 | Sprite Size | `0.5x`–`1.0x` | `0.8x` |
@@ -175,5 +176,12 @@ The bundled battle asset organization, atlas conventions and compatibility
 approach were adapted from the public
 [DramaticShapeVoxelMod / Battle Art Voxel](https://github.com/absol89/DramaticShapeVoxelMod)
 project. HGSS_SPRITES contains its own resolver and bundled assets and does
-not declare Battle Art as a required dependency. Per-asset sources and credits
-are documented in [`assets/battle/README.md`](assets/battle/README.md).
+not declare Battle Art as a required dependency. The Gen2 HGSS Trainer Art
+portraits in [`assets/battle/front-static/hgss/`](assets/battle/front-static/hgss/)
+are sourced from the Smogon/Pokémon Showdown trainer collection at commit
+`0e1f57f4234f20b999dbb442dac1093b445e0088`; the non-canonical Gen1
+compatibility alternatives and their sources are documented in that directory.
+Per-asset sources and credits are documented in
+[`assets/battle/README.md`](assets/battle/README.md).
+Hall of Fame player portrait sources are listed individually in
+[`assets/graphics/hall_front/SOURCES.md`](assets/graphics/hall_front/SOURCES.md).

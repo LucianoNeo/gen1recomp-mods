@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 2.1.4](https://img.shields.io/badge/version-2.1.4-gold)
+![Version 2.1.5](https://img.shields.io/badge/version-2.1.5-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow%20%7C%20Gold%20%7C%20Silver%20%7C%20Crystal-red)
 
 HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue, Yellow, Gold, Silver and Crystal while preserving each game's logic and map geometry.
 
-## What version 2.1.4 provides
+## What version 2.1.5 provides
 
 ### Overworld
 
@@ -21,14 +21,17 @@ HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bry
 
 ### Battle and presentation
 
-- Bundled battle front, back and trainer artwork for generations 1–5; the mod works without Battle Art installed.
+- The only bundled Pokémon battle-art option is the Gen 5 animated atlas;
+  `ROM` restores the engine's original battle sprites. Gen2 `TRAINER ART`
+  offers the credited HGSS portrait set or `ROM` for both Gen1 and Gen2;
+  missing classes fall back automatically.
 - `TRAINERS ONLY` is the default battle scope. `COMPLETE` additionally replaces bundled Pokémon battle artwork.
 - Player battle intro follows the selected player (`RED`, `ASH`, `ETHAN`,
   `LYRA`, `KRIS`, `KRIS V2`, `LEAF` or `BRENDAN`), including the dedicated animated battle back
   atlases.
 - Animated and full-color artwork is kept at native source quality, with transparent backgrounds for Voxel billboards.
 - Shiny front artwork is included wherever the selected generation provides it, with safe fallback to the normal artwork.
-- The selected generation can be configured independently for battle front, battle back and trainer art.
+- Battle front/back options expose only `GEN 5 ANIMATED` or `ROM`.
 
 ### Menus and icons
 
@@ -61,13 +64,10 @@ adds:
 - True-colour HGSS follow sprites and two-frame party/PC icons for all 251
   National Dex species. Party and PC layouts use the Yellow-style two-column
   treatment and hide the native GSC/front-static layers when enabled.
-- Native Gen 2 battle presentation remains available; the Gen1-only battle
-  Pokémon-generation controls stay hidden on Gold/Silver/Crystal. The
-  Gen2-only `TRAINER ART` control defaults to `HGSS + GEN 3`: the 16 Gym
-  Leaders, Elite Four, Champion Lance and the Route 34 Youngster, Camper,
-  Picnicker, Pokéfan♂ and Officer classes use dedicated HGSS portraits, while
-  other opponents use the bundled Gen 3 set. `ROM` switches every trainer back
-  to the original cartridge portrait.
+- Native Gen 2 Pokémon battle presentation remains available. Gen2 `TRAINER
+  ART` can use the credited HGSS portraits or the original cartridge portraits
+  (`ROM`), with automatic fallback for unsupported classes. The Gen1-only
+  Gen-5 Pokémon battle selector stays hidden on Gold/Silver/Crystal.
 
 ### Recommended Voxel combinations by generation
 
@@ -148,7 +148,7 @@ player centered below them.
 
 Download the matching release package, then import the `HGSS_SPRITES` folder
 from the g1recomp Mods screen. Version `1.0.5` is the Gen1 release line;
-version `2.1.4` is the current Gold/Silver/Crystal release with the fixes
+version `2.1.5` is the current Gold/Silver/Crystal release with the fixes
 described above. Enable
 the mod for the target game and restart after changing presentation options.
 
@@ -181,6 +181,6 @@ load. The Voxel recommendation is generation-specific:
 
 ## Credits and scope
 
-The battle asset library and compatibility conventions were adapted from the public [DramaticShapeVoxelMod / Battle Art Voxel](https://github.com/absol89/DramaticShapeVoxelMod) project. This mod bundles its own resolver and assets and does not declare Battle Art as a required dependency. The Leaf and Brendan player battle/overworld artwork is credited to `setogabes` on Discord. Original image sources and per-asset credits are listed in [`hgss_sprites/assets/battle/README.md`](hgss_sprites/assets/battle/README.md).
+The battle asset library and compatibility conventions were adapted from the public [DramaticShapeVoxelMod / Battle Art Voxel](https://github.com/absol89/DramaticShapeVoxelMod) project. This mod bundles its own resolver and assets and does not declare Battle Art as a required dependency. The Leaf and Brendan player battle/overworld artwork is credited to `setogabes` on Discord. The Gen2 HGSS Trainer Art portraits in [`assets/battle/front-static/hgss/`](hgss_sprites/assets/battle/front-static/hgss/) are sourced from the Smogon/Pokémon Showdown trainer collection (commit `0e1f57f4234f20b999dbb442dac1093b445e0088`); the non-canonical Gen1 compatibility alternatives and their Showdown/Ody-chan sources are documented there. Hall of Fame player portrait sources are listed individually in [`assets/graphics/hall_front/SOURCES.md`](hgss_sprites/assets/graphics/hall_front/SOURCES.md). Original image sources and per-asset credits are listed in [`hgss_sprites/assets/battle/README.md`](hgss_sprites/assets/battle/README.md).
 
 For the mod-specific manifest, option reference and asset layout, see [`hgss_sprites/README.md`](hgss_sprites/README.md).

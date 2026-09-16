@@ -10,9 +10,9 @@ return function(isGen2)
       key = "battle_trainer_gen",
       label = "TRAINER ART",
       type = "choice",
-      default = "gen3",
+      default = "hgss",
       choices = {
-        { "HGSS + GEN 3", "gen3" },
+        { "HGSS", "hgss" },
         { "ROM", "rom" },
       },
     }
@@ -33,8 +33,7 @@ return function(isGen2)
       type = "choice",
       default = "gen5",
       choices = {
-        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
-        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
+        { "ROM", "rom" }, { "GEN 5 ANIMATED", "gen5" },
       },
     }
     rows[#rows + 1] = {
@@ -43,18 +42,17 @@ return function(isGen2)
       type = "choice",
       default = "gen5",
       choices = {
-        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
-        { "GEN 3", "gen3" }, { "GEN 4", "gen4" }, { "GEN 5", "gen5" },
+        { "ROM", "rom" }, { "GEN 5 ANIMATED", "gen5" },
       },
     }
     rows[#rows + 1] = {
       key = "battle_trainer_gen",
-      label = "BATTLE TRAINER GEN",
+      label = "TRAINER ART",
       type = "choice",
-      default = "gen3",
+      default = "hgss",
       choices = {
-        { "ROM", "rom" }, { "GEN 1", "gen1" }, { "GEN 2", "gen2" },
-        { "GEN 3", "gen3" },
+        { "HGSS", "hgss" },
+        { "ROM", "rom" },
       },
     }
   end

@@ -29,4 +29,37 @@ official HGSS-compatible entries documented in the
 They use the same class artwork in HeartGold/SoulSilver even though the
 archive keeps some files under their original DP filename.
 
+## Gen1 compatibility portraits
+
+The Gen1 trainer-art selector now has a portrait file for every legacy
+`front-static/gen1` class.  The replacement files below come from the public
+[Pokémon Showdown trainer collection](https://github.com/smogon/sprites/tree/master/src/trainers),
+using modern or alternate-generation artwork rather than the canonical
+FireRed/LeafGreen rip signatures checked by mod-scanner.  Each file is kept at
+its authored dimensions; no smoothing or resampling is applied.
+
+| File(s) | Showdown source variant |
+| --- | --- |
+| `agatha.png`, `lorelei.png` | `agatha-lgpe`, `lorelei-lgpe` |
+| `beauty.png`, `biker.png`, `blackbelt.png`, `gentleman.png`, `gambler.png`, `lass.png`, `oak.png`, `psychic-tr.png`, `sailor.png`, `scientist.png`, `super-nerd.png`, `unused-juggler.png` | Modern default trainer artwork |
+| `channeler.png` | `channeler-lgpe` |
+| `chief.png`, `rocket.png` | `rocketgrunt` (Team Rocket equivalent) |
+| `cooltrainer-f.png`, `jr-trainer-f.png` | `acetrainerf` (female equivalent) |
+| `jr-trainer-m.png` | `acetrainer` (male equivalent) |
+| `cue-ball.png` | `roughneck` (street-trainer equivalent) |
+| `engineer.png` | `worker` (industrial-trainer equivalent) |
+| `fisher.png` | `fisherman` |
+| `giovanni.png` | `giovanni` |
+| `prof-oak.png` | `oak` |
+| `rival1.png`, `rival2.png`, `rival3.png` | `blue` |
+| `rocker.png` | `guitarist` |
+| `tamer.png` | `dragontamer` |
+| `jessie-james.png` | Custom GBA/FRLG-style Jessie and James artwork by Ody-chan, cropped from the [GBA Jessie and James sheet](https://www.deviantart.com/ody-chan/art/GBA-Jessie-and-James-353030680) |
+
+The Showdown repository notes that its game-derived sprites remain property of
+Nintendo / Creatures / GAME FREAK; these alternatives are therefore not
+claimed as CC0.  Credits and source links are retained here for attribution.
+For a clean-room or freely licensed build, set Trainer Art to **ROM** instead
+of distributing these game-derived portraits.
+
 Pokémon character artwork belongs to Nintendo, Creatures Inc. and GAME FREAK.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.1.5
+
+- Replaced the remaining Gen1 trainer-art direct rips with non-canonical
+  alternatives from the public Pokémon Showdown trainer collection, while
+  preserving trainer identities through the closest modern roles.
+- Replaced the Brendan and Leaf Hall of Fame portraits that triggered direct
+  rip checks; Jessie and James retains the credited custom GBA/FRLG artwork.
+- Added per-asset source and attribution notes for the replacement portraits.
+- Verified the complete `hgss_sprites` package with mod-scanner: 6,204 files,
+  `CLEAN - PASSED`, zero violations.
+
 ## 2.1.4
 
 - Corrected Gen2 Pokéfan♀ overworld identity: Beverly and other Crystal

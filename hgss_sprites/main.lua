@@ -1170,8 +1170,8 @@ return function(mod)
     end
   end
 
-  -- Battle Art selectors remain active for Gen 1. Gen 2 keeps Pokemon battle
-  -- art native, but permits the dedicated opponent TRAINER ART selector.
+  -- Pokémon Battle Art selectors remain Gen1-only. Both generations can use
+  -- the dedicated, credited HGSS opponent TRAINER ART set.
   local battleOptionValues = {}
   local BATTLE_OPTION_KEYS = {
     battle_scope = true,
@@ -1209,12 +1209,27 @@ return function(mod)
       if key == "battle_scope" then
         value = "trainers"
       elseif key == "battle_trainer_gen" then
-        value = battleOptionValues[key] or mod.options:get(key) or "gen3"
+        value = battleOptionValues[key] or mod.options:get(key) or "rom"
+        if value ~= "rom" and value ~= "hgss" then value = "rom" end
       else
         value = "rom"
       end
     else
       value = battleOptionValues[key] or mod.options:get(key)
+    end
+    -- Only the Gen-5 animated Pokémon atlases remain bundled.  Older saves
+    -- can still contain gen1–gen4 values from previous menu schemas; route
+    -- those values to the native ROM path instead of trying to load removed
+    -- files.  The menu exposes only ROM and GEN 5 ANIMATED going forward.
+    if not isGen2() and (key == "battle_front_gen"
+        or key == "battle_back_gen")
+       and value ~= "rom" and value ~= "gen5" then
+      value = "rom"
+    end
+    if key == "battle_trainer_gen" and value ~= "rom" then
+      -- Only the dedicated, credited HGSS set is retained for trainer art.
+      -- Legacy GEN 1/2/3 selections must immediately use the engine portrait.
+      if value ~= "hgss" then value = "rom" end
     end
     battleTrace(("option %s=%s"):format(tostring(key), tostring(value)))
     return value
@@ -1533,6 +1548,10 @@ return function(mod)
         return { image = fallback, static = true, frames = 1 }
       end
     end
+    -- Removed/unsupported generations must fall through to the engine's
+    -- native battle sprite. Returning a definition whose image no longer
+    -- exists would leave a stale atlas reference attached to the battler.
+    if image and not assetExists(image) then return nil end
     return def
   end
   local function battleTexture(path, width, height, columns)
@@ -1839,9 +1858,12 @@ return function(mod)
     -- charset sheet.  Keep a dedicated portrait for every PLAYER SELECT
     -- option so the Hall screen cannot silently reuse Red's art.
     local portraits = {
-      red = "assets/graphics/intro_hd/red.png",
+      red = "assets/graphics/hall_front/red.png",
       ash = "assets/graphics/hall_front/ash.png",
       ethan = "assets/graphics/hall_front/ethan.png",
+      lyra = "assets/graphics/hall_front/lyra.png",
+      kris = "assets/graphics/hall_front/kris.png",
+      kris_v2 = "assets/graphics/hall_front/kris.png",
       leaf = "assets/graphics/hall_front/leaf.png",
       brendan = "assets/graphics/hall_front/brendan.png",
     }
@@ -3682,39 +3704,30 @@ return function(mod)
   -- content operation has already replaced `image` with our 16px proxy.  A
   -- vanilla fallback must never retain that proxy: Wilds of Kanto creates a
   -- lightweight SpriteRenderer definition from `def.image` and would then
-  -- display only the top-left quarter of the HGSS sheet.  Prefer the
-  -- untouched extracted PNG, and derive its conventional path when the
-  -- registry value is already proxy-backed.  Strip every HGSS-only field so
-  -- neither the core renderer nor companion mods can select the native HD
-  -- path while PLAYER SELECT is OFF.
+  -- display only the top-left quarter of the HGSS sheet.  Resolve the
+  -- original generated sprite path with a traversal that bypasses this
+  -- mod's `overrides/sprites` lookup; do not ship a copied vanilla sprite in
+  -- the mod.  Strip every HGSS-only field so neither the core renderer nor
+  -- companion mods can select the native HD path while PLAYER SELECT is OFF.
   local function sanitizeVanillaPlayerDef(slot, id, def)
     if type(def) ~= "table" then return def end
     local image = def.image
-    local vanillaAsset = ({
-      SPRITE_RED = "red",
-      SPRITE_RED_BIKE = "red_bike",
-    })[id]
-    if vanillaAsset then
-      -- Keep the fallback in this mod's private asset namespace.  Generated
-      -- paths are globally overrideable, so pointing at them would resolve
-      -- back to HGSS_SPRITES/overrides/sprites/<name>.png.
-      image = mod.assets:path("assets/vanilla/players/" .. vanillaAsset .. ".png")
-    elseif type(image) ~= "string"
+    local generatedPrefix = "assets/generated/sprites/"
+    if type(image) ~= "string"
        or image:find("frame_layout_", 1, true)
        or image:find("HGSS_SPRITES", 1, true) then
       local stem = tostring(id):gsub("^SPRITE_", ""):lower()
-      -- The `../../assets` traversal intentionally bypasses
-      -- Assets.resolve's generated override lookup.  The resolver checks
-      -- `overrides/<rel>` first; this path cannot exist there, while LÖVE
-      -- still normalizes it back to the engine's generated asset.
-      image = "assets/generated/sprites/../../../assets/generated/sprites/"
+      -- Assets.resolve checks `overrides/<rel>` first.  The traversal backs
+      -- out of that generated namespace and re-enters the engine's original
+      -- extracted path, so PLAYER SELECT > OFF uses the ROM's own sprite.
+      image = generatedPrefix .. "../../../" .. generatedPrefix
         .. stem .. ".png"
-    elseif image:find("^assets/generated/sprites/", 1) then
-      -- Even an apparently vanilla path is shadowed by this mod's
-      -- overrides/sprites/<name>.png through Assets.resolve.  Keep the
-      -- traversal prefix for every extracted player sheet.
-      image = mod.assets:path("assets/vanilla/players/"
-        .. image:sub(#"assets/generated/sprites/" + 1))
+    elseif image:find("^" .. generatedPrefix, 1) then
+      -- A seemingly vanilla generated path is still shadowed by this mod's
+      -- override directory. Preserve only the relative stem while routing
+      -- through the bypass path above.
+      image = generatedPrefix .. "../../../" .. generatedPrefix
+        .. image:sub(#generatedPrefix + 1)
     end
     def.image = image
     def.frames = tonumber(def.frames) or 6
