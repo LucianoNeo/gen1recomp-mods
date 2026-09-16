@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.4
+
+- Corrected Gen2 Pokéfan♀ overworld identity: Beverly and other Crystal
+  Pokéfan F objects now use the dedicated Gen4 charset instead of Gen1's
+  custom female sheet.
+- Added the dedicated Gen4 Pokéfan♀ battle portrait; the class no longer
+  falls back to PokéManiac artwork.
+- Preserved Wilds of Kanto true-size geometry in Voxel billboards and added
+  TERRARIUM to the supported Voxel provider list.
+
 ## 2.1.3
 
 - Replaced the Medium Grace overworld placeholder with the complete HGSS

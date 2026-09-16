@@ -434,7 +434,10 @@ return function(ctx)
     -- Crystal's second actor in the player's house is the native Pokéfan
     -- female slot.  Use the HGSS Pokéfan F charset, keeping the original
     -- object id, position and interaction script intact.
-    patchGen2Sprite("POKEFAN_F", "overrides/sprites/pokefan_f",
+    -- Gen2 uses the Gen4 Pokéfan F charset.  Keep it separate from Gen1's
+    -- custom female Pokéfan sheet so Beverly and other Crystal Pokéfan F
+    -- objects do not inherit the wrong outfit.
+    patchGen2Sprite("POKEFAN_F", "overrides/sprites/pokefan_f_gen2",
       { hgssGen2ScaleMultiplier = 1.0 })
     -- Additional Crystal town NPC roles with verified HGSS equivalents.
     -- Keep each role distinct: do not substitute Officer Jenny for the

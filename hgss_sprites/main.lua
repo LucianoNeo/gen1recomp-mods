@@ -2457,7 +2457,8 @@ return function(mod)
   local hgssGen2TrainerFiles = {
     -- Regular classes shared by the existing Route 34 audit.
     youngster = "youngster", camper = "camper", picnicker = "picnicker",
-    pokefanm = "pokefan-m", ["pokefan-m"] = "pokefan-m", officer = "officer",
+    pokefanm = "pokefan-m", ["pokefan-m"] = "pokefan-m",
+    pokefanf = "pokefan-f", ["pokefan-f"] = "pokefan-f", officer = "officer",
 
     -- Crystal's map-scoped classes corrected by Gen2Npc.lua.
     ["bird-keeper"] = "bird-keeper", birdkeeper = "bird-keeper",
@@ -2542,7 +2543,7 @@ return function(mod)
         executivef = "rocket", picnicker = "jr-trainer-f",
         camper = "jr-trainer-m",
         medium = "channeler", boarder = "cooltrainer-m",
-        pokefanm = "pokemaniac", pokefanf = "pokemaniac",
+        pokefanm = "pokemaniac",
         twins = "lass", red = "rival1",
         blue = "rival2", officer = "gentleman",
         mysticalman = "psychic-tr",
