@@ -767,7 +767,7 @@ return function(mod)
     local ok, value = pcall(require, "src.core.GameVersion")
     if ok and type(value) == "table" then GameVersion = value end
   end
-  local function activeGameVersion(game)
+  function activeGameVersion(game)
     local version = game and game.save and game.save.version
     if type(version) == "string" and version ~= "" then
       return version:lower()
@@ -778,7 +778,7 @@ return function(mod)
     end
     return nil
   end
-  local function isYellowGame(game)
+  function isYellowGame(game)
     return activeGameVersion(game) == "yellow"
   end
 
@@ -818,7 +818,7 @@ return function(mod)
   -- existence checks inside the mod sandbox and use the documented reader.
   -- The result is cached because these checks run from battle sprite hooks.
   local assetExistsCache = {}
-  local function assetExists(relative)
+  function assetExists(relative)
     if not relative then return false end
     if assetExistsCache[relative] ~= nil then
       return assetExistsCache[relative]
@@ -832,7 +832,7 @@ return function(mod)
     return exists
   end
 
-  local function isHgssTrueColorPath(path)
+  function isHgssTrueColorPath(path)
     if type(path) ~= "string" then return false end
     path = path:gsub("\\", "/")
     return path:find("overrides/sprites/", 1, true) ~= nil
@@ -845,7 +845,7 @@ return function(mod)
         or path:find("assets/battle/", 1, true) ~= nil
   end
 
-  local function loadHdImage(path)
+  function loadHdImage(path)
     local ok, image = pcall(love.graphics.newImage, mod.assets:path(path))
     if not ok or not image then return nil end
     image:setFilter("linear", "linear")
@@ -863,7 +863,7 @@ return function(mod)
   -- scaled to the intro's 7x7 logical-cell area.
   local gen2IntroImageMeta = setmetatable({}, { __mode = "k" })
 
-  local function loadGen2IntroImage(path)
+  function loadGen2IntroImage(path)
     if not assetExists(path) then return nil end
     local ok, image = pcall(love.graphics.newImage, mod.assets:path(path))
     if not ok or not image then return nil end
@@ -875,7 +875,7 @@ return function(mod)
     return image
   end
 
-  local function installGen2IntroSprites()
+  function installGen2IntroSprites()
     local ok, OakSpeech = pcall(require, "src.ui.gen2.OakSpeech")
     if ok and type(OakSpeech) == "table"
        and type(OakSpeech.new) == "function"
@@ -1082,7 +1082,7 @@ return function(mod)
   -- layer so only one Pikachu frame is drawn at a time.  The battle renderer
   -- has the same 16-column atlas convention, but the intro owns its own
   -- state and must not depend on a battle mod being installed.
-  local function loadHdAnimation(path, frameWidth, frameHeight,
+  function loadHdAnimation(path, frameWidth, frameHeight,
                                  columns, frameCount, fps)
     local image = loadHdImage(path)
     if not image then return nil end
@@ -1121,7 +1121,7 @@ return function(mod)
   -- (one centered and one at the top-right) whenever UI LAYOUT is dynamic.
   -- Keep the vanilla centered placement for the flat renderer and retain the
   -- edge placement only while the Voxel world pipeline is actually active.
-  local function voxelWorldEnabled()
+  function voxelWorldEnabled()
     local okP, Pipelines = pcall(require, "src.render.Pipelines")
     if not okP or not Pipelines
        or type(Pipelines.worldPipeline) ~= "function" then
@@ -1202,14 +1202,23 @@ return function(mod)
     local okY, y = pcall(mod.options.get, mod.options, "voxel_y_offset")
     if okY then voxelYOffsetValue = y end
   end
-  local function battleTrace(_) end
-  local function battleOption(key)
+  function battleTrace(_) end
+  function battleOption(key)
     local value
     if isGen2() then
       if key == "battle_scope" then
         value = "trainers"
       elseif key == "battle_trainer_gen" then
-        value = battleOptionValues[key] or mod.options:get(key) or "rom"
+        -- The option manager can refresh its store after the event payload;
+        -- prefer a concrete live value over the startup cache so a Crystal
+        -- battle cannot remain on ROM art after TRAINER ART is enabled.
+        local savedRows = liveGame and liveGame.save and liveGame.save.options
+          and liveGame.save.options.modOptions
+          and liveGame.save.options.modOptions[mod.id]
+        local savedValue = savedRows and savedRows[key]
+        local liveValue = savedValue or mod.options:get(key)
+        value = (liveValue and liveValue ~= "rom") and liveValue
+          or battleOptionValues[key] or liveValue or "rom"
         if value ~= "rom" and value ~= "hgss" then value = "rom" end
       else
         value = "rom"
@@ -1271,7 +1280,7 @@ return function(mod)
     end
   end)
 
-  local function selectedPlayerOption()
+  function selectedPlayerOption()
     -- The manager normally updates both `modOptions` and the event cache, but
     -- older/local builds can persist the menu choice without dispatching the
     -- event (or dispatch it before the option table is refreshed). Prefer the
@@ -1414,7 +1423,7 @@ return function(mod)
   -- that ownership instead of replacing the MMO renderer on every map
   -- refresh. If it has no explicit/worn look, OFF still restores the game's
   -- vanilla player as usual.
-  local function rbyMmoOwnsPlayer()
+  function rbyMmoOwnsPlayer()
     if type(mod.find) ~= "function" then return false end
     local ok, handle = pcall(function() return mod:find("rby_mmo") end)
     local exports = ok and handle and handle.exports
@@ -1431,7 +1440,7 @@ return function(mod)
   -- credited in the project README and battle asset notes. Battle Pokémon
   -- generation selection is disabled; the routines below remain as guarded
   -- compatibility code for older saves and non-battle presentation hooks.
-  local function battleSlug(value)
+  function battleSlug(value)
     if type(value) == "table" then
       value = value.id or value.name or value.species or value.dataId
     end
@@ -1440,7 +1449,7 @@ return function(mod)
     s = s:gsub("['%.]", ""):gsub("[^%w]+", "-")
     return s:gsub("^-+", ""):gsub("-+$", "")
   end
-  local function battleSpeciesKey(value)
+  function battleSpeciesKey(value)
     if type(value) == "table" then
       value = value.id or value.name or value.species or value.dataId
     end
@@ -2110,8 +2119,10 @@ return function(mod)
     local oldNewTrainer = BattleCtor.newTrainer
     if type(oldNewTrainer) == "function" then
       BattleCtor.newTrainer = function(...)
+        mod.__hgssGen1BattleArt.install()
         local battle = oldNewTrainer(...)
         refreshBattleSprites(battle)
+        mod.__hgssGen1BattleArt.reapply(battle)
         return battle
       end
     end
@@ -2127,11 +2138,13 @@ return function(mod)
     if type(oldUpdate) == "function" then
       BattleCtor.update = function(self, dt, ...)
         local result = oldUpdate(self, dt, ...)
+        mod.__hgssGen1BattleArt.install()
         if self.showPlayerBack then
           local playerImage = selectedBattlePlayerImage(self)
           if playerImage then self.playerBackPic = playerImage end
         end
         refreshBattleSprites(self)
+        mod.__hgssGen1BattleArt.reapply(self)
         -- Keep the side-specific reference used by drawPicsLayer in sync with
         -- the same selected Pokémon atlas. This applies to every species.
         if self.player and self.player.sprite then
@@ -2149,8 +2162,10 @@ return function(mod)
 
   mod.events:on("battle.started", function(payload)
     if isGen2() then return end
+    mod.__hgssGen1BattleArt.install()
     local battle = payload and payload.battle
     refreshBattleSprites(battle)
+    mod.__hgssGen1BattleArt.reapply(battle)
     -- A few builds finish loading the battler records one frame after the
     -- event. Reapply once on the next coroutine tick without touching ROM
     -- mode or restoring any original sprite.
@@ -2498,6 +2513,27 @@ return function(mod)
     skier = "skier", swimmerm = "swimmer", ["swimmer-m"] = "swimmer",
     ["swimmer-guy"] = "swimmer", twin = "twin", twins = "twin",
 
+    -- Gen1's compact trainer-pic constants lose punctuation when they are
+    -- normalized by battleSlug. Keep those constants pointed at the
+    -- corresponding authored HGSS filenames instead of silently falling
+    -- through to a missing path and the ROM portrait.
+    birdkeeper = "bird-keeper", bugcatcher = "bug-catcher",
+    cooltrainerf = "cooltrainer-f", cooltrainerm = "cooltrainer-m",
+    cueball = "cue-ball", jrtrainerf = "jr-trainer-f",
+    jrtrainerm = "jr-trainer-m", ltsurge = "lt-surge",
+    profoak = "prof-oak", supernerd = "super-nerd",
+    rival = "rival1",
+
+    -- Crystal-only classes that are also represented in HGSS.  Cal uses the
+    -- HGSS Ethan battle portrait (the remakes identify Cal with Ethan's
+    -- trainer sprite); the remaining entries use their authored HGSS class
+    -- portraits instead of the generated Crystal 56x56 fallback.
+    blackbelt = "blackbelt", ["blackbelt-t"] = "blackbelt",
+    cal = "cal", champion = "lance",
+    gruntf = "rocket-grunt-f", gruntm = "rocket-grunt-m",
+    mysticalman = "eusine", red = "red", swimmerf = "swimmer-f",
+    teacher = "teacher",
+
     -- Johto Gym Leaders
     falkner = "falkner", whitney = "whitney", bugsy = "bugsy", morty = "morty",
     chuck = "chuck", jasmine = "jasmine", pryce = "pryce", clair = "clair",
@@ -2571,13 +2607,13 @@ return function(mod)
       slug = aliases[slug] or slug
     end
     local rel
-    if isGen2() and gen ~= "rom"
-       and mod.__hgssGen2MajorTrainers[slug] then
+    if gen == "hgss" then
       -- Crystal exposes several classes with compact spellings (for example
-      -- POKEFANM, EXECUTIVEM and SWIMMERM).  Resolve those spellings to one
-      -- canonical filename while retaining the authored image dimensions.
-      local hgssSlug = hgssGen2TrainerFiles[slug]
-      rel = ("assets/battle/front-static/hgss/%s.png"):format(hgssSlug)
+      -- POKEFANM, EXECUTIVEM and SWIMMERM).  Gen1 has the same issue for
+      -- constants such as JR.TRAINERF and PROF.OAK. Resolve every spelling
+      -- to one canonical filename while retaining the authored dimensions.
+    local hgssSlug = hgssGen2TrainerFiles[slug] or slug
+    rel = ("assets/battle/front-static/hgss/%s.png"):format(hgssSlug)
     else
       rel = ("assets/battle/front-static/%s/%s.png"):format(gen, slug)
     end
@@ -2597,6 +2633,12 @@ return function(mod)
     -- scale without changing the authored image or locking a generation.
     return trainerImageCache[path] or nil, path
   end
+
+  -- Battle Art owns a second trainer-art application pass. Keep this bridge
+  -- in its own module so the entry chunk stays below the sandbox local limit.
+  mod.__hgssGen1BattleArt = mod.__hgssRequire("Gen1BattleArt")(
+    mod, isGen2, selectedBattleTrainerImage)
+  mod.__hgssGen1BattleArt.install()
 
   -- Gen2 battle boxes are fixed at 48px (player) and 56px (opponent).  The
   -- selectable battle generations contain assets with different native cell
@@ -2637,6 +2679,20 @@ return function(mod)
   if okGen2BattleState and Gen2BattleState
      and type(Gen2BattleState.new) == "function"
      and not Gen2BattleState.__hgssTrainerPictureHook then
+    -- Gen2BattleState resolves the intro portrait inside its constructor via
+    -- the static trainerArt helper.  Patch that seam as well as the returned
+    -- state below: some engine builds expose a wrapper/subclass for `new`,
+    -- while the helper remains the canonical path used by the renderer.
+    if type(Gen2BattleState.trainerArt) == "function"
+       and not Gen2BattleState.__hgssTrainerArtHook then
+      local oldGen2TrainerArt = Gen2BattleState.trainerArt
+      Gen2BattleState.trainerArt = function(data, classId, ...)
+        local image, path = selectedBattleTrainerImage(classId)
+        if image and path then return path, true end
+        return oldGen2TrainerArt(data, classId, ...)
+      end
+      Gen2BattleState.__hgssTrainerArtHook = true
+    end
     -- BattleState:pic decodes the selected asset through the same renderer
     -- cache used by the game.  Keep the dependency local to the Gen2 bridge
     -- so Yellow/Red builds do not require a Gen2-only module at load time.
@@ -3145,6 +3201,169 @@ return function(mod)
         return result
       end
       Gen2BattleState.__hgssPokemonAnimationHook = true
+    end
+  end
+
+  -- On some runtimes the Gen2 UI module is loaded lazily, after this mod's
+  -- top-level initialization. Retry the static trainer-art seam at game.ready
+  -- so Crystal does not keep the generated 56x56 portrait simply because the
+  -- first `require("src.ui.gen2.BattleState")` happened too early.
+  local function ensureGen2TrainerArtHook()
+    if not isGen2() then return end
+    local okState, state = pcall(require, "src.ui.gen2.BattleState")
+    if not okState or type(state) ~= "table" then
+      return
+    end
+    if type(state.trainerArt) == "function"
+       and not state.__hgssTrainerArtHook then
+      local oldTrainerArt = state.trainerArt
+      state.trainerArt = function(data, classId, ...)
+        local image, path = selectedBattleTrainerImage(classId)
+        if image and path then return path, true end
+        return oldTrainerArt(data, classId, ...)
+      end
+      state.__hgssTrainerArtHook = true
+    end
+    if type(state.new) == "function" and not state.__hgssLateNewHook then
+      local oldNew = state.new
+      state.new = function(game, opts, ...)
+        if game then liveGame = game; activeGeneration = detectGeneration(game) end
+        local battle = oldNew(game, opts, ...)
+        if battle and not (opts and opts.tutorial) then
+          local trainer = battle.battle and battle.battle.trainer
+          local classId = battle.enemyTrainerClass
+            or (trainer and (trainer.classId or trainer.className
+              or trainer.class))
+          local image, path = selectedBattleTrainerImage(classId)
+          if image and path then
+            battle.enemyTrainerImage = image
+            battle.enemyTrainerPath = path
+            battle.enemyTrainerTrueColor = true
+            battle.showEnemyTrainer = true
+            registerGen2BattleScale(battle.game and battle.game.data,
+              path, image, 56)
+          end
+        end
+        return battle
+      end
+      state.__hgssLateNewHook = true
+    end
+  end
+
+  local function installGen2ScreenTrainerArtHook()
+    local okScreens, Screens = pcall(require, "src.ui.Screens")
+    if not okScreens or type(Screens) ~= "table"
+       or type(Screens.push) ~= "function"
+       or Screens.__hgssTrainerArtPushHook then
+      return
+    end
+    local oldPush = Screens.push
+    Screens.push = function(game, id, ...)
+      if game then liveGame = game; activeGeneration = detectGeneration(game) end
+      local state = oldPush(game, id, ...)
+      if isGen2(game) and id == "Gen2BattleState" and state then
+        local model = state.battle
+        local trainer = model and model.trainer
+        local classId = state.enemyTrainerClass
+          or (trainer and (trainer.classId or trainer.className or trainer.class))
+        local image, path = selectedBattleTrainerImage(classId)
+        if image and path then
+          state.enemyTrainerImage = image
+          state.enemyTrainerPath = path
+          state.enemyTrainerTrueColor = true
+          state.showEnemyTrainer = true
+          registerGen2BattleScale(state.game and state.game.data,
+            path, image, 56)
+        end
+      end
+      return state
+    end
+    Screens.__hgssTrainerArtPushHook = true
+  end
+  installGen2ScreenTrainerArtHook()
+
+  mod.events:on("screen.pushed", function(ev)
+    if not isGen2() then return end
+    local state = ev and (ev.state or ev.screen)
+    if not state or state.screenId ~= "Gen2BattleState" then return end
+    local model = state.battle
+    local trainer = model and model.trainer
+    local classId = state.enemyTrainerClass
+      or (trainer and (trainer.classId or trainer.className or trainer.class))
+    local image, path = selectedBattleTrainerImage(classId)
+    if image and path then
+      state.enemyTrainerImage = image
+      state.enemyTrainerPath = path
+      state.enemyTrainerTrueColor = true
+      state.showEnemyTrainer = true
+      registerGen2BattleScale(state.game and state.game.data,
+        path, image, 56)
+    end
+  end)
+  if mod.log and mod.log.info then
+    mod.log:info("Gen2 screen trainer-art listener registered")
+  end
+
+  -- `battle.started` carries Crystal's model rather than its UI state. Apply
+  -- the resolved portrait to the state currently on the stack on the same
+  -- frame (and once after the push) so runtimes that bypass the constructor
+  -- wrapper still receive the HGSS image.
+  mod.events:on("battle.started", function(payload)
+    if not isGen2() then return end
+    ensureGen2TrainerArtHook()
+    local model = payload and payload.battle
+    local function applyTrainerArt()
+      local state = liveGame and liveGame.stack and liveGame.stack:top()
+      if not state or (model and state.battle ~= model) then return end
+      local trainer = model and model.trainer
+      local classId = state.enemyTrainerClass
+        or (trainer and (trainer.classId or trainer.className or trainer.class))
+      local image, path = selectedBattleTrainerImage(classId)
+      if image and path then
+        state.enemyTrainerImage = image
+        state.enemyTrainerPath = path
+        state.enemyTrainerTrueColor = true
+        state.showEnemyTrainer = true
+        registerGen2BattleScale(state.game and state.game.data,
+          path, image, 56)
+      end
+    end
+    applyTrainerArt()
+    coroutine.wrap(function()
+      coroutine.yield()
+      applyTrainerArt()
+    end)()
+  end)
+
+  -- Final constructor seam for runtimes that replace the Gen2 screen table
+  -- while resolving the screen registry. This runs after all local helpers
+  -- exist and is deliberately idempotent.
+  do
+    local okState, state = pcall(require, "src.ui.gen2.BattleState")
+    if okState and type(state) == "table"
+       and type(state.new) == "function"
+       and not state.__hgssFinalTrainerNewHook then
+      local oldNew = state.new
+      state.new = function(game, opts, ...)
+        if game then liveGame = game; activeGeneration = detectGeneration(game) end
+        local result = oldNew(game, opts, ...)
+        if result and not (opts and opts.tutorial) then
+          local trainer = result.battle and result.battle.trainer
+          local classId = result.enemyTrainerClass
+            or (trainer and (trainer.classId or trainer.className or trainer.class))
+          local image, path = selectedBattleTrainerImage(classId)
+          if image and path then
+            result.enemyTrainerImage = image
+            result.enemyTrainerPath = path
+            result.enemyTrainerTrueColor = true
+            result.showEnemyTrainer = true
+            registerGen2BattleScale(result.game and result.game.data,
+              path, image, 56)
+          end
+        end
+        return result
+      end
+      state.__hgssFinalTrainerNewHook = true
     end
   end
 
@@ -7442,6 +7661,8 @@ return function(mod)
   mod.events:on("game.ready", function(ev)
     liveGame = ev and ev.game
     activeGeneration = detectGeneration(liveGame)
+    ensureGen2TrainerArtHook()
+    installGen2ScreenTrainerArtHook()
     patchGen1WildsFollowerBehind(liveGame)
     if not isGen2(liveGame) then patchGen1TownMapMarkers() end
     mod.__hgssRestorePlayerSelection(liveGame, activeGeneration)
@@ -7457,6 +7678,8 @@ return function(mod)
   end)
   mod.events:on("map.entered", function()
     if isGen2() then
+      ensureGen2TrainerArtHook()
+      installGen2ScreenTrainerArtHook()
       -- Battle Art creates its VoxelScene/billboard exports after game.ready
       -- on some installations. Retry at map entry before the first idle frame
       -- so the Gen2 player cannot be rendered with the oversized stock card.
@@ -7471,6 +7694,8 @@ return function(mod)
   end)
   mod.events:on("map.reloaded", function()
     if isGen2() then
+      ensureGen2TrainerArtHook()
+      installGen2ScreenTrainerArtHook()
       tryPatchVoxelBillboards()
       applyGen2PlayerSelection(liveGame)
       return
@@ -7479,6 +7704,12 @@ return function(mod)
     tryPatchVoxelBillboards()
     applyPlayerSelection(liveGame)
     applyLeaderSprites()
+  end)
+  mod.events:on("world.stepped", function()
+    if isGen2() then
+      ensureGen2TrainerArtHook()
+      installGen2ScreenTrainerArtHook()
+    end
   end)
   mod.events:on("mod.options_changed", function(ev)
     if ev and ev.mod == "HGSS_SPRITES" then

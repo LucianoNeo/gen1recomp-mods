@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.1.6
+
+- Replaced the remaining Crystal battle trainer fallbacks with authored HGSS
+  portraits for Blackbelt, Cal, Champion, Rocket Grunts, Eusine, Red,
+  Swimmer♀ and Teacher; Will continues to use the dedicated HGSS portrait.
+- Added the Crystal-only portrait assets with pinned Showdown HGSS source
+  credits and preserved each asset's authored dimensions.
+- Fixed the HGSS trainer-art bridge so Crystal battles resolve through the
+  selected HGSS path instead of the generated 56×56 native portraits.
+- Kept the mod initializer below the runtime's 200-local limit and verified
+  the release ZIP with mod-scanner: 1,884 files, `CLEAN - PASSED`, zero
+  violations and zero similarity flags.
+
 ## 2.1.5
 
 - Replaced the remaining Gen1 trainer-art direct rips with non-canonical

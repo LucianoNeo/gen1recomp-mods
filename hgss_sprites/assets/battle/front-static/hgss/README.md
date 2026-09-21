@@ -29,6 +29,25 @@ official HGSS-compatible entries documented in the
 They use the same class artwork in HeartGold/SoulSilver even though the
 archive keeps some files under their original DP filename.
 
+The Crystal-only identities below were added from the same pinned Showdown
+HGSS collection (`0e1f57f4234f20b999dbb442dac1093b445e0088`):
+
+| File(s) | HGSS source / mapping |
+| --- | --- |
+| `blackbelt.png` | `Blackbelt.png` |
+| `cal.png` | `Ethan.png` (Cal uses Ethan's HGSS trainer portrait) |
+| `champion` resolver alias | `lance.png` |
+| `eusine.png` | `Eusine.png` |
+| `red.png` | `Red.png` |
+| `rocket-grunt-f.png`, `rocket-grunt-m.png` | `Rocket_Grunt~F.png`, `Rocket_Grunt.png` |
+| `swimmer-f.png` | `Swimmer~F.png` |
+| `teacher.png` | `Teacher.png` |
+
+These mappings replace the generated Crystal fallback portraits for
+`BLACKBELT_T`, `CAL`, `CHAMPION`, `MYSTICALMAN`, `RED`, `GRUNTF`, `GRUNTM`,
+`SWIMMERF` and `TEACHER`.  The class-specific aliases are resolved in
+`main.lua` without changing the source image dimensions.
+
 ## Gen1 compatibility portraits
 
 The Gen1 trainer-art selector now has a portrait file for every legacy
