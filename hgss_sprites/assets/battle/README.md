@@ -31,10 +31,12 @@ a file for every legacy Gen1 trainer class; its identity-specific additions
 and their sources are listed in
 [`front-static/hgss/README.md`](front-static/hgss/README.md).
 
-The corresponding `animated_battle_sprites_gen2_shiny.lua` through
+The corresponding `animated_battle_sprites_gen5.lua` and
 `animated_battle_sprites_gen5_shiny.lua` files contain the atlas dimensions,
-frame counts and timing metadata needed to animate those collections without
-loading Battle Art at runtime.
+frame counts and timing metadata needed to animate the shipped collection
+without loading Battle Art at runtime. The retired Gen2–Gen4 Battle Art
+collections are intentionally not bundled; those games fall back to their
+native artwork when the active collection does not apply.
 
 The player battle trainer is selected by the HGSS mod's `PLAYER SELECT` option:
 `RED` uses `redplayer.png`, `ASH` uses `ashplayer.png`, `ETHAN` uses the

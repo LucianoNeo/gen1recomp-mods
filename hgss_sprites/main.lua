@@ -1720,9 +1720,7 @@ return function(mod)
       .. (shiny and ":shiny" or ":normal")
     if battleDataCache[key] == nil then
       local file
-      if side == "back" and gen == "gen3" and not shiny then
-        file = "animated_battle_backs_gen3.lua"
-      elseif gen ~= "gen1" then
+      if gen == "gen5" then
         file = "animated_battle_sprites_" .. gen
           .. (shiny and "_shiny" or "") .. ".lua"
       end

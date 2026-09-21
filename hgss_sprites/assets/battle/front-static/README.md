@@ -1,33 +1,14 @@
-# Front static battle art
+# Static trainer front art
 
-Drop `<species>.png` files here, for example `caterpie.png` or `mr-mime.png`.
-Files may use any pixel dimensions. Existing alpha is preserved; a fully
-opaque image has its corner-coloured, border-connected background keyed out.
-
-These local PNGs are ignored by Git. Missing or invalid files fall back to the
-ROM sprite. Enemy sprites are used as authored (facing left).
-Static species fronts preserve their authored brightness and colour in staged
-battles: day/night tint is omitted for these PNGs, while display filters,
-hit effects, depth occlusion, lighting and alpha-shaped shadows still apply.
-
-## Gen 1 filename exceptions
-
-Most species use their ordinary lowercase name (`pikachu.png`). These four
-engine names need the following exact filenames:
-
-| Species | Expected filename | Do not use |
-| --- | --- | --- |
-| Mr. Mime | `mr-mime.png` | `mrmime.png`, `mr.mime.png` |
-| Farfetch’d | `farfetchd.png` | `farfetched.png`, `farfetch-d.png` |
-| Nidoran♀ | `nidoran-f.png` | `nidoran.png`, `nidoran-female.png` |
-| Nidoran♂ | `nidoran-m.png` | `nidoran.png`, `nidoran-male.png` |
-
-Filenames are lowercase. The same names apply in every battle-art folder.
+Only the HGSS trainer portraits under `hgss/` are bundled here. Both Gen 1 and
+Gen 2 use this collection when `TRAINER ART: HGSS` is enabled; `ROM` restores
+the original trainer picture. A missing class falls back to the ROM portrait.
+Pokémon species fronts are supplied by the active Gen 5 animated collection,
+not by this directory.
 
 ## Static opponent trainer fronts
 
-Opponent trainer pictures are never animated. The generation folders are
-retained for compatibility with older packages. Both Gen 1 and Gen 2's
+Opponent trainer pictures are never animated. Both Gen 1 and Gen 2's
 `TRAINER ART` option use the dedicated HGSS portraits for supported classes and
 fall back to the ROM portrait when a class has no replacement. The filename is
 the engine
@@ -53,9 +34,6 @@ Yellow's special Rocket pair uses `jessie-james.png`; other Rocket trainers
 use `rocket.png`. A missing file in the selected set retains the ROM trainer
 picture. The runtime does not borrow it from either of the retired generation
 sets.
-
-The front static sprites work differently than animated, to allow mix & match.
-Basically put any rightsized sprite named in here, and it will be in the game.
 
 The Gen 2 HGSS class portraits are in `hgss/`.  In addition to the named Gym
 Leaders and Elite Four, this directory covers every regular Crystal trainer
