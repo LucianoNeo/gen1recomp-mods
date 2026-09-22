@@ -1,4 +1,4 @@
-# HGSS_SPRITES 2.1.6
+# HGSS_SPRITES 2.1.7
 
 This directory is the importable `HGSS_SPRITES` mod for Pokémon Red, Blue,
 Yellow and the supported Gold/Silver/Crystal runtime on g1recomp. The project overview, current screenshots and companion-mod links
@@ -23,6 +23,9 @@ are in the [repository README](../README.md).
   the `OW_WILD_*` resolver and all Gen 1 records remain untouched. See
   [`assets/gen2/pokemon-overworld/README.md`](assets/gen2/pokemon-overworld/README.md).
 - Grounding and lighting behavior for both the 2D and Voxel renderers.
+- Crystal Party and PC menus use the real HGSS shiny icon sheets for all 251
+  species, generated from Wilds of Kanto true-size shiny overworld assets;
+  static menu icons omit the source animation's transient sparkle overlay.
 - The only bundled Pokémon battle-art option is the Gen 5 animated atlas
   (`GEN 5 ANIMATED`). `ROM` restores the engine's original front/back art;
   missing species or unsupported legacy settings fall back automatically.

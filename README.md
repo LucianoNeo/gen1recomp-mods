@@ -1,11 +1,11 @@
 # HGSS Visual Overhaul for Gen1Recomp
 
-![Version 2.1.6](https://img.shields.io/badge/version-2.1.6-gold)
+![Version 2.1.7](https://img.shields.io/badge/version-2.1.7-gold)
 ![Game](https://img.shields.io/badge/game-Pok%C3%A9mon%20Red%20%7C%20Blue%20%7C%20Yellow%20%7C%20Gold%20%7C%20Silver%20%7C%20Crystal-red)
 
 HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bryanthaboi/gen1recomp). It brings HeartGold/SoulSilver-inspired character art, full-color Pokémon artwork and animated interface assets to Pokémon Red, Blue, Yellow, Gold, Silver and Crystal while preserving each game's logic and map geometry.
 
-## What version 2.1.6 provides
+## What version 2.1.7 provides
 
 ### Overworld
 
@@ -32,6 +32,8 @@ HGSS Visual Overhaul is a visual companion for [g1recomp](https://github.com/bry
 - Animated and full-color artwork is kept at native source quality, with transparent backgrounds for Voxel billboards.
 - Shiny front artwork is included wherever the selected generation provides it, with safe fallback to the normal artwork.
 - Battle front/back options expose only `GEN 5 ANIMATED` or `ROM`.
+- Crystal Party and PC menus use real HGSS shiny icon sheets for all 251
+  species instead of recoloring the normal icon at runtime.
 
 ### Menus and icons
 
@@ -148,7 +150,7 @@ player centered below them.
 
 Download the matching release package, then import the `HGSS_SPRITES` folder
 from the g1recomp Mods screen. Version `1.0.5` is the Gen1 release line;
-version `2.1.6` is the current Gold/Silver/Crystal release with the fixes
+version `2.1.7` is the current Gold/Silver/Crystal release with the fixes
 described above. Enable
 the mod for the target game and restart after changing presentation options.
 

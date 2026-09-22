@@ -5482,6 +5482,9 @@ return function(mod)
   local hgssPartyDrawIcon
   local partyIconImages = {}
   local partyIconQuads = {}
+  -- Keep real Gen2 shiny icon images separate from the normal path cache so
+  -- toggling shiny state on a live record never reuses the blue/normal icon.
+  local partyShinyIcons = {}
   local partyIconRoot = mod.assets:path("assets/icons/")
   local originalPartyIcons = setmetatable({}, { __mode = "k" })
 
@@ -5618,8 +5621,108 @@ return function(mod)
     end
   end
 
-  local function loadPartyIcon(path)
+  local function loadPartyIcon(path, game, mon)
     local resolved = PartyAssets.resolve(path)
+
+    -- Gold/Silver/Crystal shiny records use the real HGSS shiny icon sheets
+    -- generated from Wilds of Kanto's true_size/hgss overworld package. The
+    -- two idle frames are already baked at 32x32, matching the normal icon
+    -- registry; no palette approximation is used when these files exist.
+    if mon and isGen2(game) and battleIsShiny(mon) then
+      local species = tostring(mon.species or ""):upper()
+      local shinyKey = resolved .. "|" .. species
+      local cached = partyShinyIcons[shinyKey]
+      if cached then return cached.image, cached.quads end
+
+      local dex = game and game.data and game.data.pokemon
+        and game.data.pokemon[mon.species]
+        and game.data.pokemon[mon.species].dex
+      local shinyPath = dex and mod.assets:path(("assets/icons/shiny/%03d.png")
+        :format(tonumber(dex) or 0)) or nil
+      if shinyPath then
+        local okImage, shinyImage = pcall(love.graphics.newImage, shinyPath)
+        if okImage and shinyImage then
+          if shinyImage.setFilter then shinyImage:setFilter("nearest", "nearest") end
+          local iw, ih = shinyImage:getDimensions()
+          if iw >= 32 and ih >= 64 then
+            local q0 = love.graphics.newQuad(0, 0, 32, 32, iw, ih)
+            local q1 = love.graphics.newQuad(0, 32, 32, 32, iw, ih)
+            local result = { image = shinyImage, quads = { [0] = q0, [1] = q1 } }
+            partyShinyIcons[shinyKey] = result
+            return result.image, result.quads
+          end
+        end
+      end
+
+      local okPalette, Palettes = pcall(require, "src.world.gen2.Palettes")
+      local okColors, colors = false, nil
+      if okPalette and Palettes and type(Palettes.monColors) == "function" then
+        okColors, colors = pcall(Palettes.monColors,
+          game and game.data and game.data.gen2Palettes,
+          mon.species, true)
+      end
+      if okColors and type(colors) == "table"
+          and type(colors[2]) == "table" and type(colors[3]) == "table" then
+        local okImage, shinyImage = pcall(function()
+          local id = PartyAssets.imageData(resolved)
+          local byte = false
+          local iw0, ih0 = id:getWidth(), id:getHeight()
+          for py = 0, math.min(ih0 - 1, 7) do
+            for px = 0, math.min(iw0 - 1, 31) do
+              local pr, pg, pb, pa = id:getPixel(px, py)
+              if (pr and pr > 1) or (pg and pg > 1)
+                  or (pb and pb > 1) or (pa and pa > 1) then
+                byte = true
+                break
+              end
+            end
+            if byte then break end
+          end
+          local function channel(value)
+            return byte and value / 255 or value
+          end
+          local function outputColor(value)
+            return byte and value or value / 255
+          end
+          id:mapPixel(function(_, _, r, g, b, a)
+            if (byte and a < 1) or ((not byte) and a < 0.001) then
+              return r, g, b, a
+            end
+            local R, G, B = channel(r), channel(g), channel(b)
+            -- Keep the black outline/shadow and white highlight exactly as
+            -- authored; only the two colored body shades are palette-swapped.
+            if R < 0.08 and G < 0.08 and B < 0.08 then
+              return r, g, b, a
+            end
+            if R > 0.92 and G > 0.92 and B > 0.92 then
+              return byte and 255 or 1, byte and 255 or 1,
+                byte and 255 or 1, a
+            end
+            local luma = 0.299 * R + 0.587 * G + 0.114 * B
+            local color = luma >= 0.55 and colors[2] or colors[3]
+            return outputColor(color[1]), outputColor(color[2]),
+              outputColor(color[3]), a
+          end)
+          local image = love.graphics.newImage(id)
+          if image.setFilter then image:setFilter("nearest", "nearest") end
+          return image
+        end)
+        if okImage and shinyImage then
+          local iw, ih = shinyImage:getDimensions()
+          if iw >= 32 and ih >= 32 then
+            local q0 = love.graphics.newQuad(0, 0, 32, 32, iw, ih)
+            local q1 = ih >= 64
+              and love.graphics.newQuad(0, 32, 32, 32, iw, ih) or q0
+            local result = { image = shinyImage, quads = { [0] = q0, [1] = q1 } }
+            partyShinyIcons[shinyKey] = result
+            return result.image, result.quads
+          end
+        end
+      end
+      -- If a custom data pack has no Gen2 palette row, fall through to the
+      -- normal loader rather than hiding the Pokémon or drawing a bad crop.
+    end
+
     if partyIconImages[resolved] == nil then
       local ok, image = pcall(love.graphics.newImage, resolved)
       if ok and image and image.setFilter then
@@ -5656,7 +5759,7 @@ return function(mod)
     if not mon or mod.options:get(optionKey or "party_menu") == false then return end
     local entry = partyIconEntryFor(game, mon)
     if not entry then return end
-    local image, quads = loadPartyIcon(entry.image)
+    local image, quads = loadPartyIcon(entry.image, game, mon)
     if not image or not quads then return end
     local frame = math.floor((tonumber(clock) or (love.timer.getTime() * 32)) / 16) % 2
     local quad = quads[frame] or quads[0]
@@ -5833,7 +5936,7 @@ return function(mod)
           ListFont.draw(":L" .. tostring(mon.level or 1), 120, nameY)
           local entry = partyIconEntryFor(self and self.game, mon)
           if entry then
-            local image, quads = loadPartyIcon(entry.image)
+            local image, quads = loadPartyIcon(entry.image, self and self.game, mon)
             local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
             local quad = quads and (quads[frame] or quads[0])
             if image and quad then
@@ -5907,7 +6010,7 @@ return function(mod)
     if not isHgssPartyIcon(path) then
       return oldPartyDrawIcon(game, mon, x, y, selected, counter, forceAlt)
     end
-    local image, quads = loadPartyIcon(path)
+    local image, quads = loadPartyIcon(path, game, mon)
     if not image or not quads then return end
     local alt = forceAlt and true or false
     if selected then
@@ -6091,7 +6194,7 @@ return function(mod)
         local entry = partyIconEntryFor(self and self.game, mon)
         if mon and entry then
           local path = entry.image
-          local image, quads = loadPartyIcon(path)
+          local image, quads = loadPartyIcon(path, self and self.game, mon)
           local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
           local quad = quads and (quads[frame] or quads[0])
           if image and quad then
@@ -6135,7 +6238,7 @@ return function(mod)
       local entry = partyIconEntryFor(self and self.game, mon)
       if mon and entry then
         local path = entry.image
-        local image, quads = loadPartyIcon(path)
+        local image, quads = loadPartyIcon(path, self and self.game, mon)
         local frame = math.floor((love.timer.getTime() or 0) * 2) % 2
         local quad = quads and (quads[frame] or quads[0])
         if image and quad then

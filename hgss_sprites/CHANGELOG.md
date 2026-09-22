@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.7
+
+- Added real HGSS shiny icon sheets for all 251 Pokémon to the Crystal Party
+  and PC menus, sourced from Wilds of Kanto's true-size HGSS overworld assets.
+- Removed the source animation's transient sparkle overlay from static menu
+  icons so shiny Pokémon display cleanly without palette-only recoloring.
+- Verified shiny Gyarados, Cyndaquil and Zubat in Party and PC captures, with
+  all 251 icon sheets present at the expected 32×64 dimensions.
+
 ## 2.1.6
 
 - Replaced the remaining Crystal battle trainer fallbacks with authored HGSS
